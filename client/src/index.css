@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@import "tailwindcss";
+
+/* Base typography and colors */
+html, body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Theme-aware base using CSS variables to avoid build-time directives */
+html {
+  --bg-color: #ffffff;
+  --fg-color: #0b1220; /* slightly deeper than slate-900 for contrast */
+  --muted-color: #334155; /* slate-700 for stronger legibility */
+  --muted-fg: #334155; /* alias used in components */
+  --card-bg: #ffffff; /* solid card on light for crisp contrast */
+  --card-border: rgba(15, 23, 42, 0.14); /* stronger contrast in light mode */
+  --overlay-bg: rgba(255, 255, 255, 0.8);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --hero-from: #f8fafc; /* slate-50 */
+  --hero-to: #ffffff;
+  --code-bg: #f3f4f6; /* gray-100 */
+  --code-fg: #111827; /* gray-900 */
+  --input-bg: #f8fafc; /* light mode inputs slightly tinted to separate from white cards */
+  --ring: 99 102 241; /* indigo-500 as focus ring */
+}
+html.dark {
+  --bg-color: #0a0f1d; /* deep navy for clear dark */
+  --fg-color: #ffffff;
+  --muted-color: #a6b3c8; /* softer slate for legibility */
+  --muted-fg: #a6b3c8;
+  --card-bg: #0f172a; /* solid slate-900 card */
+  --card-border: rgba(148, 163, 184, 0.22);
+  --overlay-bg: rgba(2, 6, 23, 0.75);
+  --border-strong: rgba(255, 255, 255, 0.08);
+  --hero-from: #070b14; /* darker hero gradient */
+  --hero-to: #0b1220;
+  --code-bg: rgba(15, 23, 42, 0.75);
+  --code-fg: #cbd5e1; /* slate-300 */
+  --input-bg: #111827; /* slate-900 slightly lighter than card */
+  --ring: 168 85 247; /* purple-500 for focus on dark */
+}
+body {
+  background-color: var(--bg-color);
+  color: var(--fg-color);
+}
+
+/* Global pastel background for light mode to avoid pure white glare */
+html:not(.dark) body {
+  background-image:
+    radial-gradient(1200px 600px at 100% -10%, rgba(245, 208, 254, 0.35), transparent 60%),
+    radial-gradient(1000px 500px at -10% 110%, rgba(191, 219, 254, 0.35), transparent 55%),
+    linear-gradient(to bottom, var(--hero-from), var(--hero-to));
+  background-attachment: fixed;
+}
+
+/* Theme helpers */
+.text-muted { color: var(--muted-color); }
+.border-theme { border-color: var(--card-border); }
+.themed-overlay { background-color: var(--overlay-bg); }
+.theme-hero { background-image: linear-gradient(to bottom, var(--hero-from), var(--hero-to)); }
+.themed-code { background-color: var(--code-bg); color: var(--code-fg); }
+.themed-code { border: 1px solid var(--card-border); border-radius: 12px; }
+
+/* Opaque, theme-aware header to avoid gray tinting over hero backgrounds */
+.themed-header {
+  background-color: var(--bg-color);
+  border-bottom: 1px solid var(--border-strong);
+  /* Keep a tiny bit of polish without transparency */
+  backdrop-filter: saturate(140%) blur(8px);
+}
+
+/* Ensure selects inside header honor the theme */
+html.dark .themed-header select {
+  background-color: #0b0b0f; /* match dark bg */
+  color: #e5e7eb; /* slate-200 */
+}
+html.dark .themed-header option { color: #e5e7eb; background-color: #0b0b0f; }
+html:not(.dark) .themed-header select { background-color: #ffffff; color: #0b1220; }
+
+/* Make header nav links clearly visible in dark mode */
+html.dark .themed-header nav a,
+html.dark .themed-header nav a:visited {
+  color: #ffffff !important;
+}
+html.dark .themed-header nav a:hover {
+  color: #ffffff !important;
+  opacity: 1;
+}
+
+/* Smooth, professional fade */
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Subtle scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(148,163,184,0.08); }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.5); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.7); }
+
+/* Reusable card and button styles */
+.card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; backdrop-filter: blur(12px); }
+html:not(.dark) .card { background: rgba(255,255,255,0.92); }
+.card:hover { border-color: rgba(99,102,241,0.25); }
+.btn-primary { background: linear-gradient(90deg, #7c3aed, #2563eb); color: #fff; font-weight: 600; border-radius: 12px; padding: 12px 24px; transition: all .2s; box-shadow: 0 6px 18px rgba(99,102,241,0.22); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(99,102,241,0.28); }
+.btn-secondary { background: transparent; color: var(--fg-color); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px 20px; transition: all .18s; }
+.btn-secondary:hover { border-color: rgba(99,102,241,0.35); background: rgba(99,102,241,0.06); }
+
+/* Inputs & selects */
+.input { width: 100%; background: var(--input-bg); color: var(--fg-color); border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 12px; outline: none; transition: box-shadow .15s, border-color .15s; }
+.input:focus { border-color: rgba(99,102,241,0.6); box-shadow: 0 0 0 3px rgba(var(--ring) / 0.25); }
+.select { background: var(--input-bg); color: var(--fg-color); border: 1px solid var(--card-border); border-radius: 10px; padding: 6px 8px; }
+
+/* Header nav links */
+.nav-link { position: relative; color: var(--fg-color); opacity: 0.85; transition: color .15s, opacity .15s; }
+.nav-link:hover { opacity: 1; }
+.nav-link.active { opacity: 1; }
+.nav-link.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 2px; background: linear-gradient(90deg, #7c3aed, #2563eb); border-radius: 999px; }
+
+/* Subtle elevation */
+.soft-shadow { box-shadow: 0 8px 24px rgba(2,6,23,0.12); }
+html:not(.dark) .soft-shadow { box-shadow: 0 10px 24px rgba(2,6,23,0.06); }
+
+/* Hero pattern for light mode to add depth without noise */
+html:not(.dark) .theme-hero {
+  background-image: radial-gradient(1200px 600px at 100% -10%, #ede9fe33, transparent 60%),
+    radial-gradient(1000px 500px at -10% 110%, #dbeafe33, transparent 55%),
+    linear-gradient(to bottom, var(--hero-from), var(--hero-to));
+}
+html.dark .theme-hero {
+  background-image: radial-gradient(1100px 550px at 110% -10%, rgba(147,51,234,0.08), transparent 60%),
+    radial-gradient(1000px 500px at -10% 110%, rgba(59,130,246,0.08), transparent 55%),
+    linear-gradient(to bottom, var(--hero-from), var(--hero-to));
+}
+
+/* Pastel tint helpers (light mode only) for clear section separation */
+html:not(.dark) .tint-blue {
+  background-image: radial-gradient(120% 140% at 0% 0%, rgba(191,219,254,0.75), rgba(255,255,255,0.9) 55%);
+  border-color: rgba(59,130,246,0.35) !important; /* sky-500 */
+}
+html:not(.dark) .tint-violet {
+  background-image: radial-gradient(120% 140% at 100% 0%, rgba(229,231,255,0.85), rgba(255,255,255,0.92) 55%);
+  border-color: rgba(99,102,241,0.35) !important; /* indigo-500 */
+}
+html:not(.dark) .tint-rose {
+  background-image: radial-gradient(120% 140% at 0% 100%, rgba(254,205,211,0.8), rgba(255,255,255,0.92) 55%);
+  border-color: rgba(244,63,94,0.28) !important; /* rose-500 */
+}
+/* Optional darker outline for contrast on very light screens */
+html:not(.dark) .tint-outline { box-shadow: 0 1px 0 0 rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.06); }

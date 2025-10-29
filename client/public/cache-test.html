@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache Test - Direct HTML</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+            background-size: 400% 400%;
+            animation: gradientShift 3s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .container {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 700px;
+            border: 5px solid #ff6b6b;
+        }
+        
+        .title {
+            font-size: 3.5rem;
+            color: #333;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .subtitle {
+            font-size: 2rem;
+            color: #ff6b6b;
+            margin-bottom: 2rem;
+            font-weight: bold;
+        }
+        
+        .time {
+            font-size: 1.8rem;
+            color: #666;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 3px solid #4ecdc4;
+        }
+        
+        .buttons {
+            margin: 2rem 0;
+        }
+        
+        .btn {
+            border: none;
+            padding: 1.5rem 3rem;
+            font-size: 1.8rem;
+            border-radius: 15px;
+            cursor: pointer;
+            margin: 0 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-login {
+            background: #ff6b6b;
+            color: white;
+            box-shadow: 0 8px 20px rgba(255,107,107,0.4);
+        }
+        
+        .btn-signup {
+            background: #4ecdc4;
+            color: white;
+            box-shadow: 0 8px 20px rgba(78,205,196,0.4);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+        }
+        
+        .message {
+            margin-top: 2rem;
+            padding: 2rem;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            font-size: 1.3rem;
+            color: #333;
+            border: 3px solid #45b7d1;
+            line-height: 1.6;
+        }
+        
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🚀 DIRECT HTML TEST 🚀</h1>
+        <h2 class="subtitle">Browser Cache Bypass Test</h2>
+        <div class="time" id="currentTime">Loading time...</div>
+        
+        <div class="buttons">
+            <button class="btn btn-login">🔐 LOGIN TO MONGODB</button>
+            <button class="btn btn-signup">📝 REGISTER NEW USER</button>
+        </div>
+        
+        <div class="message">
+            <div class="success">✅ SUCCESS: If you can see this animated colorful page, your browser is working!</div>
+            <div class="error">❌ PROBLEM: If you still see the old gray "AI Code Optimizer" page, try:</div>
+            <ul style="text-align: left; margin-top: 1rem;">
+                <li><strong>Hard Refresh:</strong> Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac)</li>
+                <li><strong>Private Mode:</strong> Ctrl+Shift+N for incognito/private browsing</li>
+                <li><strong>Different Browser:</strong> Try Chrome, Firefox, or Edge</li>
+                <li><strong>Clear Data:</strong> Clear browser cache and cookies for localhost</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Update time every second to prove this is live content
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = 
+                '🕐 Current Time: ' + now.toLocaleString() + ' (Live Updates!)';
+        }
+        
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // Add click handlers for demo
+        document.querySelector('.btn-login').addEventListener('click', () => {
+            alert('🎉 LOGIN BUTTON WORKS! This confirms JavaScript is running and the page is live!');
+        });
+        
+        document.querySelector('.btn-signup').addEventListener('click', () => {
+            alert('🎉 SIGNUP BUTTON WORKS! Ready to implement MongoDB authentication!');
+        });
+    </script>
+</body>
+</html>

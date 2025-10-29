@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Export Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 AI Code Optimizer - PDF Export Test</h1>
+        
+        <p>This page tests the new PDF export functionality.</p>
+        
+        <div>
+            <h3>📋 Available Tests:</h3>
+            <button onclick="testPDFExport()" id="pdfBtn">Test PDF Export (Requires Auth)</button>
+            <button onclick="testBasicAPI()">Test Basic API Connection</button>
+            <button onclick="testAuthStatus()">Check Auth Status</button>
+        </div>
+        
+        <div id="result"></div>
+        
+        <div style="margin-top: 30px;">
+            <h3>📖 How to test:</h3>
+            <ol>
+                <li>First, log into your AI Code Optimizer account in another tab</li>
+                <li>Copy your auth token from localStorage</li>
+                <li>Click "Test PDF Export" button above</li>
+                <li>If successful, a PDF will be downloaded automatically</li>
+            </ol>
+            
+            <details style="margin-top: 20px;">
+                <summary>🔧 Manual Testing Instructions</summary>
+                <div style="margin-top: 10px; font-family: monospace; background: #f1f1f1; padding: 10px; border-radius: 4px;">
+                    <p><strong>1. Get your auth token:</strong></p>
+                    <pre>// In browser console (F12):
+localStorage.getItem('auth_token')</pre>
+                    
+                    <p><strong>2. Test with curl:</strong></p>
+                    <pre>curl -H "Authorization: Bearer YOUR_TOKEN" \
+     -o export.pdf \
+     http://127.0.0.1:8001/profile/export-pdf</pre>
+                     
+                    <p><strong>3. Check the downloaded PDF</strong></p>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001';
+        
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+        
+        function getAuthToken() {
+            // Try to get from localStorage (if running from same domain)
+            return localStorage.getItem('auth_token') || prompt('Enter your auth token:');
+        }
+        
+        async function testBasicAPI() {
+            try {
+                showResult('🔄 Testing basic API connection...', 'info');
+                const response = await fetch(`${API_BASE}/`);
+                const data = await response.text();
+                
+                if (response.ok) {
+                    showResult(`✅ API is running! Response: ${data}`, 'success');
+                } else {
+                    showResult(`❌ API returned error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Connection failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAuthStatus() {
+            const token = getAuthToken();
+            if (!token) {
+                showResult('❌ No auth token provided', 'error');
+                return;
+            }
+            
+            try {
+                showResult('🔄 Testing authentication...', 'info');
+                const response = await fetch(`${API_BASE}/profile/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`✅ Authenticated as: ${data.name} (${data.email})`, 'success');
+                } else {
+                    showResult(`❌ Authentication failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Auth test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testPDFExport() {
+            const token = getAuthToken();
+            if (!token) {
+                showResult('❌ No auth token provided', 'error');
+                return;
+            }
+            
+            const pdfBtn = document.getElementById('pdfBtn');
+            pdfBtn.disabled = true;
+            pdfBtn.textContent = '⏳ Generating PDF...';
+            
+            try {
+                showResult('🔄 Generating PDF export... This may take a few seconds.', 'info');
+                
+                const response = await fetch(`${API_BASE}/profile/export-pdf`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    
+                    // Create download link
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `ai_code_optimizer_export_${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    showResult(`✅ PDF exported successfully! File size: ${(blob.size / 1024).toFixed(1)} KB`, 'success');
+                } else {
+                    const error = await response.text();
+                    showResult(`❌ PDF export failed: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ PDF export error: ${error.message}`, 'error');
+            } finally {
+                pdfBtn.disabled = false;
+                pdfBtn.textContent = 'Test PDF Export (Requires Auth)';
+            }
+        }
+        
+        // Auto-test basic connection on load
+        document.addEventListener('DOMContentLoaded', () => {
+            testBasicAPI();
+        });
+    </script>
+</body>
+</html>
