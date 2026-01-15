@@ -91,11 +91,11 @@ const AuthPage = () => {
             {!isLogin && <p className="text-xs text-muted mt-1">At least 8 characters with letters and numbers</p>}
             {isLogin && (
               <div className="mt-2 text-right">
-                <button type="button" onClick={()=>navigate('/forgot-password')} className="text-xs text-purple-600 dark:text-purple-400 hover:opacity-90">Forgot password?</button>
+                <button type="button" onClick={()=>navigate('/forgot-password')} className="text-xs text-teal-600 dark:text-teal-400 hover:opacity-90">Forgot password?</button>
               </div>
             )}
           </div>
-          <button type="submit" disabled={loading} className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+          <button type="submit" disabled={loading} className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white hover:from-teal-500 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
             {loading ? 'Processing...' : (isLogin ? 'Sign in' : 'Create account')}
           </button>
         </form>
@@ -103,7 +103,7 @@ const AuthPage = () => {
         <div className="mt-6 text-center">
           <p className="text-muted">
             {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className="text-purple-600 dark:text-purple-400 hover:opacity-90 font-medium">
+            <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className="text-teal-600 dark:text-teal-400 hover:opacity-90 font-medium">
               {isLogin ? 'Sign up' : 'Sign in'}
             </button>
           </p>

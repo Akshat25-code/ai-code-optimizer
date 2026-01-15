@@ -13,6 +13,7 @@ const PhoneLoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [toasts, setToasts] = useState([]); // {id, type: 'success'|'error'|'info', message}
   const [openDD, setOpenDD] = useState(false);
   const [search, setSearch] = useState('');
   const [step, setStep] = useState(1); // 1: phone+name, 2: otp, 3: password
@@ -49,6 +50,12 @@ const PhoneLoginPage = () => {
   }, [step]);
 
   const maskPhone = (p) => p.replace(/^(\+\d{2,3})(\d+)(\d{2})$/, (_, cc, mid, last) => `${cc}${'*'.repeat(Math.max(0, mid.length))}${last}`);
+
+  const addToast = (type, message) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3200);
+  };
 
   const filteredCountries = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -95,13 +102,17 @@ const PhoneLoginPage = () => {
       const data = await resp.json().catch(()=>({}));
       if (resp.ok) {
         setInfo('OTP sent to your phone.');
+        addToast('success', 'OTP sent to your phone');
         setStep(2);
         setResendIn(60); // backend throttle window
       } else {
-        setError(data.detail || 'Failed to send OTP');
+        const msg = data.detail || 'Failed to send OTP';
+        setError(msg);
+        addToast('error', msg);
       }
     } catch (e) {
       setError('Network error while requesting OTP');
+      addToast('error', 'Network error while requesting OTP');
     } finally {
       setLoading(false);
     }
@@ -121,12 +132,16 @@ const PhoneLoginPage = () => {
       const data = await resp.json().catch(()=>({}));
       if (resp.ok) {
         setInfo('Phone verified. Set/enter your password to continue.');
+        addToast('success', 'Phone verified');
         setStep(3);
       } else {
-        setError(data.detail || 'Invalid or expired OTP');
+        const msg = data.detail || 'Invalid or expired OTP';
+        setError(msg);
+        addToast('error', msg);
       }
     } catch (e) {
       setError('Network error while verifying OTP');
+      addToast('error', 'Network error while verifying OTP');
     } finally {
       setLoading(false);
     }
@@ -144,12 +159,27 @@ const PhoneLoginPage = () => {
     if (name.trim()) payload.name = name.trim();
     const res = await login(payload);
     setLoading(false);
-    if (res.success) navigate(from, { replace: true }); else setError(res.error || 'Login failed');
+    if (res.success) {
+      addToast('success', 'Signed in successfully');
+      navigate(from, { replace: true });
+    } else {
+      const msg = res.error || 'Login failed';
+      setError(msg);
+      addToast('error', msg);
+    }
   };
 
   return (
     <AuthLayout>
       <div className="card rounded-2xl p-8 soft-shadow fade-in">
+          {/* Toasts */}
+          <div className="fixed top-4 right-4 z-50 space-y-2">
+            {toasts.map(t => (
+              <div key={t.id} className={`px-4 py-2 rounded-lg shadow text-sm ${t.type==='error' ? 'bg-red-600 text-white' : t.type==='success' ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-100'}`}>
+                {t.message}
+              </div>
+            ))}
+          </div>
           <h1 className="text-2xl font-semibold mb-1" style={{color:'var(--fg-color)'}}>Sign in with phone</h1>
           <p className="text-sm text-muted mb-6">
             {step === 1 && 'Enter your phone number and your name (for new accounts).'}
@@ -158,15 +188,15 @@ const PhoneLoginPage = () => {
           </p>
           <div className="mb-4 text-xs" style={{color:'var(--muted-fg)'}}>
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-theme">
-              <span className={`w-2 h-2 rounded-full ${step>=1?'bg-purple-500':'bg-gray-300'}`} /> Step 1
+              <span className={`w-2 h-2 rounded-full ${step>=1?'bg-teal-500':'bg-gray-300'}`} /> Step 1
             </span>
             <span className="mx-2 opacity-60">→</span>
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-theme">
-              <span className={`w-2 h-2 rounded-full ${step>=2?'bg-purple-500':'bg-gray-300'}`} /> Step 2
+              <span className={`w-2 h-2 rounded-full ${step>=2?'bg-teal-500':'bg-gray-300'}`} /> Step 2
             </span>
             <span className="mx-2 opacity-60">→</span>
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-theme">
-              <span className={`w-2 h-2 rounded-full ${step>=3?'bg-purple-500':'bg-gray-300'}`} /> Step 3
+              <span className={`w-2 h-2 rounded-full ${step>=3?'bg-teal-500':'bg-gray-300'}`} /> Step 3
             </span>
           </div>
           {error && <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded mb-4 text-sm">{error}</div>}
@@ -224,7 +254,7 @@ const PhoneLoginPage = () => {
                 <input value={name} onChange={e=>setName(e.target.value)} placeholder="John Doe" className="input" />
                 <p className="mt-1 text-xs text-muted">Only used if a new account is created for your number.</p>
               </div>
-              <button onClick={requestOtp} disabled={loading} className="w-full py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white disabled:opacity-50">
+              <button onClick={requestOtp} disabled={loading} className="w-full py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white disabled:opacity-50">
                 {loading ? 'Sending...' : 'Send OTP'}
               </button>
             </div>
@@ -237,13 +267,13 @@ const PhoneLoginPage = () => {
                 <label className="block text-sm font-medium mb-2" style={{color:'var(--fg-color)'}}>Verification code</label>
                 <input ref={otpRef} inputMode="numeric" pattern="[0-9]*" maxLength={8} value={otp} onChange={e=>setOtp(e.target.value.replace(/\s/g,''))} placeholder="Enter the code" className="w-full tracking-widest text-center text-lg input" style={{letterSpacing:'0.35em', paddingTop:'12px', paddingBottom:'12px'}} />
                 <div className="mt-2 flex items-center justify-between text-xs text-muted">
-                  <button type="button" onClick={()=>setStep(1)} className="text-purple-600 dark:text-purple-400 hover:opacity-90">Change phone</button>
+                  <button type="button" onClick={()=>setStep(1)} className="text-teal-600 dark:text-teal-400 hover:opacity-90">Change phone</button>
                   <button type="button" disabled={resendIn>0 || loading} onClick={requestOtp} className="hover:opacity-90 disabled:opacity-50">{resendIn>0 ? `Resend in ${resendIn}s` : 'Resend OTP'}</button>
                 </div>
               </div>
               <div className="flex gap-2">
                 <button onClick={()=>setStep(1)} type="button" className="flex-1 btn-secondary">Back</button>
-                <button onClick={verifyOtp} disabled={loading || !otp} className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white disabled:opacity-50">{loading ? 'Verifying...' : 'Verify code'}</button>
+                <button onClick={verifyOtp} disabled={loading || !otp} className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white disabled:opacity-50">{loading ? 'Verifying...' : 'Verify code'}</button>
               </div>
             </div>
           )}
@@ -258,13 +288,13 @@ const PhoneLoginPage = () => {
               </div>
               <div className="flex gap-2">
                 <button type="button" onClick={()=>setStep(2)} className="flex-1 btn-secondary">Back</button>
-                <button disabled={loading} className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white disabled:opacity-50">{loading ? 'Signing in...' : 'Sign in'}</button>
+                <button disabled={loading} className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white disabled:opacity-50">{loading ? 'Signing in...' : 'Sign in'}</button>
               </div>
             </form>
           )}
 
           <div className="mt-6 text-center text-sm text-muted">
-            <button type="button" onClick={()=>navigate('/auth')} className="text-purple-600 dark:text-purple-400 hover:opacity-90">Back to email login</button>
+            <button type="button" onClick={()=>navigate('/auth')} className="text-teal-600 dark:text-teal-400 hover:opacity-90">Back to email login</button>
           </div>
     </div>
   </AuthLayout>

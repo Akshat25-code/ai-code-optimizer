@@ -1,26 +1,9 @@
 // API Configuration
-// This file handles API endpoints for both local and network access
+// Single source of truth: src/config.js
 
-const getApiBaseUrl = () => {
-  // Check if we're running in development or production
-  if (import.meta.env.DEV) {
-    // Development mode - check if we're accessing via network IP
-    const currentHost = window.location.hostname;
-    
-    if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-      // Local access - align with backend currently running on 8001
-      return 'http://localhost:8001';
-    } else {
-      // Network access - use the same IP as frontend
-      return `http://${currentHost}:8001`;
-    }
-  } else {
-    // Production mode
-    return `http://${window.location.hostname}:8001`;
-  }
-};
+import { API_BASE as API_BASE_URL } from '../config';
 
-export const API_BASE_URL = getApiBaseUrl();
+export { API_BASE_URL };
 
 // API endpoints
 export const API_ENDPOINTS = {
@@ -55,10 +38,3 @@ export const getNetworkInfo = () => {
     isNetworkAccess: !['localhost', '127.0.0.1'].includes(window.location.hostname)
   };
 };
-
-console.log('🌐 API Configuration:', {
-  baseUrl: API_BASE_URL,
-  networkInfo: getNetworkInfo()
-});
-
-console.log('🔍 All API Endpoints:', API_ENDPOINTS);

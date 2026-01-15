@@ -168,9 +168,9 @@ def get_token_expiry(token: str) -> Optional[datetime]:
     return None
 
 # Initialize on import
-print("🔐 JWT Manager initialized")
+print("JWT Manager initialized")
 print(f"   • Access token expiry: {ACCESS_TOKEN_EXPIRE_MINUTES} minutes")
 print(f"   • Refresh token expiry: {REFRESH_TOKEN_EXPIRE_DAYS} days")
 print(f"   • Algorithm: {JWT_ALGORITHM}")
 if JWT_SECRET_KEY == "your-secret-key-change-in-production":
-    print("   ⚠️  WARNING: Using default JWT secret key. Change in production!")
+    print("   WARNING: Using default JWT secret key. Change in production!")

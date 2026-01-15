@@ -1,7 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+
+const featureLinks = [
+  { path: '/optimization', label: '🚀 Optimization', icon: '🚀' },
+  { path: '/analysis', label: '📊 Analysis', icon: '📊' },
+  { path: '/bug-detection', label: '🐛 Bug Detection', icon: '🐛' },
+  { path: '/documentation', label: '📚 Documentation', icon: '📚' },
+  { path: '/refactoring', label: '🏗️ Refactoring', icon: '🏗️' },
+  { path: '/debugging', label: '🔧 Debugging', icon: '🔧' },
+];
 
 const Header = () => {
   const { user, logout, loading } = useAuth();
@@ -9,17 +18,64 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const atAuth = location.pathname.startsWith('/auth');
+  const [showFeatures, setShowFeatures] = useState(false);
+
+  const isFeaturePage = featureLinks.some(f => location.pathname === f.path);
 
   return (
     <header className="sticky top-0 z-50 w-full themed-header">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link to="/" className="font-bold text-sm sm:text-base bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent hover:opacity-90">
+          <Link to="/" className="font-bold text-sm sm:text-base bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent hover:opacity-90">
             AI Code Optimizer
           </Link>
           <nav className="hidden sm:flex items-center gap-5 text-sm">
             <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
-            <Link to="/optimize" className={`nav-link ${location.pathname.startsWith('/optimize') ? 'active' : ''}`}>Optimize</Link>
+            
+            {/* Features Dropdown */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setShowFeatures(true)}
+              onMouseLeave={() => setShowFeatures(false)}
+            >
+              <button 
+                onClick={() => setShowFeatures(!showFeatures)}
+                className={`nav-link flex items-center gap-1 cursor-pointer ${isFeaturePage ? 'active' : ''}`}
+                type="button"
+              >
+                Features
+                <svg className={`w-4 h-4 transition-transform duration-200 ${showFeatures ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showFeatures && (
+                <div 
+                  className="absolute top-full left-0 mt-1 w-52 rounded-xl shadow-2xl overflow-hidden z-50"
+                  style={{ 
+                    background: 'var(--card-bg)', 
+                    border: '1px solid var(--card-border)',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+                  }}
+                >
+                  {featureLinks.map((f) => (
+                    <Link
+                      key={f.path}
+                      to={f.path}
+                      onClick={() => setShowFeatures(false)}
+                      className={`block px-4 py-3 text-sm hover:bg-teal-500/20 transition-colors border-b last:border-b-0 ${location.pathname === f.path ? 'text-teal-400 bg-teal-500/10' : ''}`}
+                      style={{ 
+                        color: location.pathname === f.path ? undefined : 'var(--fg-color)',
+                        borderColor: 'var(--card-border)'
+                      }}
+                    >
+                      {f.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Link to="/optimize" className={`nav-link ${location.pathname.startsWith('/optimize') ? 'active' : ''}`}>All-in-One</Link>
             {user && (
               <Link to="/profile" className={`nav-link ${location.pathname.startsWith('/profile') ? 'active' : ''}`}>Profile</Link>
             )}
@@ -52,7 +108,7 @@ const Header = () => {
             </div>
           ) : (
             !atAuth && (
-              <button onClick={() => navigate('/auth', { state: { from: window.location.pathname } })} className="text-sm px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-500 hover:to-blue-500 transition-all">
+              <button onClick={() => navigate('/auth', { state: { from: window.location.pathname } })} className="text-sm px-3 py-1.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white hover:from-teal-500 hover:to-emerald-400 transition-all">
                 Sign in
               </button>
             )

@@ -67,7 +67,7 @@ const OverviewTab = ({ profile, onAvatarChange, onSaved }) => {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <button onClick={save} disabled={saving} className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm disabled:opacity-60">{saving? 'Saving…' : 'Save changes'}</button>
+        <button onClick={save} disabled={saving} className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60">{saving? 'Saving…' : 'Save changes'}</button>
         <span className="text-sm text-muted">{msg}</span>
       </div>
     </div>
@@ -406,7 +406,7 @@ const ProfileInfoTab = ({ profile, onUpdated }) => {
         <button 
           onClick={() => saveSection('profile', {bio})} 
           disabled={saving}
-          className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm disabled:opacity-60"
+          className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60"
         >
           {saving ? 'Saving...' : 'Save Bio'}
         </button>
@@ -428,7 +428,7 @@ const ProfileInfoTab = ({ profile, onUpdated }) => {
         <button 
           onClick={() => saveSection('location', {city, country})} 
           disabled={saving}
-          className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm disabled:opacity-60"
+          className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60"
         >
           {saving ? 'Saving...' : 'Save Location'}
         </button>
@@ -459,7 +459,7 @@ const ProfileInfoTab = ({ profile, onUpdated }) => {
         <button 
           onClick={() => saveSection('professional', {job_title: jobTitle, company, experience_level: experienceLevel})} 
           disabled={saving}
-          className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm disabled:opacity-60"
+          className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60"
         >
           {saving ? 'Saving...' : 'Save Professional Info'}
         </button>
@@ -489,7 +489,7 @@ const ProfileInfoTab = ({ profile, onUpdated }) => {
         <button 
           onClick={() => saveSection('social-links', {github, linkedin, twitter, website})} 
           disabled={saving}
-          className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm disabled:opacity-60"
+          className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60"
         >
           {saving ? 'Saving...' : 'Save Social Links'}
         </button>
@@ -523,7 +523,7 @@ const AnalyticsTab = () => {
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-md p-4 border border-theme text-center" style={{background:'var(--card-bg)'}}>
-          <div className="text-2xl font-bold text-purple-600">{analytics.total_sessions}</div>
+          <div className="text-2xl font-bold text-teal-600">{analytics.total_sessions}</div>
           <div className="text-xs text-muted">Total Sessions</div>
         </div>
         <div className="rounded-md p-4 border border-theme text-center" style={{background:'var(--card-bg)'}}>
@@ -640,7 +640,7 @@ const ProfilePage = () => {
             </div>
             <div className="w-full bg-gray-700 rounded-full h-2">
               <div 
-                className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-teal-600 to-emerald-500 h-2 rounded-full transition-all duration-300"
                 style={{width: `${profile?.profile_completion || 0}%`}}
               ></div>
             </div>
@@ -765,7 +765,7 @@ const PhoneTab = ({ profile, onUpdated }) => {
           <label className="block text-xs text-gray-400">Enter OTP</label>
           <div className="flex gap-2">
             <input value={otp} onChange={e=>setOtp(e.target.value.replace(/[^0-9]/g,''))} maxLength={6} placeholder="123456" className="flex-1 bg-gray-900 border border-gray-800 rounded-md px-3 py-2 text-gray-100" />
-            <button onClick={verify} disabled={loading || otp.length!==6} className="px-3 py-1.5 rounded bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs disabled:opacity-40">Verify</button>
+            <button onClick={verify} disabled={loading || otp.length!==6} className="px-3 py-1.5 rounded bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-xs disabled:opacity-40">Verify</button>
           </div>
           {devOtp && (
             <div className="text-xs text-gray-300">Latest OTP (dev): <span className="font-mono">{devOtp}</span></div>

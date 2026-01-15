@@ -1,10 +1,14 @@
 # main.py
 from fastapi import FastAPI, HTTPException, Query
+from fastapi import Request
 import asyncio
+import time
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator
 from ai_service import ask_ai, ProviderConfigError
+from bug_scanner import scan_python, to_json as bug_report_to_json
+from code_runner import run_python, run_code, to_dict as run_result_to_dict
 from simple_enhanced_ai_service import evaluate_code_optimization
 from language_validator import (
     validate_programming_language, 
@@ -32,6 +36,11 @@ app = FastAPI(title="AI Code Optimizer API", version="0.3.0")
 @app.on_event("startup")
 async def startup_event():
     """Initialize MongoDB and indexes on startup"""
+    if os.getenv("SKIP_MONGO_INIT", "0") == "1":
+        print("⚠️  SKIP_MONGO_INIT=1: Skipping MongoDB initialization (dev-only)")
+        print(f"🛠  BACKEND_PORT={BACKEND_PORT}")
+        return
+
     await connect_to_mongo()
     await init_mongodb()
     print("✅ MongoDB authentication initialized")
@@ -92,6 +101,8 @@ class AnalyzeReq(BaseModel):
     language: str
     task: str  # "bug_detection" | "optimization" | "explanation" | "analyze" | "document" | "refactor"
     provider: str | None = None  # "openai" | "claude" | "gemini" | None/auto
+    user_instructions: str | None = None
+    optimization_focus: list[str] | None = None
     
     @validator('language')
     def validate_language(cls, v):
@@ -106,21 +117,148 @@ class AnalyzeRes(BaseModel):
     provider_used: str
     result: str
 
+
+class RunCodeReq(BaseModel):
+    code: str
+    language: str
+    stdin: str | None = None
+    timeout_ms: int | None = 5000
+
+    @validator('language')
+    def validate_language(cls, v):
+        try:
+            validate_programming_language(v)
+            return v
+        except LanguageValidationError as e:
+            raise ValueError(str(e))
+
+
+class RunCompareReq(BaseModel):
+    original_code: str
+    optimized_code: str
+    language: str
+    stdin: str | None = None
+    timeout_ms: int | None = 5000
+
+    @validator('language')
+    def validate_language(cls, v):
+        try:
+            validate_programming_language(v)
+            return v
+        except LanguageValidationError as e:
+            raise ValueError(str(e))
+
+
+@app.post("/run-code")
+async def run_code_endpoint(req: RunCodeReq, request: Request):
+    """Dev-only code runner with basic performance metrics.
+    Supports: Python, JavaScript
+
+    Safety:
+    - Enabled by default in dev mode (localhost)
+    - Localhost-only by default
+    """
+    # Allow localhost requests (dev mode) - auto-enable for localhost
+    client_host = getattr(getattr(request, "client", None), "host", None) or ""
+    allowed_hosts = {"127.0.0.1", "::1", "localhost", "0.0.0.0"}
+    is_localhost = client_host in allowed_hosts or client_host.startswith("192.168.") or client_host.startswith("10.")
+    
+    # Auto-enable for localhost, otherwise check env var
+    if not is_localhost and os.getenv("ENABLE_CODE_EXECUTION", "0") != "1":
+        raise HTTPException(status_code=403, detail=f"Code execution is restricted to localhost. Got: {client_host}")
+
+    result = run_code(req.code, req.language, stdin_text=req.stdin or "", timeout_ms=int(req.timeout_ms or 5000))
+    return run_result_to_dict(result)
+
+
+@app.post("/run-code/compare")
+async def run_code_compare(req: RunCompareReq, request: Request):
+    """Dev-only: run original + optimized code and compare basic metrics.
+    Supports: Python, JavaScript
+
+    Safety:
+    - Enabled by default in dev mode (localhost)
+    - Localhost-only by default
+    """
+    # Allow localhost requests (dev mode) - auto-enable for localhost
+    client_host = getattr(getattr(request, "client", None), "host", None) or ""
+    allowed_hosts = {"127.0.0.1", "::1", "localhost", "0.0.0.0"}
+    is_localhost = client_host in allowed_hosts or client_host.startswith("192.168.") or client_host.startswith("10.")
+    
+    # Auto-enable for localhost, otherwise check env var
+    if not is_localhost and os.getenv("ENABLE_CODE_EXECUTION", "0") != "1":
+        raise HTTPException(status_code=403, detail=f"Code execution is restricted to localhost. Got: {client_host}")
+
+    started = time.perf_counter()
+    original = run_code(req.original_code, req.language, stdin_text=req.stdin or "", timeout_ms=int(req.timeout_ms or 5000))
+    optimized = run_code(req.optimized_code, req.language, stdin_text=req.stdin or "", timeout_ms=int(req.timeout_ms or 5000))
+    took_ms = int((time.perf_counter() - started) * 1000)
+
+    output_match = bool(original.ok and optimized.ok and original.stdout == optimized.stdout)
+
+    speed_pct = None
+    memory_pct = None
+    if original.ok and optimized.ok and original.exec_time_ms > 0:
+        speed_pct = round(((original.exec_time_ms - optimized.exec_time_ms) / original.exec_time_ms) * 100.0, 2)
+
+    if original.ok and optimized.ok and (original.peak_kb is not None) and (optimized.peak_kb is not None) and original.peak_kb > 0:
+        memory_pct = round(((original.peak_kb - optimized.peak_kb) / original.peak_kb) * 100.0, 2)
+
+    return {
+        "took_ms": took_ms,
+        "original": run_result_to_dict(original),
+        "optimized": run_result_to_dict(optimized),
+        "output_match": output_match,
+        "improvements": {
+            "speed_improvement_pct": speed_pct,
+            "memory_saved_pct": memory_pct,
+        },
+    }
+
 class EvaluateOptimizationReq(BaseModel):
     code: str
     language: str
     provider: str | None = None
+    user_instructions: str | None = None
+    optimization_focus: list[str] | None = None
 
 @app.post("/analyze-code", response_model=AnalyzeRes)
 async def analyze_code(req: AnalyzeReq):
     try:
+        # Static bug detection (fast, deterministic) for Python
+        norm_task = (req.task or "").strip().lower()
+        if norm_task in {"bug_detection", "bug-detection", "bug", "bugs"} and req.language == "Python":
+            report = scan_python(req.code)
+            return {"provider_used": "static", "result": bug_report_to_json(report)}
+
         # Language validation is already handled by Pydantic validator
         # Guard against long external timeouts
         ai_timeout = int(os.getenv("AI_TIMEOUT", "20"))
-        provider_used, result = await asyncio.wait_for(
-            ask_ai(req.task, req.language, req.code, req.provider), timeout=ai_timeout
-        )
-        return {"provider_used": provider_used, "result": result}
+        ai_retries = int(os.getenv("AI_RETRIES", "1"))
+
+        last_exc = None
+        for attempt in range(ai_retries + 1):
+            try:
+                provider_used, result = await asyncio.wait_for(
+                    ask_ai(
+                        req.task,
+                        req.language,
+                        req.code,
+                        req.provider,
+                        user_instructions=req.user_instructions,
+                        optimization_focus=req.optimization_focus,
+                    ),
+                    timeout=ai_timeout,
+                )
+                return {"provider_used": provider_used, "result": result}
+            except asyncio.TimeoutError as te:
+                last_exc = te
+                if attempt < ai_retries:
+                    # brief backoff before retry
+                    await asyncio.sleep(min(2 ** attempt, 2))
+                    continue
+                else:
+                    raise
     except ValueError as e:
         # Handle language validation errors
         if "programming language" in str(e).lower():
@@ -152,6 +290,15 @@ async def analyze_code(req: AnalyzeReq):
     except HTTPException:
         raise
     except Exception as e:
+        if os.getenv("ALLOW_FAKE_AI", "1") == "1":
+            summary = req.code.strip().splitlines()
+            summary = "\n".join(summary[:10]) + ("\n..." if len(req.code.strip().splitlines()) > 10 else "")
+            fake = (
+                f"[DEV FAKE] Task: {req.task} for {req.language}\n\n"
+                f"Input preview:\n{summary}\n\n"
+                f"This is a development stub because an AI provider error occurred: {e}"
+            )
+            return {"provider_used": "dev-fake-error", "result": fake}
         raise HTTPException(status_code=500, detail=f"AI error: {e}")
 
 @app.get("/supported-languages")
@@ -202,7 +349,99 @@ async def providers_status():
         },
         "allow_fake_ai": os.getenv("ALLOW_FAKE_AI", "1") == "1",
         "ai_timeout": int(os.getenv("AI_TIMEOUT", "10")),
+        "ai_retries": int(os.getenv("AI_RETRIES", "1")),
     }
+
+class CompareReq(BaseModel):
+    code: str
+    language: str
+    task: str
+    providers: list[str] | None = None  # e.g., ["openai","claude","gemini"] or None for all
+    user_instructions: str | None = None
+    optimization_focus: list[str] | None = None
+
+    @validator('language')
+    def validate_language(cls, v):
+        try:
+            validate_programming_language(v)
+            return v
+        except LanguageValidationError as e:
+            raise ValueError(str(e))
+
+class CompareResItem(BaseModel):
+    status: str  # ok | timeout | error | config
+    provider_used: str | None = None
+    result: str | None = None
+    error: str | None = None
+    duration_ms: int | None = None
+
+@app.post("/analyze-code/compare")
+async def compare_models(req: CompareReq):
+    """Run the same request across multiple AI providers and return side-by-side results."""
+    try:
+        # normalize providers
+        all_providers = ["openai", "claude", "gemini"]
+        target_providers = req.providers or all_providers
+
+        ai_timeout = int(os.getenv("AI_TIMEOUT", "20"))
+        ai_retries = int(os.getenv("AI_RETRIES", "1"))
+
+        async def run_provider(pname: str) -> tuple[str, CompareResItem]:
+            start = time.perf_counter()
+            last_exc = None
+            for attempt in range(ai_retries + 1):
+                try:
+                    provider_used, result = await asyncio.wait_for(
+                        ask_ai(
+                            req.task,
+                            req.language,
+                            req.code,
+                            pname,
+                            user_instructions=req.user_instructions,
+                            optimization_focus=req.optimization_focus,
+                        ),
+                        timeout=ai_timeout,
+                    )
+                    dur = int((time.perf_counter() - start) * 1000)
+                    return pname, CompareResItem(status="ok", provider_used=provider_used, result=result, duration_ms=dur)
+                except ProviderConfigError as ce:
+                    dur = int((time.perf_counter() - start) * 1000)
+                    if os.getenv("ALLOW_FAKE_AI", "1") == "1":
+                        preview_lines = req.code.strip().splitlines()
+                        preview = "\n".join(preview_lines[:10]) + ("\n..." if len(preview_lines) > 10 else "")
+                        return pname, CompareResItem(status="config", provider_used=f"{pname}-dev-fake", result=f"[DEV FAKE] {pname}: keys missing.\n\n{preview}", duration_ms=dur)
+                    return pname, CompareResItem(status="config", error=str(ce), duration_ms=dur)
+                except asyncio.TimeoutError as te:
+                    last_exc = te
+                    if attempt < ai_retries:
+                        await asyncio.sleep(min(2 ** attempt, 2))
+                        continue
+                    dur = int((time.perf_counter() - start) * 1000)
+                    if os.getenv("ALLOW_FAKE_AI", "1") == "1":
+                        preview_lines = req.code.strip().splitlines()
+                        preview = "\n".join(preview_lines[:10]) + ("\n..." if len(preview_lines) > 10 else "")
+                        return pname, CompareResItem(status="timeout", provider_used=f"{pname}-dev-fake-timeout", result=f"[DEV FAKE] {pname}: timed out.\n\n{preview}", duration_ms=dur)
+                    return pname, CompareResItem(status="timeout", error="timeout", duration_ms=dur)
+                except Exception as e:
+                    dur = int((time.perf_counter() - start) * 1000)
+                    return pname, CompareResItem(status="error", error=str(e), duration_ms=dur)
+
+        tasks = [run_provider(p) for p in target_providers]
+        started = time.perf_counter()
+        results = await asyncio.gather(*tasks)
+        took_ms = int((time.perf_counter() - started) * 1000)
+
+        return {
+            "results": {name: item.dict() for name, item in results},
+            "took_ms": took_ms,
+            "providers": target_providers,
+        }
+    except ValueError as e:
+        if "programming language" in str(e).lower():
+            raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Compare error: {e}")
 
 @app.post("/optimize-code-enhanced")
 async def optimize_code_enhanced(request: dict):
@@ -212,9 +451,18 @@ async def optimize_code_enhanced(request: dict):
         language = request.get("language", "python") 
         provider = request.get("provider")
         test_inputs = request.get("test_inputs", [])
+        user_instructions = request.get("user_instructions")
+        optimization_focus = request.get("optimization_focus")
         
         # Get optimization from AI
-        provider_used, optimization_result = await ask_ai("optimization", language, code, provider)
+        provider_used, optimization_result = await ask_ai(
+            "optimization",
+            language,
+            code,
+            provider,
+            user_instructions=user_instructions,
+            optimization_focus=optimization_focus,
+        )
         
         # Analyze performance characteristics
         performance_analysis = {
@@ -247,7 +495,13 @@ async def evaluate_optimization_endpoint(req: EvaluateOptimizationReq):
     3. Additional optimization recommendations
     """
     try:
-        result = await evaluate_code_optimization(req.code, req.language, req.provider)
+        result = await evaluate_code_optimization(
+            req.code,
+            req.language,
+            req.provider,
+            user_instructions=req.user_instructions,
+            optimization_focus=req.optimization_focus,
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Evaluation error: {e}")

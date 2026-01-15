@@ -3,11 +3,27 @@ import Editor from '@monaco-editor/react';
 import { useTheme } from '../contexts/ThemeContext';
 
 const languageMap = {
+  // Canonical (backend) names
+  'Python': 'python',
+  'JavaScript': 'javascript',
+  'TypeScript': 'typescript',
+  'Java': 'java',
+  'C++': 'cpp',
+  'C#': 'csharp',
+  'Go': 'go',
+  'Rust': 'rust',
+  'PHP': 'php',
+  'Ruby': 'ruby',
+  'SQL': 'sql',
+  'HTML': 'html',
+  'CSS': 'css',
+  // Backward-compatible/aliases
   python: 'python',
   javascript: 'javascript',
   typescript: 'typescript',
-  cpp: 'cpp',
   java: 'java',
+  cpp: 'cpp',
+  csharp: 'csharp',
   go: 'go',
   rust: 'rust',
 };

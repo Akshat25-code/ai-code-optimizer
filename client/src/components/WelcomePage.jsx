@@ -40,20 +40,20 @@ const WelcomePage = ({ onStart, onExample }) => {
 				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
 				transition={{ duration: 0.8 }}
-				className="pointer-events-none absolute -top-40 -right-32 w-[40rem] h-[40rem] rounded-full bg-purple-600/20 blur-3xl"
+				className="pointer-events-none absolute -top-40 -right-32 w-[40rem] h-[40rem] rounded-full bg-teal-500/20 blur-3xl"
 			/>
 			<motion.div
 				aria-hidden
 				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
 				transition={{ duration: 0.8, delay: 0.15 }}
-				className="pointer-events-none absolute -bottom-40 -left-32 w-[40rem] h-[40rem] rounded-full bg-blue-600/20 blur-3xl"
+				className="pointer-events-none absolute -bottom-40 -left-32 w-[40rem] h-[40rem] rounded-full bg-emerald-500/15 blur-3xl"
 			/>
 
 			{/* page header (not the global nav) */}
 			<header className="relative z-10 themed-header">
 				<div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
-					<div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 grid place-items-center">
+					<div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 grid place-items-center">
 						<Brain className="w-6 h-6" />
 					</div>
 					<span className="text-lg font-semibold">AI Code Optimizer</span>
@@ -107,7 +107,7 @@ const WelcomePage = ({ onStart, onExample }) => {
 								transition={{ duration: 0.5, delay: 0.1 * i }}
 								className="card p-6 transition-all"
 							>
-								<div className="w-10 h-10 rounded-lg grid place-items-center mb-3 text-purple-500" style={{ background: 'var(--card-bg)' }}>
+								<div className="w-10 h-10 rounded-lg grid place-items-center mb-3 text-teal-500" style={{ background: 'var(--card-bg)' }}>
 									{f.icon}
 								</div>
 								<h3 className="font-semibold mb-1">{f.title}</h3>
@@ -124,12 +124,12 @@ const WelcomePage = ({ onStart, onExample }) => {
 						<div className="grid md:grid-cols-3 gap-4">
 							{samples.map((s) => (
 								<div key={s.title} className="p-4 rounded-xl border border-theme" style={{ background: 'var(--card-bg)' }}>
-									<div className="text-sm text-purple-300 mb-1">{s.language} • {s.task}</div>
+									<div className="text-sm text-teal-400 mb-1">{s.language} • {s.task}</div>
 									<div className="font-medium mb-3">{s.title}</div>
 									<pre className="text-xs themed-code rounded-lg p-3 h-28 overflow-auto whitespace-pre-wrap">{s.code}</pre>
 									<button
 										onClick={() => onExample ? onExample(s) : navigate('/optimize', { state: { prefill: s } })}
-										className="mt-3 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm hover:from-purple-500 hover:to-blue-500"
+										className="mt-3 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm hover:from-teal-500 hover:to-emerald-400"
 									>
 										Try this
 									</button>
@@ -152,6 +152,37 @@ const WelcomePage = ({ onStart, onExample }) => {
 											<div className="text-sm text-muted">{s.v}</div>
 										</div>
 									))}
+								</div>
+							</section>
+
+							{/* Feature Pages Grid */}
+							<section className="py-10">
+								<div className="card p-8">
+									<h2 className="text-2xl font-bold mb-2">Explore Features</h2>
+									<p className="text-muted mb-6">Choose a specific tool for your coding needs</p>
+									<div className="grid md:grid-cols-3 gap-4">
+										{[
+											{ icon: '🚀', title: 'Code Optimization', desc: 'Boost performance and efficiency', path: '/optimization', color: 'teal' },
+											{ icon: '📊', title: 'Code Analysis', desc: 'Quality assessment across 7 dimensions', path: '/analysis', color: 'teal' },
+											{ icon: '🐛', title: 'Bug Detection', desc: 'Find compile, runtime & logic errors', path: '/bug-detection', color: 'red' },
+											{ icon: '📚', title: 'Documentation', desc: 'Auto-generate comprehensive docs', path: '/documentation', color: 'teal' },
+											{ icon: '🏗️', title: 'Code Refactoring', desc: 'Improve structure & design patterns', path: '/refactoring', color: 'teal' },
+											{ icon: '🔧', title: 'Debugging', desc: 'AI-powered bug fixes', path: '/debugging', color: 'emerald' },
+										].map((f) => (
+											<motion.button
+												key={f.path}
+												onClick={() => navigate(f.path)}
+												whileHover={{ scale: 1.02, y: -2 }}
+												whileTap={{ scale: 0.98 }}
+												className="p-5 rounded-xl border border-theme text-left transition-all hover:border-teal-500/50"
+												style={{ background: 'var(--card-bg)' }}
+											>
+												<div className="text-3xl mb-3">{f.icon}</div>
+												<div className="font-semibold mb-1" style={{ color: 'var(--fg-color)' }}>{f.title}</div>
+												<div className="text-sm text-muted">{f.desc}</div>
+											</motion.button>
+										))}
+									</div>
 								</div>
 							</section>
 
@@ -414,7 +445,7 @@ const WelcomePage = ({ onStart, onExample }) => {
                 transition={{ duration: 0.5, delay: 0.05 * i }}
                 className="card p-6"
               >
-                <div className="text-sm text-purple-500 mb-2">Step {s.step}</div>
+                <div className="text-sm text-teal-500 mb-2">Step {s.step}</div>
                 <div className="font-semibold">{s.title}</div>
                 <div className="text-sm text-muted mt-1">{s.desc}</div>
               </motion.div>

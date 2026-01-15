@@ -110,6 +110,14 @@ Notes
 - Start frontend (Vite): it proxies API calls to the backend.
 - Visit the client app and try an analysis. If long AI calls time out, increase server timeouts as needed.
 
+### Multi‑model comparison and timeouts
+- The optimizer UI includes a "Compare across models" toggle to run OpenAI, Claude, and Gemini side‑by‑side.
+- Backend exposes `POST /analyze-code/compare` for programmatic comparisons.
+- Dev fallback: set `ALLOW_FAKE_AI=1` to return stubbed outputs when provider keys are missing or timeouts occur.
+- Tuning:
+	- `AI_TIMEOUT` (seconds): per‑provider max time (default 20)
+	- `AI_RETRIES`: retry count on timeout (default 1)
+
 ## Tools and tests
 - Maintenance scripts: see server/tools/ (e.g., fix_phone_index.py, fix_phone_nulls.py, clean_duplicate_users.py)
 - Quick examples: server/tools/examples/ (PDF test server/page, quick auth/validation/optimization scripts)
@@ -131,6 +139,7 @@ python server\tools\examples\quick_validation_test.py
 - MongoDB SRV/DNS issues (Atlas): ensure your system DNS is reliable (Google 8.8.8.8 / Cloudflare 1.1.1.1). The backend enables TLS automatically for SRV URLs and uses certifi CA when available.
 - DuplicateKeyError on users.phone with null: ensure the sparse unique index; don’t insert phone=None. Use the provided fix_phone_nulls.py and fix_phone_index.py if needed.
 - 201 vs 200: registration endpoints may return 201 Created; tests should treat 200/201 as success.
+ - 422 Invalid language: the backend validates programming languages. Use the dropdown (populated from `/supported-languages`) or pick Auto.
 
 ## License
 MIT — see LICENSE.

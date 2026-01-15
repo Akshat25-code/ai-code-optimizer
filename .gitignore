@@ -1,68 +1,3 @@
-# Root gitignore for AI Code Optimizer
-
-# --- General ---
-.DS_Store
-Thumbs.db
-*.log
-logs/
-*.tmp
-*.swp
-.cache/
-coverage/
-
-# --- Editor/IDE ---
-.vscode/
-.idea/
-*.code-workspace
-
-# --- Environment files ---
-.env
-.env.*
-!.env.example
-client/.env
-client/.env.*
-!client/.env.example
-server/.env
-server/.env.*
-!server/.env.example
-
-# --- Node / Frontend ---
-node_modules/
-client/node_modules/
-client/dist/
-client/build/
-client/.vite/
-client/.next/
-client/.turbo/
-client/.parcel-cache/
-client/npm-debug.log*
-client/yarn-debug.log*
-client/yarn-error.log*
-client/pnpm-debug.log*
-
-# --- Python / Backend ---
-__pycache__/
-**/__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.pytest_cache/
-.mypy_cache/
-server/.pytest_cache/
-server/.mypy_cache/
-
-# Virtual environments
-env/
-.venv/
-venv/
-server/env/
-server/.venv/
-server/venv/
-
-# Build artifacts
-server/*.egg-info/
-*.sqlite
-*.db
 # OS
 .DS_Store
 Thumbs.db
@@ -80,6 +15,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Node / Vite (client)
+node_modules/
 client/node_modules/
 client/dist/
 client/.env
@@ -117,10 +53,3 @@ client/.env.*
 .coverage
 coverage.xml
 *.sqlite3
-
-# Ensure any nested virtualenvs are ignored
-**/env/
-
-# Ignore uploaded/generated files but allow placeholder
-server/uploads/
-!server/uploads/.gitkeep

@@ -9,12 +9,49 @@ HTTP_TIMEOUT = 45  # seconds
 def _client():
     return httpx.AsyncClient(timeout=HTTP_TIMEOUT)
 
-def build_prompt(task: str, language: str, code: str) -> str:
+def build_prompt(
+    task: str,
+    language: str,
+    code: str,
+    user_instructions: str | None = None,
+    optimization_focus: list[str] | None = None,
+) -> str:
     task = task.lower().strip()
+
+    # Backward-compatible aliases from older clients/scripts
+    aliases = {
+        "optimize": "optimization",
+        "analyse": "analysis",
+        "analyze": "analysis",
+        "document": "documentation",
+        "docs": "documentation",
+        "refactor": "refactoring",
+    }
+    task = aliases.get(task, task)
     
     # Enhanced prompts for better outputs
-    if task == "bug_detection" or task == "debugging":
-        return f"""You are an expert {language} code analyzer. Carefully examine this code for bugs, errors, and potential issues:
+    if task == "bug_detection":
+        return f"""You are an expert static code analyzer. Scan this {language} code for ALL possible issues.
+
+    STRICT OUTPUT RULES:
+    - Output must be a single JSON object (no markdown, no code fences, no extra text).
+    - DO NOT provide a fixed/rewritten full code block.
+
+    JSON SCHEMA:
+    {{
+      "summary": {{"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "total": 0}},
+      "compile_time_errors": [{{"line": 0, "column": 0, "error_type": "SyntaxError", "error_name": "...", "severity": "High", "message": "...", "code_snippet": "...", "suggested_fix": "..."}}],
+      "runtime_errors": [{{"line": 0, "column": 0, "error_type": "...", "error_name": "...", "severity": "...", "message": "...", "code_snippet": "...", "suggested_fix": "..."}}],
+      "logic_errors": [{{"line": 0, "column": 0, "error_type": "...", "error_name": "...", "severity": "...", "message": "...", "code_snippet": "...", "suggested_fix": "..."}}],
+      "top_priorities": [{{"severity": "...", "line": 0, "message": "...", "suggested_fix": "..."}}]
+    }}
+
+    CODE:
+    {code}
+    """
+
+    if task == "debugging":
+        return f"""You are an expert {language} debugger. Find and FIX the bugs in the code.
 
 **Code Analysis Task:**
 1. **Syntax Errors**: Check for compilation/interpretation issues
@@ -35,7 +72,9 @@ def build_prompt(task: str, language: str, code: str) -> str:
 [List each issue with severity level]
 
 🔧 **Fixed Code:**
+```{language}
 [Provide the corrected version]
+```
 
 💡 **Explanation:**
 [Explain what was wrong and why the fixes work]
@@ -44,7 +83,16 @@ def build_prompt(task: str, language: str, code: str) -> str:
 [How to avoid similar issues in the future]"""
 
     elif task == "optimization":
+        focus = ", ".join(optimization_focus or [])
+        if not user_instructions:
+            user_instructions = "Minimize code length while maintaining readability and performance."
         return f"""You are an expert {language} performance engineer. Optimize this code comprehensively:
+
+**User Instructions:**
+{user_instructions}
+
+**Optimization Focus Areas (if any):**
+{focus or "(none selected)"}
 
 **Optimization Analysis Required:**
 1. **Algorithm Efficiency**: Improve time/space complexity
@@ -112,37 +160,41 @@ def build_prompt(task: str, language: str, code: str) -> str:
 [Additional topics someone should learn]"""
 
     elif task == "analysis":
-        return f"""You are a senior {language} code reviewer. Provide a comprehensive code analysis:
+                return f"""You are a senior code reviewer. Analyze the following {language} code and return ONLY valid JSON.
 
-**Code for Review:**
-```{language}
+STRICT OUTPUT RULES:
+- Output must be a single JSON object (no markdown, no code fences, no extra text).
+- Scores must be numbers from 0 to 10.
+
+JSON SCHEMA (example keys):
+{{
+    "overall_score": 7.2,
+    "detailed_scores": {{
+        "code_structure": {{"score": 8, "status": "Good", "issues": ["..."], "recommendations": ["..."]}},
+        "performance": {{"score": 6, "status": "Needs Improvement", "issues": ["..."], "recommendations": ["..."]}},
+        "security": {{"score": 9, "status": "Excellent", "issues": ["..."], "recommendations": ["..."]}},
+        "maintainability": {{"score": 7, "status": "Good", "issues": ["..."], "recommendations": ["..."]}},
+        "readability": {{"score": 8, "status": "Good", "issues": ["..."], "recommendations": ["..."]}},
+        "best_practices": {{"score": 6, "status": "Needs Work", "issues": ["..."], "recommendations": ["..."]}},
+        "complexity": {{"score": 5, "status": "High Complexity", "issues": ["..."], "recommendations": ["..."]}}
+    }},
+    "strengths": ["..."],
+    "top_issues": ["..."],
+    "action_plan": ["..."],
+    "notes": {{"time_complexity": "...", "space_complexity": "..."}}
+}}
+
+GUIDANCE:
+- Find concrete, code-specific issues.
+- Include language-specific best practices.
+- If you cannot infer a complexity precisely, provide a best-effort estimate string.
+
+CODE:
 {code}
-```
-
-**Required Analysis:**
-📋 **Code Quality Assessment:**
-- **Readability**: [Score 1-10 with explanation]
-- **Maintainability**: [Score 1-10 with explanation]  
-- **Performance**: [Score 1-10 with explanation]
-- **Security**: [Score 1-10 with explanation]
-
-🔍 **Detailed Review:**
-[Thorough examination of code quality, patterns, and practices]
-
-💪 **Strengths:**
-[What this code does well]
-
-⚠️ **Areas for Improvement:**
-[Specific issues and recommendations]
-
-🏗️ **Architectural Considerations:**
-[Comments on overall design and structure]
-
-📈 **Metrics & Complexity:**
-[Code complexity analysis and measurements]"""
+"""
 
     elif task == "refactoring":
-        return f"""You are a {language} refactoring expert. Improve this code's structure and design:
+        return f"""You are a {language} refactoring expert. Improve this code's structure and design.
 
 **Code to Refactor:**
 ```{language}
@@ -151,56 +203,69 @@ def build_prompt(task: str, language: str, code: str) -> str:
 
 **Refactoring Goals:**
 1. **Clean Code**: Apply SOLID principles and clean code practices
-2. **Design Patterns**: Implement appropriate design patterns
+2. **Design Patterns**: Implement appropriate design patterns where suitable
 3. **Modularity**: Break code into logical, reusable components
 4. **Testability**: Make code easier to unit test
 5. **Extensibility**: Prepare code for future feature additions
 6. **Naming**: Use clear, descriptive names throughout
 7. **Structure**: Organize code logically and consistently
 
-**Required Output:**
-🏗️ **Refactored Code:**
-```{language}
-[Complete refactored version with improved structure]
-```
+**IMPORTANT:** Respond ONLY with a single JSON object (no markdown fences, no extra text).
 
-📋 **Changes Made:**
-[List of specific refactoring techniques applied]
+Required JSON structure:
+{{{{
+  "refactored_code": "<complete refactored code as a string (escape newlines as \\\\n)>",
+  "changes": [
+    "<description of change 1>",
+    "<description of change 2>"
+  ],
+  "benefits": [
+    "<benefit 1>",
+    "<benefit 2>"
+  ],
+  "testing_tips": [
+    "<testing tip 1>"
+  ]
+}}}}
 
-🎯 **Benefits Achieved:**
-[How the refactored code is better]
-
-🧪 **Testing Considerations:**
-[How to test the refactored code]"""
+Provide ONLY the JSON object with no surrounding text."""
 
     elif task == "documentation":
-        return f"""You are a {language} documentation specialist. Create comprehensive documentation for this code:
+        return f"""You are a {language} documentation specialist. Create comprehensive, structured documentation for this code.
 
 **Code to Document:**
 ```{language}
 {code}
 ```
 
-**Required Documentation:**
-📚 **Function/Class Documentation:**
-[Complete docstrings/comments for all functions and classes]
+**IMPORTANT:** Respond ONLY with a single JSON object (no markdown fences, no extra text).
 
-📖 **Usage Examples:**
-```{language}
-[Practical examples showing how to use the code]
-```
+Required JSON structure:
+{{{{
+  "overview": "<one-paragraph summary of what the code does>",
+  "functions": [
+    {{{{
+      "name": "<function or method name>",
+      "signature": "<full signature with types if available>",
+      "description": "<what it does>",
+      "params": [{{{{"name": "<param>", "type": "<type>", "description": "<desc>"}}}}],
+      "returns": "<return value description>",
+      "example": "<short usage example code string>"
+    }}}}
+  ],
+  "classes": [
+    {{{{
+      "name": "<class name>",
+      "description": "<what it represents>",
+      "methods": ["<list of method names>"]
+    }}}}
+  ],
+  "usage_examples": ["<complete usage example 1>", "<example 2>"],
+  "dependencies": ["<dependency or import needed>"],
+  "notes": ["<important note or caveat>"]
+}}}}
 
-📋 **API Reference:**
-[Parameters, return values, exceptions for all public interfaces]
-
-🔧 **Setup & Requirements:**
-[Dependencies, installation, configuration needed]
-
-⚠️ **Important Notes:**
-[Warnings, limitations, gotchas users should know]
-
-🚀 **Performance Characteristics:**
-[Time/space complexity and performance expectations]"""
+Provide ONLY the JSON object with no surrounding text."""
 
     # Default comprehensive analysis
     return f"""You are an expert {language} developer. Provide a comprehensive analysis of this code:
@@ -343,12 +408,21 @@ def pick_provider(task: str, code: str, language: str = "") -> str:
     # Default: OpenAI for general code tasks
     return "openai"
 
-async def ask_ai(task: str, language: str, code: str, provider: str | None) -> tuple[str, str]:
+async def ask_ai(
+    task: str,
+    language: str,
+    code: str,
+    provider: str | None,
+    user_instructions: str | None = None,
+    optimization_focus: list[str] | None = None,
+) -> tuple[str, str]:
     """Enhanced AI service with intelligent provider selection and better error handling"""
-    prompt = build_prompt(task, language, code)
+    prompt = build_prompt(task, language, code, user_instructions=user_instructions, optimization_focus=optimization_focus)
     
     # Use provided provider or auto-select the best one
-    if provider and provider != "auto":
+    explicit_provider = bool(provider and provider != "auto")
+
+    if explicit_provider:
         selected = provider
     else:
         selected = pick_provider(task, code, language)
@@ -370,6 +444,11 @@ async def ask_ai(task: str, language: str, code: str, provider: str | None) -> t
             else:
                 return "gemini", await ask_gemini(prompt)
     except Exception as e:
+        # If the caller explicitly requested a provider, do not silently fall back.
+        # This keeps behavior transparent (especially for compare mode).
+        if explicit_provider:
+            raise
+
         # If primary provider fails, try fallback providers
         fallback_providers = ["openai", "claude", "gemini"]
         if selected in fallback_providers:

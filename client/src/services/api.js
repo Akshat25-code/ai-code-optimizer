@@ -1,7 +1,9 @@
+import { API_BASE } from '../config';
+
 export const askGemini = async (prompt) => {
   try {
     const res = await fetch(
-      `http://127.0.0.1:8000/ask-gemini/?prompt=${encodeURIComponent(prompt)}`,
+      `${API_BASE}/ask-gemini/?prompt=${encodeURIComponent(prompt)}`,
       { method: "POST" }
     );
     if (!res.ok) {

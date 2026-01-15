@@ -30,9 +30,9 @@ const ForgotPasswordPage = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-300 text-sm mb-2">Email</label>
-            <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="you@example.com" />
+            <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="you@example.com" />
           </div>
-          <button disabled={loading} className="w-full py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white disabled:opacity-50">{loading ? 'Sending...' : 'Send Reset Link'}</button>
+          <button disabled={loading} className="w-full py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white disabled:opacity-50">{loading ? 'Sending...' : 'Send Reset Link'}</button>
         </form>
       </div>
     </div>

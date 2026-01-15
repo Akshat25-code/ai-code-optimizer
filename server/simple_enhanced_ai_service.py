@@ -8,7 +8,13 @@ from typing import Dict, List, Any
 import json
 from ai_service import ask_ai
 
-async def evaluate_code_optimization(code: str, language: str, provider: str = None) -> Dict[str, Any]:
+async def evaluate_code_optimization(
+    code: str,
+    language: str,
+    provider: str = None,
+    user_instructions: str | None = None,
+    optimization_focus: List[str] | None = None,
+) -> Dict[str, Any]:
     """
     Simplified code optimization evaluation that focuses on AI enhancement
     and basic analysis without heavy performance dependencies
@@ -33,7 +39,14 @@ Please respond with:
 4. Any additional recommendations
 """
         
-        provider_used, ai_response = await ask_ai("optimization", language, code, provider)
+        provider_used, ai_response = await ask_ai(
+            "optimization",
+            language,
+            code,
+            provider,
+            user_instructions=user_instructions,
+            optimization_focus=optimization_focus,
+        )
         
         # Step 2: Parse AI response and extract optimized code
         # Try to extract code blocks from the response
