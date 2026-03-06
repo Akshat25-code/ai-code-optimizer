@@ -53,3 +53,19 @@ client/.env.*
 .coverage
 coverage.xml
 *.sqlite3
+
+# Generated academic/testing artifacts
+/cfg_analyze_code.png
+/cfg_analyze_code.svg
+/dfd_analyze_code.png
+/tc_df_*.png
+/practical.md
+/path_testing_graph.md
+/data_flow_testing.md
+/decision_table_practical.md
+/inspection_checklist.md
+/IEEE_829_Test_Plan.md
+/EVALUATION_SUMMARY.md
+/EVALUATION_IMPROVEMENT_PLAN.md
+/generate_pdf.py
+/docs/SESSION_LOGS/*.md
