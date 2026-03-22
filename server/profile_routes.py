@@ -9,22 +9,23 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone, timedelta
+from bson import ObjectId
 import io
 import os
 import json
+import secrets
 import shutil
+import time
 
 from mongodb_database import get_database
 from mongodb_auth_routes import get_current_user
 from mongodb_auth_models import MongoUser
 from mongodb_auth_routes import normalize_phone
 from mongodb_auth_models import MongoPhoneOTP
-from jwt_utils import SessionManager
+from jwt_utils import SessionManager, PasswordManager
 from sms_service import send_sms
-import os, time
-from jwt_utils import PasswordManager
 
-router = APIRouter(prefix="/profile", tags=["Profile"]) 
+router = APIRouter(prefix="/profile", tags=["Profile"])
 
 
 class ProfileUpdate(BaseModel):
@@ -138,7 +139,7 @@ async def update_me(payload: ProfileUpdate, current_user: dict = Depends(get_cur
     if not updates:
         return {"message": "No changes"}
     updates["updated_at"] = datetime.now(timezone.utc)
-    await db.users.update_one({"_id": __import__('bson').ObjectId(current_user["id"])}, {"$set": updates})
+    await db.users.update_one({"_id": ObjectId(current_user["id"])}, {"$set": updates})
     # Return merged view
     return {**current_user, **updates}
 
@@ -160,7 +161,7 @@ async def update_location(payload: LocationUpdate, current_user: dict = Depends(
         return {"message": "No changes"}
     
     updates["updated_at"] = datetime.now(timezone.utc)
-    await db.users.update_one({"_id": __import__('bson').ObjectId(current_user["id"])}, {"$set": updates})
+    await db.users.update_one({"_id": ObjectId(current_user["id"])}, {"$set": updates})
     return {"message": "Location updated successfully"}
 
 
@@ -179,7 +180,7 @@ async def update_professional(payload: ProfessionalUpdate, current_user: dict = 
         return {"message": "No changes"}
     
     updates["updated_at"] = datetime.now(timezone.utc)
-    await db.users.update_one({"_id": __import__('bson').ObjectId(current_user["id"])}, {"$set": updates})
+    await db.users.update_one({"_id": ObjectId(current_user["id"])}, {"$set": updates})
     return {"message": "Professional info updated successfully"}
 
 
@@ -216,7 +217,7 @@ async def update_social_links(payload: SocialLinksUpdate, current_user: dict = D
         return {"message": "No changes"}
     
     updates["updated_at"] = datetime.now(timezone.utc)
-    await db.users.update_one({"_id": __import__('bson').ObjectId(current_user["id"])}, {"$set": updates})
+    await db.users.update_one({"_id": ObjectId(current_user["id"])}, {"$set": updates})
     return {"message": "Social links updated successfully"}
 
 
@@ -252,10 +253,10 @@ async def set_phone(payload: PhoneSetRequest, current_user: dict = Depends(get_c
     existing = await db.users.find_one({"phone": phone_norm})
     if existing and str(existing.get("_id")) != current_user["id"]:
         raise HTTPException(status_code=400, detail="Phone already in use")
-    await db.users.update_one({"_id": __import__('bson').ObjectId(current_user["id"])}, {"$set": {"phone": phone_norm, "phone_verified": False, "updated_at": datetime.now(timezone.utc)}})
+    await db.users.update_one({"_id": ObjectId(current_user["id"])}, {"$set": {"phone": phone_norm, "phone_verified": False, "updated_at": datetime.now(timezone.utc)}})
     # Auto send verification OTP
     _rate_limit_phone(phone_norm)
-    code = ''.join(__import__('random').choice('0123456789') for _ in range(OTP_CODE_LENGTH))
+    code = ''.join(secrets.choice('0123456789') for _ in range(OTP_CODE_LENGTH))
     code_hash = SessionManager.hash_token(code)
     # Store plaintext OTP only in development when DEV_OTP_DEBUG=1 for debug retrieval
     await MongoPhoneOTP.create_otp(phone_norm, code_hash, ttl_minutes=OTP_TTL_MINUTES, code_plain=code)
@@ -270,7 +271,7 @@ async def resend_phone_otp(current_user: dict = Depends(get_current_user)):
     if current_user.get("phone_verified"):
         return {"message": "Phone already verified"}
     _rate_limit_phone(phone_norm)
-    code = ''.join(__import__('random').choice('0123456789') for _ in range(OTP_CODE_LENGTH))
+    code = ''.join(secrets.choice('0123456789') for _ in range(OTP_CODE_LENGTH))
     code_hash = SessionManager.hash_token(code)
     # Store plaintext OTP only in development when DEV_OTP_DEBUG=1 for debug retrieval
     await MongoPhoneOTP.create_otp(phone_norm, code_hash, ttl_minutes=OTP_TTL_MINUTES, code_plain=code)
@@ -287,7 +288,7 @@ async def verify_phone(payload: PhoneVerifyRequest, current_user: dict = Depends
     if not ok:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
     db = get_database()
-    await db.users.update_one({"_id": __import__('bson').ObjectId(current_user["id"])}, {"$set": {"phone_verified": True, "updated_at": datetime.now(timezone.utc)}})
+    await db.users.update_one({"_id": ObjectId(current_user["id"])}, {"$set": {"phone_verified": True, "updated_at": datetime.now(timezone.utc)}})
     return {"message": "Phone verified"}
 
 
@@ -298,7 +299,7 @@ async def update_preferences(payload: PreferencesUpdate, current_user: dict = De
     incoming = payload.dict(exclude_unset=True)
     # Shallow merge
     prefs.update({k: v for k, v in incoming.items() if v is not None})
-    await db.users.update_one({"_id": __import__('bson').ObjectId(current_user["id"])}, {"$set": {"preferences": prefs, "updated_at": datetime.now(timezone.utc)}})
+    await db.users.update_one({"_id": ObjectId(current_user["id"])}, {"$set": {"preferences": prefs, "updated_at": datetime.now(timezone.utc)}})
     return {"preferences": prefs}
 
 
@@ -306,7 +307,7 @@ async def update_preferences(payload: PreferencesUpdate, current_user: dict = De
 async def change_password(payload: ChangePasswordReq, current_user: dict = Depends(get_current_user)):
     db = get_database()
     # Fetch fresh user to verify hash
-    user = await db.users.find_one({"_id": __import__('bson').ObjectId(current_user["id"])})
+    user = await db.users.find_one({"_id": ObjectId(current_user["id"])})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if not PasswordManager.verify_password(payload.current_password, user.get("password_hash", "")):
@@ -384,7 +385,7 @@ async def upload_avatar(file: UploadFile = File(...), current_user: dict = Depen
 
     public_path = f"/uploads/avatars/{filename}"
     db = get_database()
-    await db.users.update_one({"_id": __import__('bson').ObjectId(current_user["id"])}, {"$set": {"profile_picture": public_path, "updated_at": datetime.now(timezone.utc)}})
+    await db.users.update_one({"_id": ObjectId(current_user["id"])}, {"$set": {"profile_picture": public_path, "updated_at": datetime.now(timezone.utc)}})
     return {"profile_picture": public_path}
 
 
@@ -480,7 +481,7 @@ async def get_active_sessions(current_user: dict = Depends(get_current_user)):
 async def terminate_session(session_id: str, current_user: dict = Depends(get_current_user)):
     db = get_database()
     result = await db.user_sessions.update_one(
-        {"_id": __import__('bson').ObjectId(session_id), "user_id": current_user["id"]},
+        {"_id": ObjectId(session_id), "user_id": current_user["id"]},
         {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc)}}
     )
     if result.modified_count == 0:
@@ -491,7 +492,7 @@ async def terminate_session(session_id: str, current_user: dict = Depends(get_cu
 @router.get("/export")
 async def export_profile(current_user: dict = Depends(get_current_user)):
     db = get_database()
-    user = await db.users.find_one({"_id": __import__('bson').ObjectId(current_user["id"])})
+    user = await db.users.find_one({"_id": ObjectId(current_user["id"])})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     # Remove sensitive fields
@@ -521,7 +522,7 @@ async def export_profile_pdf(current_user: dict = Depends(get_current_user)):
     # Gather all user data
     try:
         # 1. User basic data
-        user = await db.users.find_one({"_id": __import__('bson').ObjectId(current_user["id"])})
+        user = await db.users.find_one({"_id": ObjectId(current_user["id"])})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
@@ -727,7 +728,7 @@ async def export_demo_pdf():
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_account(current_user: dict = Depends(get_current_user)):
     db = get_database()
-    oid = __import__('bson').ObjectId(current_user["id"])
+    oid = ObjectId(current_user["id"])
     # Delete related records (best-effort)
     await db.user_sessions.delete_many({"user_id": current_user["id"]})
     await db.oauth_providers.delete_many({"user_id": current_user["id"]})

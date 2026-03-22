@@ -28,7 +28,7 @@ const languageMap = {
   rust: 'rust',
 };
 
-export default function CodeEditor({ value, onChange, language = 'python', height = 320 }) {
+export default function CodeEditor({ value, onChange, language = 'python', height = 320, readOnly = false }) {
   const lang = languageMap[language] || 'plaintext';
   const { theme } = useTheme();
   const resolvedTheme = React.useMemo(() => {
@@ -40,24 +40,25 @@ export default function CodeEditor({ value, onChange, language = 'python', heigh
   }, [theme]);
   const monacoTheme = resolvedTheme === 'dark' ? 'vs-dark' : 'light';
   return (
-    <div className="rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--card-border)' }}>
+    <div className="rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--card-border)', height: '100%' }}>
       <Editor
         height={height}
         theme={monacoTheme}
         language={lang}
         value={value}
-        onChange={(v) => onChange(v || '')}
+        onChange={(v) => onChange ? onChange(v || '') : null}
         options={{
+          readOnly: readOnly,
           fontSize: 14,
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
           wordWrap: 'on',
           automaticLayout: true,
-          // Slim gutter and reduce extra margins
-          lineNumbersMinChars: 2,
+          // Spacing for line numbers instead of having them squished into the code
+          lineNumbersMinChars: 3,
           glyphMargin: false,
-          folding: false,
-          lineDecorationsWidth: 0,
+          folding: true,
+          lineDecorationsWidth: 15,
           overviewRulerLanes: 0,
           overviewRulerBorder: false,
           padding: { top: 8, bottom: 8 },

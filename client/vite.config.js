@@ -6,9 +6,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    host: '0.0.0.0', // Listen on all network interfaces
-    strictPort: true, // Don't try other ports if 5173 is busy
-    open: false, // Don't auto-open browser (since we'll use network IP)
+    host: '127.0.0.1',
+    strictPort: true,
+    open: false,
   },
   resolve: {
     alias: {

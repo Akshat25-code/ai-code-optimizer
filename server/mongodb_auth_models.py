@@ -287,6 +287,13 @@ class MongoOAuthProvider:
         oauth_doc["id"] = str(result.upserted_id) if result.upserted_id else None
         return oauth_doc
 
+    @staticmethod
+    async def find_token_by_user(user_id: str, provider: str) -> Optional[str]:
+        """Find OAuth access token for a user and provider"""
+        db = get_database()
+        doc = await db.oauth_providers.find_one({"user_id": user_id, "provider": provider})
+        return doc.get("access_token") if doc else None
+
 class MongoPhoneOTP:
     """One-time password (OTP) storage for phone login verification"""
 

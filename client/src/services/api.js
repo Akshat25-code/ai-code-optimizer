@@ -4,7 +4,12 @@ export const askGemini = async (prompt) => {
   try {
     const res = await fetch(
       `${API_BASE}/ask-gemini/?prompt=${encodeURIComponent(prompt)}`,
-      { method: "POST" }
+      { 
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      }
     );
     if (!res.ok) {
       throw new Error(`Server error: ${res.status}`);

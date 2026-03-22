@@ -305,11 +305,11 @@ const FileExplorer = ({
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)} />
                         <motion.div
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          className="absolute left-0 top-8 z-50 w-48 rounded-lg shadow-xl overflow-hidden"
-                          style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}
+                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                          className="absolute right-[-8px] top-12 z-[100] w-52 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.6)] overflow-hidden"
+                          style={{ background: 'var(--card-bg-solid, var(--surface-2))', border: '1px solid var(--accent-cyan)', backdropFilter: 'blur(25px)' }}
                         >
                           <button
                             onClick={() => { setShowNewFileModal(true); setShowCreateMenu(false); }}

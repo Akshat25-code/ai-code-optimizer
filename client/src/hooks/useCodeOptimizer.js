@@ -26,7 +26,11 @@ const parseAiResult = (raw) => {
     const explanation = raw.replace(fenceMatch[0], '').trim();
     return { code, explanation };
   }
-  return { code: '', explanation: raw };
+  // Fallback: If no fences, assume the whole thing is code if it doesn't look like a long essay,
+  // but for simplicity and to prevent completely empty code panels, treat everything as code.
+  // We can treat any inline backticks as code, or just split on double newlines.
+  // Assuming the user wants code, let's return it as code.
+  return { code: raw.trim(), explanation: 'No detailed explanation provided by the AI.' };
 };
 
 // Try to extract JSON object from string
@@ -211,13 +215,21 @@ export const useCodeOptimizer = (defaultTask = 'optimization', enableFileManager
         const resp = await fetch(`${API_BASE}/supported-languages`);
         if (!resp.ok) return;
         const data = await resp.json();
-        const supported = data?.supported_languages || {};
-        const popular = new Set(data?.popular_languages || []);
-        const list = Object.keys(supported).map((k) => ({
-          key: k,
-          name: supported[k]?.name || k,
-          is_popular: !!supported[k]?.is_popular || popular.has(k),
-        }));
+        const list = Array.isArray(data)
+          ? data.map((item) => ({
+              key: item?.language,
+              name: item?.metadata?.name || item?.language,
+              is_popular: !!item?.metadata?.is_popular,
+            }))
+          : (() => {
+              const supported = data?.supported_languages || {};
+              const popular = new Set(data?.popular_languages || []);
+              return Object.keys(supported).map((k) => ({
+                key: k,
+                name: supported[k]?.name || k,
+                is_popular: !!supported[k]?.is_popular || popular.has(k),
+              }));
+            })();
         list.sort((a, b) => (b.is_popular - a.is_popular) || a.name.localeCompare(b.name));
         if (mounted) setSupportedLanguages(list);
       } catch {}
@@ -258,7 +270,10 @@ export const useCodeOptimizer = (defaultTask = 'optimization', enableFileManager
       setProgressStep('connecting');
       const response = await fetch(`${API_BASE}/analyze-code`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
         body: JSON.stringify({
           code: code,
           language: effectiveLanguage,
@@ -275,7 +290,10 @@ export const useCodeOptimizer = (defaultTask = 'optimization', enableFileManager
 
       setProgressStep('processing');
       const result = await response.json();
-      const raw = result.optimized_code || result.result || '';
+      const raw = result.optimized_code
+        || (typeof result.result === 'string' ? result.result : result.result?.optimized_code || result.result?.analysis)
+        || result.result_text
+        || '';
       setProgressStep('rendering');
       setOptimizedCode(raw || 'No result received');
       const parsed = parseAiResult(raw);
@@ -313,7 +331,10 @@ export const useCodeOptimizer = (defaultTask = 'optimization', enableFileManager
     try {
       const resp = await fetch(`${API_BASE}/run-code`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
         body: JSON.stringify({ 
           code: outCode || code, // Run optimized code if available, else original
           language: capitalizedLang,
@@ -354,7 +375,10 @@ export const useCodeOptimizer = (defaultTask = 'optimization', enableFileManager
     try {
       const resp = await fetch(`${API_BASE}/run-code/compare`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
         body: JSON.stringify({
           original_code: code,
           optimized_code: outCode,

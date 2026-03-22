@@ -1,100 +1,26 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { API_BASE } from '../config';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import CodeEditor from './CodeEditor';
-// CSS-only ambient background
-const AmbientBackground = () => (
-  <>
-    <motion.div
-      aria-hidden
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-      className="pointer-events-none absolute -top-40 -right-32 w-[40rem] h-[40rem] rounded-full bg-teal-500/15 blur-3xl"
-    />
-    <motion.div
-      aria-hidden
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8, delay: 0.1 }}
-      className="pointer-events-none absolute -bottom-40 -left-32 w-[40rem] h-[40rem] rounded-full bg-emerald-500/15 blur-3xl"
-    />
-  </>
-);
+import { AmbientBackground, Toast, ProgressBar, ConfigPanel, CodeInputPanel, AnalyticsDashboard } from './optimizer';
+import useOptimizer, { parseAiResult } from './optimizer/useOptimizer';
 
 // Professional Code Optimizer Interface
 const CodeOptimizer = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const prefill = location.state?.prefill;
-  const { user } = useAuth();
-  const [code, setCode] = useState(prefill?.code || '');
-  const [language, setLanguage] = useState(prefill?.language || 'auto');
-  const [supportedLanguages, setSupportedLanguages] = useState([]); // from backend
-  const [task, setTask] = useState(prefill?.task || 'optimization');
-  const [aiProvider, setAiProvider] = useState('auto');
-  const [compareMode, setCompareMode] = useState(false);
-  const [selectedProviders, setSelectedProviders] = useState({ openai: true, claude: true, gemini: true });
-  const [optimizedCode, setOptimizedCode] = useState('');
-  const [outCode, setOutCode] = useState('');
-  const [outExplanation, setOutExplanation] = useState('');
-  const [compareResults, setCompareResults] = useState(null);
-  const [copied, setCopied] = useState(false);
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [optimizationCount, setOptimizationCount] = useState(0);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [error, setError] = useState('');
-  const [backendHealthy, setBackendHealthy] = useState(null); // null=unknown, true/false
-  const [professionalMode, setProfessionalMode] = useState(true);
-  const [progressStep, setProgressStep] = useState(''); // e.g., 'validating' | 'connecting' | 'processing' | 'rendering'
-  const [toast, setToast] = useState(null); // { type: 'success' | 'error', message: string }
-  const [sessions, setSessions] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const [runResult, setRunResult] = useState(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [runCompare, setRunCompare] = useState(null);
-  const [isComparing, setIsComparing] = useState(false);
-  const [perfHistory, setPerfHistory] = useState([]);  // last N compare runs
-
-  const [userInstructions, setUserInstructions] = useState(
-    prefill?.user_instructions || 'Minimize code length while maintaining readability and performance.'
-  );
-  const [optimizationFocus, setOptimizationFocus] = useState({
-    time_complexity: true,
-    space_complexity: false,
-    code_length: true,
-    readability: true,
-    performance: true,
-    memory: false,
-  });
-
-  const focusOptions = [
-    { key: 'time_complexity', label: 'Time complexity' },
-    { key: 'space_complexity', label: 'Space complexity' },
-    { key: 'code_length', label: 'Code length' },
-    { key: 'readability', label: 'Readability' },
-    { key: 'performance', label: 'Performance' },
-    { key: 'memory', label: 'Memory' },
-  ];
-
-  // Lightweight language detection for editor + API when 'Auto' is selected
-  const detectLanguage = (text) => {
-    const src = text || '';
-    if (/\bdef\s+\w+\s*\(|^\s*import\s+\w+(\s+as\s+\w+)?\s*$/m.test(src) || /:\n\s+/.test(src)) return 'Python';
-    if (/\bfunction\b|=>|console\.log\(/.test(src)) return 'JavaScript';
-    if (/(:\s*string|:\s*number|interface\s+\w+|type\s+\w+\s*=)/.test(src)) return 'TypeScript';
-    if (/#include\s*<.*?>|std::|using\s+namespace\s+std/.test(src)) return 'C++';
-    if (/public\s+class\s+\w+|System\.out\.println|public\s+static\s+void\s+main\s*\(/.test(src)) return 'Java';
-    if (/package\s+main|fmt\.Print|go\s+\w+\s+\(/.test(src)) return 'Go';
-    if (/fn\s+main\(\)|let\s+mut|println!\(/.test(src)) return 'Rust';
-    return 'plaintext';
-  };
-
-  const resolvedEditorLanguage = useMemo(() => {
-    return language === 'auto' ? detectLanguage(code) : language;
-  }, [language, code]);
+  const {
+    code, setCode, language, setLanguage, supportedLanguages, task, setTask,
+    aiProvider, setAiProvider, compareMode, setCompareMode,
+    selectedProviders, setSelectedProviders, optimizedCode, outCode, outExplanation,
+    compareResults, copied, setCopied, isOptimizing, optimizationCount,
+    showAuthModal, setShowAuthModal, error, setError, backendHealthy,
+    professionalMode, setProfessionalMode, progressStep, toast, setToast,
+    sessions, saving, runResult, isRunning, runCompare, isComparing, perfHistory,
+    lastTokens, analytics, fetchAnalytics, ghModalOpen, setGhModalOpen, currentSessionId,
+    userInstructions, setUserInstructions, optimizationFocus, setOptimizationFocus,
+    resolvedEditorLanguage, analysisReport, bugReport, docReport, refactorReport, quickMetrics,
+    user, navigate,
+    handleOptimizeCode, handleCompareModels, handleSaveSession,
+    handleRunCode, handleAutoFix, handleComparePerformance, handleLoadSession, handleDeleteSession,
+  } = useOptimizer();
 
   // Sanitize AI explanation: remove emojis/markdown; leave code parsing separate
   const sanitizeProfessional = (text) => {
@@ -108,447 +34,28 @@ const CodeOptimizer = () => {
         const [full, _lang, code] = m;
         const before = text.slice(last, m.index);
         if (before) parts.push({ type: 'text', value: before });
-        parts.push({ type: 'code', value: code }); // keep code exactly
+        parts.push({ type: 'code', value: code });
         last = m.index + full.length;
       }
       if (last < text.length) parts.push({ type: 'text', value: text.slice(last) });
 
       const emojiRe = /([\u2700-\u27BF]|[\u2190-\u21FF]|[\u2600-\u26FF]|[\uFE00-\uFE0F]|\u24C2|[\uD83C-\uDBFF][\uDC00-\uDFFF])/g;
-
       const cleanText = (s) => {
-        // Remove emojis/decorative chars
         s = s.replace(emojiRe, '');
-        // Strip markdown headings/quotes
         s = s.replace(/^\s*[#>]+\s*/gm, '');
-        // Normalize bullets (remove decorative bullets and asterisks)
         s = s.replace(/^\s*[\-\*•]\s+/gm, '- ');
-        // Remove bold/italic markers
         s = s.replace(/\*\*(.*?)\*\*/g, '$1').replace(/__(.*?)__/g, '$1');
         s = s.replace(/\*(.*?)\*/g, '$1').replace(/_(.*?)_/g, '$1');
-        // Remove inline code backticks
         s = s.replace(/`{1,3}/g, '');
-        // Remove standalone code fence lines if any remain
         s = s.replace(/^```[a-zA-Z]*\s*$/gm, '');
-        // Trim trailing spaces and collapse extra blank lines
         s = s.replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n');
         return s.trim();
       };
 
       return parts.map(p => p.type === 'code' ? p.value.replace(/[ \t]+$/gm, '').trimEnd() : cleanText(p.value)).join('\n');
     } catch {
-      return text; // fallback to original on any error
+      return text;
     }
-  };
-
-  // Extract code blocks and explanation from AI output
-  const parseAiResult = (text) => {
-    if (!text) return { code: '', explanation: '' };
-    const codeRegex = /```([a-zA-Z]*)?\n([\s\S]*?)```/g;
-    let m, last = 0;
-    const codes = [];
-    const texts = [];
-    while ((m = codeRegex.exec(text)) !== null) {
-      const [full, _lang, code] = m;
-      const before = text.slice(last, m.index);
-      if (before) texts.push(before);
-      codes.push(code);
-      last = m.index + full.length;
-    }
-    if (last < text.length) texts.push(text.slice(last));
-    const code = codes.join('\n\n').replace(/[ \t]+$/gm, '').trim();
-    const explanation = texts.join('\n').trim();
-    return { code, explanation };
-  };
-
-  const tryParseJsonObject = (text) => {
-    if (!text) return null;
-    const s = String(text).trim();
-    try {
-      return JSON.parse(s);
-    } catch {}
-
-    // Try to extract a JSON object substring
-    const first = s.indexOf('{');
-    const last = s.lastIndexOf('}');
-    if (first >= 0 && last > first) {
-      const candidate = s.slice(first, last + 1);
-      try {
-        return JSON.parse(candidate);
-      } catch {}
-    }
-    return null;
-  };
-
-  const analysisReport = useMemo(() => {
-    if (task !== 'analysis') return null;
-    return tryParseJsonObject(outExplanation || optimizedCode);
-  }, [task, outExplanation, optimizedCode]);
-
-  const bugReport = useMemo(() => {
-    if (task !== 'bug_detection') return null;
-    return tryParseJsonObject(outExplanation || optimizedCode);
-  }, [task, outExplanation, optimizedCode]);
-
-  const docReport = useMemo(() => {
-    if (task !== 'documentation') return null;
-    return tryParseJsonObject(outExplanation || optimizedCode);
-  }, [task, outExplanation, optimizedCode]);
-
-  const refactorReport = useMemo(() => {
-    if (task !== 'refactoring') return null;
-    return tryParseJsonObject(outExplanation || optimizedCode);
-  }, [task, outExplanation, optimizedCode]);
-
-  const quickMetrics = useMemo(() => {
-    if (!code) return null;
-    const originalLines = (code || '').split('\n').length;
-    const originalChars = (code || '').length;
-    const optimizedLines = (outCode || '').split('\n').length;
-    const optimizedChars = (outCode || '').length;
-    const lineDelta = optimizedLines - originalLines;
-    const charDelta = optimizedChars - originalChars;
-    const lineReductionPct = originalLines > 0 ? Math.round(((originalLines - optimizedLines) / originalLines) * 100) : null;
-    const charReductionPct = originalChars > 0 ? Math.round(((originalChars - optimizedChars) / originalChars) * 100) : null;
-    return {
-      originalLines,
-      optimizedLines,
-      lineDelta,
-      lineReductionPct,
-      originalChars,
-      optimizedChars,
-      charDelta,
-      charReductionPct,
-    };
-  }, [code, outCode]);
-
-  useEffect(() => {
-    // apply prefill updates if prop changes
-    if (prefill) {
-      setCode(prefill.code || '');
-      setLanguage(prefill.language || 'python');
-      setTask(prefill.task || 'optimization');
-    }
-
-    let mounted = true;
-    fetch(`${API_BASE}/health`).then(async (r) => {
-      if (!mounted) return;
-      setBackendHealthy(r.ok);
-    }).catch(() => {
-      if (!mounted) return;
-      setBackendHealthy(false);
-    });
-
-    // Fetch supported languages from backend for strict dropdown
-    (async () => {
-      try {
-        const resp = await fetch(`${API_BASE}/supported-languages`);
-        if (!resp.ok) return;
-        const data = await resp.json();
-        const supported = data?.supported_languages || {};
-        const popular = new Set(data?.popular_languages || []);
-        const list = Object.keys(supported).map((k) => ({
-          key: k,
-          name: supported[k]?.name || k,
-          is_popular: !!supported[k]?.is_popular || popular.has(k),
-        }));
-        list.sort((a, b) => (b.is_popular - a.is_popular) || a.name.localeCompare(b.name));
-        if (mounted) setSupportedLanguages(list);
-      } catch {}
-    })();
-    return () => { mounted = false; };
-  }, [prefill]);
-
-  // Load sessions when user logs in
-  useEffect(() => {
-    if (!user) { setSessions([]); return; }
-    (async () => {
-      try {
-        const resp = await fetch(`${API_BASE}/opt-sessions`, { headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` } });
-        if (resp.ok) {
-          const data = await resp.json();
-          setSessions(data);
-        }
-      } catch {}
-    })();
-  }, [user]);
-
-  const handleOptimizeCode = async () => {
-    if (!code.trim()) {
-      alert('Please enter some code to optimize!');
-      return;
-    }
-
-    let effectiveLanguage = language;
-    if (language === 'auto') {
-      const inferred = detectLanguage(code);
-      if (inferred === 'plaintext') {
-        setError('Could not detect a programming language. Please select a language from the dropdown.');
-        return;
-      }
-      effectiveLanguage = inferred;
-    }
-
-    const optimization_focus = Object.keys(optimizationFocus).filter((k) => optimizationFocus[k]);
-
-    if (!user && optimizationCount >= 2) {
-      setShowAuthModal(true);
-      return;
-    }
-
-    setIsOptimizing(true);
-    setError('');
-    setCompareResults(null);
-    setProgressStep('validating');
-    setToast(null);
-    
-    try {
-      setProgressStep('connecting');
-      const response = await fetch(`${API_BASE}/analyze-code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: code,
-          language: effectiveLanguage,
-          task: task,
-          provider: aiProvider === 'auto' ? null : aiProvider,
-          user_instructions: task === 'optimization' ? userInstructions : null,
-          optimization_focus: task === 'optimization' ? optimization_focus : null,
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-  setProgressStep('processing');
-  const result = await response.json();
-  const raw = result.optimized_code || result.result || '';
-  setProgressStep('rendering');
-  setOptimizedCode(raw || 'No optimization result received');
-  const parsed = parseAiResult(raw);
-  setOutCode(parsed.code);
-  setOutExplanation(parsed.explanation);
-      setOptimizationCount(prev => prev + 1);
-      setToast({ type: 'success', message: 'Task completed successfully!' });
-      setTimeout(() => setToast(null), 4000);
-      
-    } catch (error) {
-  console.error('Optimization failed:', error);
-  setError(`Failed to optimize code: ${error.message}`);
-  setToast({ type: 'error', message: `Error: ${error.message}` });
-  setTimeout(() => setToast(null), 5000);
-  const fallback = `# ${task} result for ${language}:\n${code}\n\n# AI Suggestions:\n# - Connection to backend failed\n# - Using demo response\n# - Please check your backend server`;
-  setOptimizedCode(fallback);
-  const parsed = parseAiResult(fallback);
-  setOutCode(parsed.code);
-  setOutExplanation(parsed.explanation);
-      setOptimizationCount(prev => prev + 1);
-    } finally {
-      setIsOptimizing(false);
-      setProgressStep('');
-    }
-  };
-
-  const handleCompareModels = async () => {
-    if (!code.trim()) {
-      alert('Please enter some code to analyze!');
-      return;
-    }
-
-    let effectiveLanguage = language;
-    if (language === 'auto') {
-      const inferred = detectLanguage(code);
-      if (inferred === 'plaintext') {
-        setError('Could not detect a programming language. Please select a language from the dropdown.');
-        return;
-      }
-      effectiveLanguage = inferred;
-    }
-
-    const providers = Object.keys(selectedProviders).filter((k) => selectedProviders[k]);
-    if (providers.length === 0) {
-      setError('Select at least one provider to compare.');
-      return;
-    }
-
-    const optimization_focus = Object.keys(optimizationFocus).filter((k) => optimizationFocus[k]);
-
-    if (!user && optimizationCount >= 2) {
-      setShowAuthModal(true);
-      return;
-    }
-
-    setIsOptimizing(true);
-    setError('');
-    setCompareResults(null);
-    try {
-      const resp = await fetch(`${API_BASE}/analyze-code/compare`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code,
-          language: effectiveLanguage,
-          task,
-          providers,
-          user_instructions: task === 'optimization' ? userInstructions : null,
-          optimization_focus: task === 'optimization' ? optimization_focus : null,
-        }),
-      });
-
-      if (!resp.ok) {
-        const txt = await resp.text();
-        throw new Error(`HTTP ${resp.status}: ${txt}`);
-      }
-
-      const data = await resp.json();
-      setCompareResults(data);
-      setOptimizedCode('');
-      setOutCode('');
-      setOutExplanation('');
-      setOptimizationCount((prev) => prev + 1);
-      setToast({ type: 'success', message: 'Comparison complete!' });
-      setTimeout(() => setToast(null), 4000);
-    } catch (e) {
-      console.error('Compare failed:', e);
-      setError(`Failed to compare models: ${e.message}`);
-      setToast({ type: 'error', message: `Compare error: ${e.message}` });
-      setTimeout(() => setToast(null), 5000);
-    } finally {
-      setIsOptimizing(false);
-      setProgressStep('');
-    }
-  };
-
-  const handleSaveSession = async () => {
-    if (!user) { setShowAuthModal(true); return; }
-    setSaving(true);
-    try {
-      const effectiveLangForTitle = language === 'auto' ? resolvedEditorLanguage : language;
-      const payload = {
-        title: `${task} • ${effectiveLangForTitle}`,
-        code,
-        language: effectiveLangForTitle,
-        task,
-        provider_used: aiProvider,
-        result: optimizedCode || outCode || '',
-      };
-      const resp = await fetch(`${API_BASE}/opt-sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (resp.ok) {
-        const item = await resp.json();
-        setSessions((prev) => [item, ...prev]);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleRunCode = async () => {
-    // prefer the AI-produced code if available, else run the editor code
-    const toRun = outCode && outCode.trim() ? outCode : code;
-    if (!toRun || !toRun.trim()) { setError('No code available to run'); return; }
-    const lang = resolvedEditorLanguage || language || 'Python';
-    if (lang !== 'Python') {
-      setError('Run Code currently supports only Python in this build.');
-      return;
-    }
-
-    setIsRunning(true);
-    setRunResult(null);
-    setError('');
-    try {
-      const resp = await fetch(`${API_BASE}/run-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: toRun, language: 'Python', stdin: '' }),
-      });
-      if (!resp.ok) {
-        const txt = await resp.json().catch(() => ({}));
-        throw new Error(txt.detail || `HTTP ${resp.status}`);
-      }
-      const data = await resp.json();
-      setRunResult(data);
-    } catch (e) {
-      console.error('Run failed', e);
-      setError(`Run failed: ${e.message}`);
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const handleComparePerformance = async () => {
-    const original = code;
-    const optimized = outCode && outCode.trim() ? outCode : '';
-    if (!original || !original.trim()) { setError('No original code available to run'); return; }
-    if (!optimized) { setError('No optimized code available to compare'); return; }
-
-    const lang = resolvedEditorLanguage || language || 'Python';
-    if (lang !== 'Python') {
-      setError('Compare Performance currently supports only Python in this build.');
-      return;
-    }
-
-    setIsComparing(true);
-    setRunCompare(null);
-    setError('');
-    try {
-      const resp = await fetch(`${API_BASE}/run-code/compare`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ original_code: original, optimized_code: optimized, language: 'Python', stdin: '', timeout_ms: 5000 }),
-      });
-      if (!resp.ok) {
-        const txt = await resp.json().catch(() => ({}));
-        throw new Error(txt.detail || `HTTP ${resp.status}`);
-      }
-      const data = await resp.json();
-      setRunCompare(data);
-      // Append to perfHistory (keep last 10)
-      setPerfHistory((prev) => [
-        { ts: Date.now(), ...data },
-        ...prev.slice(0, 9),
-      ]);
-    } catch (e) {
-      console.error('Compare run failed', e);
-      setError(`Compare run failed: ${e.message}`);
-    } finally {
-      setIsComparing(false);
-    }
-  };
-
-  const handleLoadSession = async (id) => {
-    try {
-      const resp = await fetch(`${API_BASE}/opt-sessions/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` } });
-      if (resp.ok) {
-        const d = await resp.json();
-        setCode(d.code || '');
-        setLanguage(d.language || 'auto');
-        setTask(d.task || 'optimization');
-        const parsed = parseAiResult(d.result || '');
-        setOptimizedCode(d.result || '');
-        setOutCode(parsed.code);
-        setOutExplanation(parsed.explanation);
-      }
-    } catch {}
-  };
-
-  const handleDeleteSession = async (id) => {
-    try {
-      const resp = await fetch(`${API_BASE}/opt-sessions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` } });
-      if (resp.status === 204) {
-        setSessions((prev) => prev.filter((s) => s.id !== id));
-      }
-    } catch {}
   };
 
   return (
@@ -605,167 +112,25 @@ const CodeOptimizer = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
               className="space-y-6"
-            >
-              {/* Controls */}
-              <div className="p-6 rounded-2xl backdrop-blur-xl border soft-shadow tint-blue tint-outline" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
-                <h2 className="text-lg font-semibold mb-4">Configuration</h2>
-                
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted mb-2">Language</label>
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)} className="select w-full" style={{padding:'10px 12px'}}>
-                      <option value="auto">Auto (detect)</option>
-                      {supportedLanguages.length === 0 ? (
-                        <>
-                          <option value="Python">Python</option>
-                          <option value="JavaScript">JavaScript</option>
-                          <option value="TypeScript">TypeScript</option>
-                          <option value="Java">Java</option>
-                          <option value="C++">C++</option>
-                          <option value="Go">Go</option>
-                          <option value="Rust">Rust</option>
-                        </>
-                      ) : (
-                        supportedLanguages.map((l) => (
-                          <option key={l.key} value={l.key}>{l.name}</option>
-                        ))
-                      )}
-                    </select>
-                    {language === 'auto' && (
-                      <p className="mt-2 text-xs text-muted">Detected: <span style={{ color: 'var(--fg-color)' }}>{resolvedEditorLanguage}</span></p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-muted mb-2">Task</label>
-                    <select value={task} onChange={(e) => setTask(e.target.value)} className="select w-full" style={{padding:'10px 12px'}}>
-                      <option value="optimization">Optimize</option>
-                      <option value="analysis">Analyze</option>
-                      <option value="bug_detection">Bug Detection</option>
-                      <option value="explanation">Explain</option>
-                      <option value="debugging">Debugging</option>
-                      <option value="documentation">Document</option>
-                      <option value="refactoring">Refactor</option>
-                    </select>
-                  </div>
-                </div>
+            >              {/* Controls */}
+              <ConfigPanel
+                language={language} setLanguage={setLanguage} supportedLanguages={supportedLanguages}
+                resolvedEditorLanguage={resolvedEditorLanguage} task={task} setTask={setTask}
+                aiProvider={aiProvider} setAiProvider={setAiProvider} compareMode={compareMode} setCompareMode={setCompareMode}
+                selectedProviders={selectedProviders} setSelectedProviders={setSelectedProviders}
+                userInstructions={userInstructions} setUserInstructions={setUserInstructions}
+                optimizationFocus={optimizationFocus} setOptimizationFocus={setOptimizationFocus}
+                setGhModalOpen={setGhModalOpen}
+              />
 
-                {task === 'optimization' && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-muted mb-2">User Instructions</label>
-                    <textarea
-                      value={userInstructions}
-                      onChange={(e) => setUserInstructions(e.target.value)}
-                      className="input w-full"
-                      rows={3}
-                      placeholder="Optional: add specific goals (e.g., keep function signature unchanged)"
-                    />
-                    <div className="mt-3">
-                      <div className="text-sm font-medium text-muted mb-2">Optimization Focus</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {focusOptions.map((opt) => (
-                          <label key={opt.key} className="flex items-center gap-2 text-xs text-muted select-none">
-                            <input
-                              type="checkbox"
-                              checked={!!optimizationFocus[opt.key]}
-                              onChange={(e) => setOptimizationFocus((prev) => ({ ...prev, [opt.key]: e.target.checked }))}
-                              className="h-3.5 w-3.5 rounded"
-                              style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}
-                            />
-                            {opt.label}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-muted mb-2">AI Provider</label>
-                  <select value={aiProvider} onChange={(e) => setAiProvider(e.target.value)} disabled={compareMode} className="select w-full disabled:opacity-60" style={{padding:'10px 12px'}}>
-                    <option value="auto">Auto (Best Choice)</option>
-                    <option value="openai">OpenAI GPT</option>
-                    <option value="claude">Anthropic Claude</option>
-                    <option value="gemini">Google Gemini</option>
-                  </select>
-                </div>
+              {/* Input Section */}
+              <CodeInputPanel
+                code={code} setCode={setCode} resolvedEditorLanguage={resolvedEditorLanguage}
+                error={error} setError={setError} isOptimizing={isOptimizing}
+                compareMode={compareMode} task={task} onSubmit={compareMode ? handleCompareModels : handleOptimizeCode}
+              />
 
-                <div className="mt-4">
-                  <label className="flex items-center gap-2 text-xs text-muted select-none">
-                    <input
-                      type="checkbox"
-                      checked={compareMode}
-                      onChange={(e) => setCompareMode(e.target.checked)}
-                      className="h-3.5 w-3.5 rounded"
-                      style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}
-                    />
-                    Compare models (side-by-side)
-                  </label>
-
-                  {compareMode && (
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      {['openai', 'claude', 'gemini'].map((p) => (
-                        <label key={p} className="flex items-center gap-2 text-xs text-muted select-none">
-                          <input
-                            type="checkbox"
-                            checked={!!selectedProviders[p]}
-                            onChange={(e) => setSelectedProviders((prev) => ({ ...prev, [p]: e.target.checked }))}
-                            className="h-3.5 w-3.5 rounded"
-                            style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}
-                          />
-                          {p}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Code Input */}
-              <div className="p-6 rounded-2xl backdrop-blur-xl border soft-shadow tint-rose tint-outline" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
-                <h2 className="text-lg font-semibold mb-4">Your Code</h2>
-                <CodeEditor value={code} onChange={setCode} language={resolvedEditorLanguage} height={320} />
-                
-                <AnimatePresence>
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm flex items-start justify-between gap-3"
-                    >
-                      <span>{error}</span>
-                      <button
-                        onClick={() => setError('')}
-                        className="text-red-400 hover:text-red-200 transition"
-                        aria-label="Dismiss error"
-                      >
-                        ✕
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <motion.button
-                  onClick={compareMode ? handleCompareModels : handleOptimizeCode}
-                  disabled={isOptimizing}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full mt-6 px-6 py-4 bg-gradient-to-r from-teal-600 to-emerald-500 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 relative overflow-hidden group"
-                >
-                  {isOptimizing ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    <span>{compareMode ? 'Compare Models' : (task === 'optimization' ? 'Optimize Code' : 'Run Task')}</span>
-                  )}
-                </motion.button>
-              </div>
             </motion.div>
 
             {/* Output Section */}
@@ -777,18 +142,41 @@ const CodeOptimizer = () => {
             >
               <div className="p-6 rounded-2xl backdrop-blur-xl border soft-shadow tint-teal tint-outline h-full" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
                 <div className="mb-4 flex items-center justify-between gap-4">
-                  <h2 className="text-lg font-semibold">Optimized Result</h2>
-                  {optimizedCode && (
-                    <button
-                      onClick={handleSaveSession}
-                      disabled={!optimizedCode || saving}
-                      className="px-5 py-2 rounded-xl text-xs disabled:opacity-50"
-                      style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}
-                      title={user ? '' : 'Sign in to save sessions'}
-                    >
-                      {saving ? 'Saving…' : 'Save Session'}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold">Optimized Result</h2>
+                    {currentSessionId && (
+                      <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 uppercase tracking-wider animate-pulse">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.6)]" />
+                        Live Sync Active
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {currentSessionId && (
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(currentSessionId);
+                          setToast({ type: 'success', message: 'Collaboration ID copied to clipboard!' });
+                          setTimeout(() => setToast(null), 3000);
+                        }}
+                        className="p-2 hover:bg-white/5 rounded-xl transition text-muted group"
+                        title="Copy Collaboration ID"
+                      >
+                        <svg className="w-4 h-4 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                      </button>
+                    )}
+                    {optimizedCode && (
+                      <button
+                        onClick={handleSaveSession}
+                        disabled={!optimizedCode || saving}
+                        className="px-5 py-2 rounded-xl text-xs disabled:opacity-50"
+                        style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}
+                        title={user ? '' : 'Sign in to save sessions'}
+                      >
+                        {saving ? 'Saving…' : 'Save Session'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {!optimizedCode && !compareResults && (
@@ -875,6 +263,12 @@ const CodeOptimizer = () => {
                           });
                       })()}
                     </div>
+                  </div>
+                )}
+
+                {task === 'analytics' && (
+                  <div className="mb-10">
+                    <AnalyticsDashboard analytics={analytics} fetchAnalytics={fetchAnalytics} />
                   </div>
                 )}
 
@@ -1558,12 +952,28 @@ const CodeOptimizer = () => {
                         )}
                         {runResult && (
                           <div className="mt-4 p-3 rounded-lg" style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)` }}>
-                            <div className="text-sm font-medium mb-2">Run Results</div>
-                            <div className="text-xs text-muted mb-2">Time: {runResult.exec_time_ms} ms • Peak: {runResult.peak_kb ?? '—'} KB</div>
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="text-sm font-medium">Run Results {runResult.ok ? '✅' : '❌'}</div>
+                              {!runResult.ok && runResult.stderr && (
+                                <button
+                                  onClick={handleAutoFix}
+                                  disabled={isOptimizing}
+                                  className="px-3 py-1 rounded bg-teal-500/20 text-teal-400 font-bold hover:bg-teal-500/30 transition shadow border border-teal-500/50 text-xs flex items-center gap-2"
+                                  title="Send traceback to AI to automatically fix the bug"
+                                >
+                                  {isOptimizing ? 'Fixing...' : '✨ Auto-Fix Error'}
+                                </button>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted mb-2">Time: {runResult.exec_time_ms} ms • Peak: {runResult.memory_mb ?? '—'} MB</div>
                             <div className="text-sm mb-2">Stdout:</div>
                             <pre className="themed-code font-mono text-sm whitespace-pre leading-relaxed max-h-40 overflow-auto">{runResult.stdout || '(no stdout)'}</pre>
-                            <div className="text-sm mt-2 mb-1">Stderr:</div>
-                            <pre className="themed-code font-mono text-sm whitespace-pre leading-relaxed max-h-40 overflow-auto">{runResult.stderr || '(no stderr)'}</pre>
+                            {runResult.stderr && (
+                              <>
+                                <div className="text-sm mt-2 mb-1 text-red-400 font-semibold">Stderr:</div>
+                                <pre className="themed-code font-mono text-sm whitespace-pre leading-relaxed max-h-40 overflow-auto text-red-500/90">{runResult.stderr}</pre>
+                              </>
+                            )}
                           </div>
                         )}
                         {runCompare && (
@@ -1700,6 +1110,19 @@ const CodeOptimizer = () => {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {ghModalOpen && (
+          <GitHubRepoModal 
+            isOpen={ghModalOpen} 
+            onClose={() => setGhModalOpen(false)} 
+            onFileSelect={(content, filename) => {
+              setCode(content);
+              setToast({ type: 'success', message: `Imported ${filename} from GitHub!` });
+              setTimeout(() => setToast(null), 3000);
+            }} 
+          />
         )}
       </AnimatePresence>
     </div>

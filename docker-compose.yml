@@ -1,0 +1,61 @@
+# AI Code Optimizer — Docker Compose
+# Usage: docker-compose up --build
+
+version: "3.8"
+
+services:
+  # MongoDB (local development)
+  mongo:
+    image: mongo:7
+    container_name: aco-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: ai_code_optimizer
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: aco-backend
+    ports:
+      - "8001:8001"
+    depends_on:
+      - mongo
+    environment:
+      - APP_ENV=development
+      - BACKEND_PORT=8001
+      - MONGODB_URL=mongodb://mongo:27017
+      - MONGODB_DB=ai_code_optimizer
+      - ALLOW_FAKE_AI=1
+      - CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-change-in-production}
+      # Add your AI keys here or in .env file
+      # - OPENAI_API_KEY=
+      # - ANTHROPIC_API_KEY=
+      # - GOOGLE_AI_API_KEY=
+    volumes:
+      - ./server:/app/server  # Hot-reload in dev
+
+  # Frontend Dev Server
+  frontend:
+    image: node:20-alpine
+    container_name: aco-frontend
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE=http://localhost:8001
+
+volumes:
+  mongo-data:

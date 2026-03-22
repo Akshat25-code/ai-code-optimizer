@@ -4,17 +4,102 @@ import profileService from '../services/profileService';
 import authService from '../services/authService';
 import { API_BASE } from '../config';
 import { useTheme } from '../contexts/ThemeContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js';
+import { Line, Bar } from 'react-chartjs-2';
 
-const TabButton = ({ id, active, onClick, children }) => (
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
+
+const TabButton = ({ id, active, onClick, children, icon }) => (
   <button
     onClick={() => onClick(id)}
-    className={`px-3 py-2 rounded-md text-sm border transition-colors ${active ? 'border-theme' : 'border-theme'} `}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden group border`}
     style={{
-      background: active ? 'rgba(99,102,241,0.12)' : 'var(--card-bg)',
-      color: 'var(--fg-color)'
+      background: active ? 'var(--surface-2)' : 'transparent',
+      borderColor: active ? 'var(--card-border)' : 'transparent',
+      color: active ? 'var(--accent-cyan)' : 'var(--muted)',
     }}
   >
-    {children}
+    {active && (
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--accent-cyan)] shadow-[0_0_10px_var(--accent-cyan)]" />
+    )}
+    {active && (
+      <div className="absolute inset-0 bg-gradient-to-r from-[var(--glow-cyan)] to-transparent opacity-10" />
+    )}
+    <span className="text-lg relative z-10 transition-transform duration-300 group-hover:scale-110">{icon}</span>
+    <span className="relative z-10">{children}</span>
+  </button>
+);
+
+const InputField = ({ label, type = 'text', ...props }) => (
+  <div className="space-y-1.5">
+    <label className="block text-xs font-bold uppercase tracking-wider text-muted ml-1">{label}</label>
+    <input 
+      type={type}
+      className="w-full bg-[#0a0a0c] border border-[var(--card-border)] rounded-xl px-4 py-2.5 text-gray-200 focus:outline-none focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)]/50 transition-all font-medium"
+      {...props}
+    />
+  </div>
+);
+
+const SelectField = ({ label, children, ...props }) => (
+  <div className="space-y-1.5">
+    <label className="block text-xs font-bold uppercase tracking-wider text-muted ml-1">{label}</label>
+    <select 
+      className="w-full bg-[#0a0a0c] border border-[var(--card-border)] rounded-xl px-4 py-2.5 text-gray-200 focus:outline-none focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)]/50 transition-all cursor-pointer font-medium appearance-none"
+      {...props}
+    >
+      {children}
+    </select>
+  </div>
+);
+
+const TextAreaField = ({ label, ...props }) => (
+  <div className="space-y-1.5">
+    <label className="block text-xs font-bold uppercase tracking-wider text-muted ml-1">{label}</label>
+    <textarea 
+      className="w-full bg-[#0a0a0c] border border-[var(--card-border)] rounded-xl px-4 py-2.5 text-gray-200 focus:outline-none focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)]/50 transition-all resize-none font-medium custom-scrollbar font-sans"
+      {...props}
+    />
+  </div>
+);
+
+const ActionButton = ({ children, onClick, disabled, primary = false, danger = false }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed
+      ${primary 
+        ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)]' 
+        : danger 
+          ? 'bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20' 
+          : 'bg-[var(--surface-2)] text-gray-300 border border-[var(--card-border)] hover:bg-[var(--surface-3)] hover:text-white'
+      }
+    `}
+  >
+    {primary && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform" />}
+    <span className="relative z-10 flex items-center justify-center gap-2">{children}</span>
   </button>
 );
 
@@ -33,7 +118,7 @@ const OverviewTab = ({ profile, onAvatarChange, onSaved }) => {
     setSaving(true); setMsg('');
     const res = await profileService.updateMe({ name, email });
     setSaving(false);
-    setMsg(res.ok ? 'Saved.' : (res.data?.detail || 'Failed to save'));
+    setMsg(res.ok ? 'Account details updated successfully.' : (res.data?.detail || 'Failed to save account details'));
     if (res.ok && onSaved) onSaved();
   };
 
@@ -48,31 +133,146 @@ const OverviewTab = ({ profile, onAvatarChange, onSaved }) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <img src={profile?.profile_picture || 'https://api.dicebear.com/7.x/identicon/svg?seed=user'} alt="avatar" className="w-16 h-16 rounded-full border border-theme" />
-        <div>
-          <label className="text-sm" style={{color:'var(--fg-color)'}}>Change avatar</label>
-          <input type="file" accept="image/*" onChange={onFile} className="block text-sm text-muted" />
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+      <div className="glass-frame p-6">
+        <h3 className="text-lg font-bold text-[var(--fg-color)] mb-6 flex items-center gap-2"><span className="text-emerald-400">👤</span> Avatar & Identity</h3>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
+            <img src={profile?.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${profile?.email || 'user'}`} alt="avatar" className="w-24 h-24 rounded-full border-2 border-[var(--accent-cyan)] relative z-10 object-cover bg-[#050508]" />
+            <label className="absolute -bottom-2 -right-2 bg-[var(--surface-3)] border border-[var(--card-border)] text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:bg-[var(--accent-cyan)] transition-colors z-20 shadow-lg">
+              <span className="text-sm">📷</span>
+              <input type="file" accept="image/*" onChange={onFile} className="hidden" />
+            </label>
+          </div>
+          <div className="flex-1 space-y-4 w-full">
+             <InputField label="Display Name" value={name} onChange={e=>setName(e.target.value)} placeholder="Alexander" />
+             <InputField label="Email Address" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="alex@example.com" />
+          </div>
+        </div>
+        <div className="mt-8 pt-6 border-t border-[var(--card-border)] flex items-center justify-between">
+          <span className={`text-sm font-medium ${msg.includes('success') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</span>
+          <ActionButton onClick={save} disabled={saving} primary>{saving ? 'Syncing...' : 'Save Changes'}</ActionButton>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs text-muted mb-1">Name</label>
-          <input value={name} onChange={e=>setName(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
-        </div>
-        <div>
-          <label className="block text-xs text-muted mb-1">Email</label>
-          <input value={email} onChange={e=>setEmail(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <button onClick={save} disabled={saving} className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60">{saving? 'Saving…' : 'Save changes'}</button>
-        <span className="text-sm text-muted">{msg}</span>
-      </div>
-    </div>
+    </motion.div>
   );
 };
+
+const ProfileInfoTab = ({ profile, onUpdated }) => {
+  const [bio, setBio] = useState(profile?.bio || '');
+  const [city, setCity] = useState(profile?.location?.city || '');
+  const [country, setCountry] = useState(profile?.location?.country || '');
+  const [jobTitle, setJobTitle] = useState(profile?.professional?.job_title || '');
+  const [company, setCompany] = useState(profile?.professional?.company || '');
+  const [experienceLevel, setExperienceLevel] = useState(profile?.professional?.experience_level || 'Intermediate');
+  const [savingSection, setSavingSection] = useState(null);
+
+  useEffect(() => {
+    setBio(profile?.bio || '');
+    setCity(profile?.location?.city || '');
+    setCountry(profile?.location?.country || '');
+    setJobTitle(profile?.professional?.job_title || '');
+    setCompany(profile?.professional?.company || '');
+    setExperienceLevel(profile?.professional?.experience_level || 'Intermediate');
+  }, [profile]);
+
+  const saveSection = async (section, data) => {
+    setSavingSection(section);
+    const res = await profileService.updateProfileSection(section, data);
+    setSavingSection(null);
+    if (res.ok && onUpdated) onUpdated();
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      <div className="glass-frame p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[var(--fg-color)] flex items-center gap-2"><span className="text-blue-400">📝</span> Biography</h3>
+        </div>
+        <TextAreaField label="Tell the world about yourself" value={bio} onChange={e=>setBio(e.target.value)} placeholder="Full-stack developer with a passion for clean architecture..." rows={4} maxLength={500} />
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-xs font-mono text-muted">{bio.length}/500 chars</div>
+          <ActionButton onClick={() => saveSection('profile', {bio})} disabled={savingSection === 'profile'} primary>
+            {savingSection === 'profile' ? 'Saving...' : 'Update Bio'}
+          </ActionButton>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="glass-frame p-6">
+          <h3 className="text-lg font-bold text-[var(--fg-color)] mb-4 flex items-center gap-2"><span className="text-orange-400">💼</span> Professional</h3>
+          <div className="space-y-4">
+            <InputField label="Job Title" value={jobTitle} onChange={e=>setJobTitle(e.target.value)} placeholder="Senior Software Engineer" />
+            <InputField label="Company" value={company} onChange={e=>setCompany(e.target.value)} placeholder="Tech Innovations Inc." />
+            <SelectField label="Experience Level" value={experienceLevel} onChange={e=>setExperienceLevel(e.target.value)}>
+              <option value="Beginner">Beginner (&lt; 2 years)</option>
+              <option value="Intermediate">Intermediate (2-5 years)</option>
+              <option value="Advanced">Advanced (5-10 years)</option>
+              <option value="Expert">Expert (10+ years)</option>
+            </SelectField>
+          </div>
+          <div className="mt-6 flex justify-end">
+            <ActionButton onClick={() => saveSection('professional', {job_title: jobTitle, company, experience_level: experienceLevel})} disabled={savingSection === 'professional'} primary>
+              {savingSection === 'professional' ? 'Saving...' : 'Update Role'}
+            </ActionButton>
+          </div>
+        </div>
+
+        <div className="glass-frame p-6">
+          <h3 className="text-lg font-bold text-[var(--fg-color)] mb-4 flex items-center gap-2"><span className="text-purple-400">📍</span> Location</h3>
+          <div className="space-y-4 flex-1">
+            <InputField label="City" value={city} onChange={e=>setCity(e.target.value)} placeholder="San Francisco" />
+            <InputField label="Country" value={country} onChange={e=>setCountry(e.target.value)} placeholder="United States" />
+          </div>
+          <div className="mt-6 flex justify-end">
+            <ActionButton onClick={() => saveSection('location', {city, country})} disabled={savingSection === 'location'} primary>
+              {savingSection === 'location' ? 'Saving...' : 'Update Location'}
+            </ActionButton>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const SocialLinksTab = ({ profile, onUpdated }) => {
+  const [github, setGithub] = useState(profile?.social_links?.github || '');
+  const [linkedin, setLinkedin] = useState(profile?.social_links?.linkedin || '');
+  const [twitter, setTwitter] = useState(profile?.social_links?.twitter || '');
+  const [website, setWebsite] = useState(profile?.social_links?.website || '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setGithub(profile?.social_links?.github || '');
+    setLinkedin(profile?.social_links?.linkedin || '');
+    setTwitter(profile?.social_links?.twitter || '');
+    setWebsite(profile?.social_links?.website || '');
+  }, [profile]);
+
+  const saveSection = async () => {
+    setSaving(true);
+    const res = await profileService.updateProfileSection('social-links', {github, linkedin, twitter, website});
+    setSaving(false);
+    if (res.ok && onUpdated) onUpdated();
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="glass-frame p-6 max-w-2xl">
+       <h3 className="text-xl font-bold text-[var(--fg-color)] mb-6 flex items-center gap-2"><span className="text-pink-400">🔗</span> Digital Presence</h3>
+       <div className="space-y-5">
+         <InputField label="GitHub Profile URL" value={github} onChange={e=>setGithub(e.target.value)} placeholder="https://github.com/username" />
+         <InputField label="LinkedIn Profile URL" value={linkedin} onChange={e=>setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/username" />
+         <InputField label="Twitter / X handle" value={twitter} onChange={e=>setTwitter(e.target.value)} placeholder="@username" />
+         <InputField label="Personal Website" value={website} onChange={e=>setWebsite(e.target.value)} placeholder="https://yourdomain.com" />
+       </div>
+       <div className="mt-8 pt-6 border-t border-[var(--card-border)] flex justify-end">
+         <ActionButton onClick={saveSection} disabled={saving} primary>{saving ? 'Syncing...' : 'Update Presence'}</ActionButton>
+       </div>
+    </motion.div>
+  );
+};
+
 
 const PreferencesTab = ({ profile, onUpdated }) => {
   const { setTheme: applyThemeCtx } = useTheme();
@@ -90,26 +290,32 @@ const PreferencesTab = ({ profile, onUpdated }) => {
     const res = await profileService.updatePreferences({ theme, language });
     setSaving(false);
     if (res.ok) onUpdated(res.data.preferences);
-    // Apply selected theme immediately
     applyThemeCtx(theme);
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-xs text-muted mb-1">Theme</label>
-        <select value={theme} onChange={e=>setTheme(e.target.value)} className="rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}}>
-          <option value="system">System</option>
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-        </select>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-frame p-6 max-w-xl">
+      <h3 className="text-xl font-bold text-[var(--fg-color)] mb-6 flex items-center gap-2"><span className="text-yellow-400">🎨</span> App Preferences</h3>
+      <div className="space-y-6">
+        <SelectField label="Interface Theme" value={theme} onChange={e=>setTheme(e.target.value)}>
+          <option value="system">💻 System Default</option>
+          <option value="dark">🌙 Cyber Dark</option>
+          <option value="light">☀️ Luminous Light</option>
+        </SelectField>
+        <SelectField label="Default Optimization Target Language" value={language} onChange={e=>setLanguage(e.target.value)}>
+          <option value="auto">Auto Detect</option>
+          <option value="javascript">JavaScript</option>
+          <option value="python">Python</option>
+          <option value="typescript">TypeScript</option>
+          <option value="java">Java</option>
+          <option value="c++">C++</option>
+          <option value="go">Go</option>
+        </SelectField>
       </div>
-      <div>
-        <label className="block text-xs text-muted mb-1">Default Language</label>
-        <input value={language} onChange={e=>setLanguage(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
+      <div className="mt-8 pt-6 border-t border-[var(--card-border)] flex justify-end">
+        <ActionButton onClick={save} disabled={saving} primary>Apply Preferences</ActionButton>
       </div>
-      <button onClick={save} disabled={saving} className="px-4 py-2 rounded-md text-sm border border-theme disabled:opacity-60" style={{background:'var(--card-bg)', color:'var(--fg-color)'}}>{saving? 'Saving…' : 'Save Preferences'}</button>
-    </div>
+    </motion.div>
   );
 };
 
@@ -122,78 +328,218 @@ const SecurityTab = () => {
     setSaving(true); setMsg('');
     const res = await profileService.changePassword(current, next);
     setSaving(false);
-    setMsg(res.ok ? 'Password updated.' : (res.data?.detail || 'Failed'));
+    setMsg(res.ok ? 'Password updated securely.' : (res.data?.detail || 'Authentication failed'));
     if (res.ok) { setCurrent(''); setNext(''); }
   };
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-xs text-muted mb-1">Current password</label>
-        <input type="password" value={current} onChange={e=>setCurrent(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="glass-frame p-6 max-w-xl">
+      <h3 className="text-xl font-bold text-[var(--fg-color)] mb-6 flex items-center gap-2"><span className="text-red-400">🛡️</span> Security Configuration</h3>
+      <div className="space-y-5">
+        <InputField label="Current Password" type="password" value={current} onChange={e=>setCurrent(e.target.value)} placeholder="••••••••" />
+        <InputField label="New Password" type="password" value={next} onChange={e=>setNext(e.target.value)} placeholder="••••••••" />
       </div>
-      <div>
-        <label className="block text-xs text-muted mb-1">New password</label>
-        <input type="password" value={next} onChange={e=>setNext(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-[var(--card-border)]">
+        <span className={`text-sm font-medium ${msg.includes('securely') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</span>
+        <ActionButton onClick={change} disabled={saving || !current || !next} primary>Update Password</ActionButton>
       </div>
-      <div className="flex items-center gap-3">
-        <button onClick={change} disabled={saving} className="px-4 py-2 rounded-md text-sm border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}}>{saving? 'Updating…' : 'Change Password'}</button>
-        <span className="text-sm text-muted">{msg}</span>
-      </div>
-    </div>
+    </motion.div>
   );
 };
 
-const AccountsTab = () => {
+const AnalyticsTab = () => {
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      // Simulate network delay for effect
+      await new Promise(r => setTimeout(r, 600));
+      const res = await profileService.getAnalytics();
+      setLoading(false);
+      if (res.ok) setAnalytics(res.data);
+    };
+    loadAnalytics();
+  }, []);
+
+  if (loading) return (
+    <div className="h-64 flex flex-col items-center justify-center space-y-4">
+      <div className="w-12 h-12 border-4 border-[var(--accent-cyan)] border-t-transparent flex rounded-full animate-spin shadow-[0_0_15px_var(--accent-cyan)]" />
+      <div className="text-muted font-mono animate-pulse uppercase tracking-widest text-xs">CompILING telemetry...</div>
+    </div>
+  );
+
+  if (!analytics) return <div className="text-muted text-center py-12">Telemetry offline.</div>;
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(5, 5, 8, 0.9)',
+        titleColor: '#fff',
+        bodyColor: '#a1a1aa', // text-muted
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: false,
+      }
+    },
+    scales: {
+      y: { display: false, beginAtZero: true },
+      x: { 
+        grid: { display: false },
+        ticks: { color: 'rgba(255, 255, 255, 0.5)', font: { family: 'JetBrains Mono', size: 10 } }
+      }
+    },
+    interaction: { intersect: false, mode: 'index' },
+  };
+
+  const dummyLineData = {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [
+      {
+        fill: true,
+        data: [12, 19, 15, 25, 22, 30, 28].map(x => x * (analytics.recent_sessions || 1) / 30),
+        borderColor: '#00f5d4', // accent-cyan
+        backgroundColor: 'rgba(0, 245, 212, 0.1)',
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+      }
+    ]
+  };
+
+  const langs = Object.entries(analytics.languages_used || {});
+  const dummyBarData = {
+    labels: langs.slice(0,5).map(l => l[0]) || ['JS', 'PY', 'TS'],
+    datasets: [
+      {
+        data: langs.slice(0,5).map(l => l[1]) || [10, 5, 2],
+        backgroundColor: [
+          'rgba(0, 245, 212, 0.8)',
+          'rgba(52, 211, 153, 0.8)',
+          'rgba(56, 189, 248, 0.8)',
+          'rgba(167, 139, 250, 0.8)',
+          'rgba(244, 114, 182, 0.8)',
+        ],
+        borderRadius: 4,
+        borderSkipped: false,
+      }
+    ]
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+         <div className="glass-frame p-5 relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-teal-500/20 transition-colors" />
+           <div className="text-3xl font-black font-mono text-teal-400 drop-shadow-[0_0_8px_rgba(45,212,191,0.5)] mb-1">{analytics.total_sessions}</div>
+           <div className="text-xs uppercase tracking-widest text-muted font-bold">Total Operations</div>
+         </div>
+         <div className="glass-frame p-5 relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-blue-500/20 transition-colors" />
+           <div className="text-3xl font-black font-mono text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] mb-1">{analytics.recent_sessions}</div>
+           <div className="text-xs uppercase tracking-widest text-muted font-bold">Recent (30D)</div>
+         </div>
+         <div className="glass-frame p-5 relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-emerald-500/20 transition-colors" />
+           <div className="text-3xl font-black font-mono text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] mb-1">{analytics.total_optimizations}</div>
+           <div className="text-xs uppercase tracking-widest text-muted font-bold">Optimizations</div>
+         </div>
+         <div className="glass-frame p-5 relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-purple-500/20 transition-colors" />
+           <div className="text-3xl font-black font-mono text-purple-400 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)] mb-1">{analytics.account_age_days}</div>
+           <div className="text-xs uppercase tracking-widest text-muted font-bold">Days Active</div>
+         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 glass-frame p-6">
+           <h4 className="text-sm font-bold text-[var(--fg-color)] uppercase tracking-wider mb-6 flex items-center gap-2"><span className="text-[var(--accent-cyan)]">📈</span> Activity Matrix</h4>
+           <div className="w-full h-64">
+             <Line options={chartOptions} data={dummyLineData} />
+           </div>
+        </div>
+        <div className="glass-frame p-6">
+           <h4 className="text-sm font-bold text-[var(--fg-color)] uppercase tracking-wider mb-6 flex items-center gap-2"><span className="text-blue-400">⌨️</span> Syntax Distribution</h4>
+           {langs.length > 0 ? (
+             <div className="w-full h-64 flex items-end">
+               <Bar options={{...chartOptions, scales:{y:{display:false}, x:{grid:{display:false}, ticks:{color:'rgba(255,255,255,0.5)', font:{size:10, family:'Inter'}}}}}} data={dummyBarData} />
+             </div>
+           ) : (
+             <div className="h-full flex items-center justify-center text-muted text-sm border border-dashed border-[var(--card-border)] rounded-xl">Insufficient Data</div>
+           )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const ConnectedAccountsTab = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  
   const refresh = async () => {
     setLoading(true);
     const res = await profileService.listConnected();
     setLoading(false);
     if (res.ok) setAccounts(res.data.accounts || []);
   };
+  
   useEffect(() => { refresh(); }, []);
+  
   const unlink = async (p) => {
     const res = await profileService.unlinkProvider(p);
     if (res.ok) refresh();
   };
+
   return (
-    <div>
-      {loading ? <div className="text-sm text-muted">Loading…</div> : (
-        <ul className="space-y-2">
-          {accounts.length === 0 && <li className="text-sm text-muted">No connected accounts.</li>}
-          {accounts.map(a => (
-            <li key={a.provider} className="flex items-center justify-between rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)'}}>
-              <div className="text-sm" style={{color:'var(--fg-color)'}}>{a.provider}</div>
-              <button onClick={() => unlink(a.provider)} className="text-xs px-2 py-1 rounded border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}}>Unlink</button>
-            </li>
-          ))}
-          <li className="pt-3 border-t border-theme">
-            <div className="text-xs text-muted mb-2">Link a provider</div>
-            <div className="flex flex-wrap gap-2">
-              {['google','github','linkedin','facebook'].map(p => (
-                <button
-                  key={p}
-                  onClick={async () => {
-                    // Use existing OAuth popup; this will sign you in and link the account (if same email)
-                    const res = await authService.loginWithProvider(p);
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="glass-frame p-6 max-w-2xl">
+      <h3 className="text-xl font-bold text-[var(--fg-color)] mb-2 flex items-center gap-2"><span className="text-indigo-400">🔌</span> Integration Hub</h3>
+      <p className="text-sm text-muted mb-8">Connect external services for faster authentication and repository access.</p>
+
+      {loading ? (
+        <div className="animate-pulse space-y-4">
+          <div className="h-16 bg-[#0a0a0c] rounded-xl border border-[var(--card-border)]" />
+          <div className="h-16 bg-[#0a0a0c] rounded-xl border border-[var(--card-border)]" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {['google', 'github'].map(provider => {
+            const isConnected = accounts.some(a => a.provider === provider);
+            const pName = provider.charAt(0).toUpperCase() + provider.slice(1);
+            
+            return (
+              <div key={provider} className={`flex items-center justify-between p-4 rounded-xl border ${isConnected ? 'bg-[var(--surface-2)] border-[var(--accent-cyan)]/30' : 'bg-[#0a0a0c] border-[var(--card-border)]'}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg shadow-inner ${provider === 'github' ? 'bg-[#24292e] text-white' : 'bg-white text-gray-800'}`}>
+                    {provider === 'github' ? 'GH' : 'G'}
+                  </div>
+                  <div>
+                    <div className="font-bold text-[var(--fg-color)]">{pName}</div>
+                    <div className="text-xs text-muted">{isConnected ? 'Connected & Authorized' : 'Not Connected'}</div>
+                  </div>
+                </div>
+                {isConnected ? (
+                  <ActionButton onClick={() => unlink(provider)} danger>Revoke Access</ActionButton>
+                ) : (
+                  <ActionButton onClick={async () => {
+                    const res = await authService.loginWithProvider(provider);
                     if (res.success) refresh();
-                  }}
-                  className="text-xs px-3 py-1.5 rounded border border-theme hover:opacity-90"
-                  style={{background:'var(--card-bg)', color:'var(--fg-color)'}}
-                >
-                  Link {p.charAt(0).toUpperCase()+p.slice(1)}
-                </button>
-              ))}
-            </div>
-          </li>
-        </ul>
+                  }}>Connect</ActionButton>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 
-const DataTab = () => {
+const PrivacyTab = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   const downloadJSON = async () => {
@@ -209,24 +555,15 @@ const DataTab = () => {
     setIsExporting(true);
     try {
       const res = await profileService.exportProfilePDF();
-      console.log('PDF export response status:', res.status);
-      
       if (res.ok && res.status === 200) {
-        // Force treating as binary blob, no JSON parsing
         const blob = await res.blob();
-        console.log('Blob size:', blob.size, 'Type:', blob.type);
-        
-        // Create download link
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; 
         a.download = `ai_code_optimizer_export_${new Date().toISOString().split('T')[0]}.pdf`; 
         a.click();
         URL.revokeObjectURL(url);
-        
-        console.log('PDF download initiated successfully');
       } else {
-        console.error('PDF export failed with status:', res.status);
         alert(`Failed to export PDF. Status: ${res.status}`);
       }
     } catch (error) {
@@ -238,324 +575,47 @@ const DataTab = () => {
   };
 
   const del = async () => {
-    if (!confirm('Delete your account? This is irreversible.')) return;
+    if (!window.confirm('CRITICAL ACTION: Are you absolutely sure you want to delete your account? All data will be wiped permanently.')) return;
     const res = await profileService.deleteAccount();
     if (res.ok) {
-      // Clear tokens and reload
-      localStorage.clear();
-      window.location.href = '/';
+        localStorage.clear();
+        window.location.href = '/';
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="font-semibold mb-4" style={{color:'var(--fg-color)'}}>Export Your Data</h3>
-        <div className="space-y-3">
-          <div>
-            <button 
-              onClick={downloadJSON} 
-              className="px-4 py-2 rounded-md text-sm border border-theme hover:opacity-90 w-full sm:w-auto"
-              style={{background:'var(--card-bg)', color:'var(--fg-color)'}}
-            >
-              📄 Download JSON Export
-            </button>
-            <div className="text-xs text-muted mt-1">Raw data in JSON format (for developers)</div>
-          </div>
-          
-          <div>
-            <button 
-              onClick={downloadPDF}
-              disabled={isExporting}
-              className="px-4 py-2 rounded-md text-sm border border-theme hover:opacity-90 w-full sm:w-auto disabled:opacity-50"
-              style={{background:'var(--card-bg)', color:'var(--fg-color)'}}
-            >
-              {isExporting ? '⏳ Generating PDF...' : '📋 Download PDF Report'}
-            </button>
-            <div className="text-xs text-muted mt-1">
-              Comprehensive report with profile, sessions, analytics, and security info
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="pt-4 border-t" style={{borderColor:'var(--card-border)'}}>
-        <h3 className="font-semibold mb-3 text-red-600">Danger Zone</h3>
-        <button 
-          onClick={del} 
-          className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm"
-        >
-          🗑️ Delete My Account
-        </button>
-        <div className="text-xs text-muted mt-1">This action cannot be undone.</div>
-      </div>
-    </div>
-  );
-};
-
-const SessionsTab = ({ onSessionsLoaded }) => {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const load = async () => {
-    setLoading(true);
-    try {
-      const resp = await fetch(`${API_BASE}/opt-sessions`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        setItems(data);
-        if (onSessionsLoaded) onSessionsLoaded(data.length);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => { load(); }, []);
-
-  const exportAll = async () => {
-    const res = await fetch(`${API_BASE}/opt-sessions/export`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-    });
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'sessions_export.json'; a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold" style={{color:'var(--fg-color)'}}>Saved Sessions</h3>
-        <button onClick={exportAll} className="text-xs px-3 py-1.5 rounded border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}}>Export my sessions</button>
-      </div>
-      <div className="divide-y max-h-96 overflow-auto" style={{borderColor:'var(--card-border)'}}>
-        {loading ? (
-          <div className="text-sm text-muted py-6 text-center">Loading…</div>
-        ) : items.length === 0 ? (
-          <div className="text-sm text-muted py-6 text-center">No sessions yet</div>
-        ) : items.map((s) => (
-          <div key={s.id} className="py-3 flex items-center justify-between gap-3">
-            <div className="text-left">
-              <div className="text-sm line-clamp-1" style={{color:'var(--fg-color)'}}>{s.title || `${s.task} • ${s.language}`}</div>
-              <div className="text-xs text-muted">{new Date(s.created_at).toLocaleString()}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Enhanced Profile Components
-
-const ProfileInfoTab = ({ profile, onUpdated }) => {
-  const [bio, setBio] = useState(profile?.bio || '');
-  const [city, setCity] = useState(profile?.location?.city || '');
-  const [country, setCountry] = useState(profile?.location?.country || '');
-  const [jobTitle, setJobTitle] = useState(profile?.professional?.job_title || '');
-  const [company, setCompany] = useState(profile?.professional?.company || '');
-  const [experienceLevel, setExperienceLevel] = useState(profile?.professional?.experience_level || 'Intermediate');
-  const [github, setGithub] = useState(profile?.social_links?.github || '');
-  const [linkedin, setLinkedin] = useState(profile?.social_links?.linkedin || '');
-  const [twitter, setTwitter] = useState(profile?.social_links?.twitter || '');
-  const [website, setWebsite] = useState(profile?.social_links?.website || '');
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState('');
-
-  useEffect(() => {
-    setBio(profile?.bio || '');
-    setCity(profile?.location?.city || '');
-    setCountry(profile?.location?.country || '');
-    setJobTitle(profile?.professional?.job_title || '');
-    setCompany(profile?.professional?.company || '');
-    setExperienceLevel(profile?.professional?.experience_level || 'Intermediate');
-    setGithub(profile?.social_links?.github || '');
-    setLinkedin(profile?.social_links?.linkedin || '');
-    setTwitter(profile?.social_links?.twitter || '');
-    setWebsite(profile?.social_links?.website || '');
-  }, [profile]);
-
-  const saveSection = async (section, data) => {
-    setSaving(true);
-    setMsg('');
-    const res = await profileService.updateProfileSection(section, data);
-    setSaving(false);
-    setMsg(res.ok ? 'Saved.' : (res.data?.detail || 'Failed to save'));
-    if (res.ok && onUpdated) onUpdated();
-  };
-
-  return (
-    <div className="space-y-8">
-      {/* Bio Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold" style={{color:'var(--fg-color)'}}>About</h3>
-        <div>
-          <label className="block text-xs text-muted mb-1">Bio</label>
-          <textarea 
-            value={bio} 
-            onChange={e=>setBio(e.target.value)} 
-            placeholder="Tell us about yourself..."
-            className="w-full rounded-md px-3 py-2 border border-theme h-24 resize-none"
-            style={{background:'var(--card-bg)', color:'var(--fg-color)'}}
-            maxLength={500}
-          />
-          <div className="text-xs text-muted mt-1">{bio.length}/500 characters</div>
-        </div>
-        <button 
-          onClick={() => saveSection('profile', {bio})} 
-          disabled={saving}
-          className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60"
-        >
-          {saving ? 'Saving...' : 'Save Bio'}
-        </button>
-      </div>
-
-      {/* Location Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold" style={{color:'var(--fg-color)'}}>Location</h3>
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6 max-w-2xl">
+      <div className="glass-frame p-6">
+        <h3 className="text-xl font-bold text-[var(--fg-color)] mb-2 flex items-center gap-2"><span className="text-blue-400">💾</span> Data Portability</h3>
+        <p className="text-sm text-muted mb-6">Download a complete copy of your personal data, optimization history, and analytics.</p>
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-muted mb-1">City</label>
-            <input value={city} onChange={e=>setCity(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
+          <div className="bg-[#0a0a0c] p-5 rounded-xl border border-[var(--card-border)] hover:border-[var(--accent-cyan)] transition-colors group cursor-pointer" onClick={downloadJSON}>
+            <div className="text-2xl mb-3 group-hover:scale-110 transition-transform origin-left">{'{ }'}</div>
+            <h4 className="font-bold text-[var(--fg-color)] mb-1">Developer Export</h4>
+            <p className="text-xs text-muted mb-4">Raw JSON format suitable for programmatic analysis or migration.</p>
+            <span className="text-xs font-bold text-[var(--accent-cyan)] uppercase tracking-wider">Download JSON →</span>
           </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Country</label>
-            <input value={country} onChange={e=>setCountry(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
+
+          <div className="bg-[#0a0a0c] p-5 rounded-xl border border-[var(--card-border)] hover:border-emerald-500 transition-colors group cursor-pointer" onClick={!isExporting ? downloadPDF : undefined}>
+            <div className="text-2xl mb-3 group-hover:scale-110 transition-transform origin-left">📄</div>
+            <h4 className="font-bold text-[var(--fg-color)] mb-1">Printable Report</h4>
+            <p className="text-xs text-muted mb-4">A structured PDF document containing your profile summary.</p>
+            <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider">{isExporting ? 'Generating...' : 'Download PDF →'}</span>
           </div>
         </div>
-        <button 
-          onClick={() => saveSection('location', {city, country})} 
-          disabled={saving}
-          className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60"
-        >
-          {saving ? 'Saving...' : 'Save Location'}
-        </button>
       </div>
 
-      {/* Professional Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold" style={{color:'var(--fg-color)'}}>Professional</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-muted mb-1">Job Title</label>
-            <input value={jobTitle} onChange={e=>setJobTitle(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Company</label>
-            <input value={company} onChange={e=>setCompany(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-xs text-muted mb-1">Experience Level</label>
-            <select value={experienceLevel} onChange={e=>setExperienceLevel(e.target.value)} className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}}>
-              <option value="Beginner">Beginner</option>
-              <option value="Intermediate">Intermediate</option>
-              <option value="Advanced">Advanced</option>
-              <option value="Expert">Expert</option>
-            </select>
-          </div>
-        </div>
-        <button 
-          onClick={() => saveSection('professional', {job_title: jobTitle, company, experience_level: experienceLevel})} 
-          disabled={saving}
-          className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60"
-        >
-          {saving ? 'Saving...' : 'Save Professional Info'}
-        </button>
+      <div className="glass-frame p-6 border-red-500/30 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
+        <h3 className="text-xl font-bold text-red-500 mb-2 flex items-center gap-2">⚠️ Danger Zone</h3>
+        <p className="text-sm text-gray-400 mb-6">Deleting your account is permanent. All associated data will be removed from our servers immediately.</p>
+        <ActionButton onClick={del} danger>PERMANENTLY DELETE ACCOUNT</ActionButton>
       </div>
-
-      {/* Social Links Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold" style={{color:'var(--fg-color)'}}>Social Links</h3>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs text-muted mb-1">GitHub</label>
-            <input value={github} onChange={e=>setGithub(e.target.value)} placeholder="username or full URL" className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">LinkedIn</label>
-            <input value={linkedin} onChange={e=>setLinkedin(e.target.value)} placeholder="username or full URL" className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Twitter</label>
-            <input value={twitter} onChange={e=>setTwitter(e.target.value)} placeholder="username or full URL" className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Website</label>
-            <input value={website} onChange={e=>setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="w-full rounded-md px-3 py-2 border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}} />
-          </div>
-        </div>
-        <button 
-          onClick={() => saveSection('social-links', {github, linkedin, twitter, website})} 
-          disabled={saving}
-          className="px-4 py-2 rounded-md bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm disabled:opacity-60"
-        >
-          {saving ? 'Saving...' : 'Save Social Links'}
-        </button>
-      </div>
-
-      {msg && <div className="text-sm text-muted">{msg}</div>}
-    </div>
+    </motion.div>
   );
 };
 
-const AnalyticsTab = () => {
-  const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadAnalytics = async () => {
-      setLoading(true);
-      const res = await profileService.getAnalytics();
-      setLoading(false);
-      if (res.ok) setAnalytics(res.data);
-    };
-    loadAnalytics();
-  }, []);
-
-  if (loading) return <div className="text-sm text-muted">Loading analytics...</div>;
-  if (!analytics) return <div className="text-sm text-muted">No analytics data available</div>;
-
-  return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold" style={{color:'var(--fg-color)'}}>Usage Analytics</h3>
-      
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="rounded-md p-4 border border-theme text-center" style={{background:'var(--card-bg)'}}>
-          <div className="text-2xl font-bold text-teal-600">{analytics.total_sessions}</div>
-          <div className="text-xs text-muted">Total Sessions</div>
-        </div>
-        <div className="rounded-md p-4 border border-theme text-center" style={{background:'var(--card-bg)'}}>
-          <div className="text-2xl font-bold text-blue-600">{analytics.recent_sessions}</div>
-          <div className="text-xs text-muted">Recent (30d)</div>
-        </div>
-        <div className="rounded-md p-4 border border-theme text-center" style={{background:'var(--card-bg)'}}>
-          <div className="text-2xl font-bold text-green-600">{analytics.total_optimizations}</div>
-          <div className="text-xs text-muted">Optimizations</div>
-        </div>
-        <div className="rounded-md p-4 border border-theme text-center" style={{background:'var(--card-bg)'}}>
-          <div className="text-2xl font-bold text-orange-600">{analytics.account_age_days}</div>
-          <div className="text-xs text-muted">Days Active</div>
-        </div>
-      </div>
-
-      {analytics.languages_used && Object.keys(analytics.languages_used).length > 0 && (
-        <div>
-          <h4 className="font-semibold mb-3" style={{color:'var(--fg-color)'}}>Top Languages</h4>
-          <div className="space-y-2">
-            {Object.entries(analytics.languages_used).slice(0, 5).map(([lang, count]) => (
-              <div key={lang} className="flex items-center justify-between">
-                <span style={{color:'var(--fg-color)'}}>{lang}</span>
-                <span className="text-muted">{count} sessions</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const ProfilePage = () => {
   const { user, loading, refresh } = useAuth();
@@ -579,201 +639,119 @@ const ProfilePage = () => {
 
   useEffect(() => {
     const init = async () => {
-      // Load profile data
       const res = await profileService.getMe();
       if (res.ok) setProfile(res.data);
-      
-      // Load sessions count
       await loadSessionCount();
     };
     init();
   }, []);
 
   const tabs = useMemo(() => ([
-    { id: 'overview', label: 'Overview' },
-    { id: 'profile', label: 'Profile Info' },
-    { id: 'preferences', label: 'Preferences' },
-    { id: 'security', label: 'Security' },
-    { id: 'sessions', label: 'Sessions' },
-    { id: 'analytics', label: 'Analytics' },
-    { id: 'accounts', label: 'Connected Accounts' },
-    { id: 'phone', label: 'Phone' },
-    { id: 'data', label: 'Data & Privacy' },
+    { id: 'overview', label: 'Identity', icon: '👤' },
+    { id: 'profile', label: 'Biography', icon: '📝' },
+    { id: 'links', label: 'Social', icon: '🔗' },
+    { id: 'preferences', label: 'Platform', icon: '🎨' },
+    { id: 'security', label: 'Security', icon: '🛡️' },
+    { id: 'accounts', label: 'Integrations', icon: '🔌' },
+    { id: 'analytics', label: 'Telemetry', icon: '📊' },
+    { id: 'data', label: 'Privacy', icon: '💾' },
   ]), []);
 
-  if (loading) return <div className="max-w-5xl mx-auto px-6 py-8 text-muted">Loading…</div>;
-  if (!user) return <div className="max-w-5xl mx-auto px-6 py-8 text-muted">Please sign in to view your profile.</div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[var(--bg-color)]">
+      <div className="absolute inset-0 bg-cyber-grid opacity-10" />
+      <div className="w-16 h-16 border-4 border-[var(--accent-cyan)] border-t-transparent flex rounded-full animate-spin shadow-[0_0_20px_var(--accent-cyan)] relative z-10" />
+    </div>
+  );
+  
+  if (!user) return (
+    <div className="min-h-screen flex items-center justify-center relative bg-[var(--bg-color)]">
+      <div className="glass-frame p-12 text-center max-w-md w-full mx-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
+        <div className="text-5xl mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)] inline-block rounded-full bg-[var(--surface-2)] border border-[var(--card-border)] p-4">🔒</div>
+        <h2 className="text-2xl font-bold text-[var(--fg-color)] mb-3 tracking-tight">Access Restricted</h2>
+        <p className="text-muted leading-relaxed font-medium">Please authenticate to access your personal dashboard and telemetry data.</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
-      {/* Summary header */}
-      <div className="grid md:grid-cols-3 gap-4 mb-6">
-        <div className="md:col-span-2 rounded-lg p-5 border border-theme soft-shadow" style={{background:'var(--card-bg)'}}>
-          <div className="flex items-center gap-4">
-            <img src={user?.profile_picture || 'https://api.dicebear.com/7.x/identicon/svg?seed=user'} alt="avatar" className="w-14 h-14 rounded-full border border-theme" />
-            <div>
-              <div className="text-lg font-semibold" style={{color:'var(--fg-color)'}}>{user?.name || 'Your profile'}</div>
-              <div className="text-sm text-muted">{user?.email}</div>
-            </div>
-          </div>
-          <div className="mt-4 grid sm:grid-cols-3 gap-3 text-xs">
-            <div className="rounded-md p-3 border border-theme" style={{background:'var(--card-bg)'}}>
-              <div className="text-muted">Sessions</div>
-              <div className="font-semibold" style={{color:'var(--fg-color)'}}>{sessionCount}</div>
-            </div>
-            <div className="rounded-md p-3 border border-theme" style={{background:'var(--card-bg)'}}>
-              <div className="text-muted">Phone</div>
-              <div className="font-semibold" style={{color:'var(--fg-color)'}}>{profile?.phone ? (profile?.phone_verified ? 'Verified' : 'Pending') : 'Not set'}</div>
-            </div>
-            <div className="rounded-md p-3 border border-theme" style={{background:'var(--card-bg)'}}>
-              <div className="text-muted">Accounts</div>
-              <div className="font-semibold" style={{color:'var(--fg-color)'}}>{(profile?.providers && profile?.providers.length) || 1} linked</div>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg p-5 border border-theme soft-shadow" style={{background:'var(--card-bg)'}}>
-          <div className="text-sm text-muted mb-4">Profile Completion</div>
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-muted">Progress</span>
-              <span style={{color:'var(--fg-color)'}}>{profile?.profile_completion || 0}%</span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-teal-600 to-emerald-500 h-2 rounded-full transition-all duration-300"
-                style={{width: `${profile?.profile_completion || 0}%`}}
-              ></div>
-            </div>
-          </div>
-          <div className="text-sm text-muted mb-2">Account health</div>
-          <ul className="text-xs space-y-2">
-            <li className="flex items-center justify-between">
-              <span className="text-muted">Email</span>
-              <span style={{color:'var(--fg-color)'}}>{profile?.email ? 'Set' : 'Missing'}</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted">MFA (phone)</span>
-              <span style={{color:'var(--fg-color)'}}>{profile?.phone_verified ? 'On' : 'Off'}</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted">Theme</span>
-              <span style={{color:'var(--fg-color)'}}>{(user?.preferences && user.preferences.theme) || 'system'}</span>
-            </li>
-          </ul>
-        </div>
-      </div>
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 relative min-h-[calc(100vh-80px)]">
+      {/* Subtle Background Glows */}
+      <div className="absolute top-20 left-10 w-96 h-96 bg-[var(--accent-cyan)] opacity-[0.03] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-purple-500 opacity-[0.02] rounded-full blur-[120px] pointer-events-none" />
 
-      <h1 className="text-xl font-semibold mb-4" style={{color:'var(--fg-color)'}}>Profile settings</h1>
-      <div className="flex flex-wrap gap-2 mb-6">
-        {tabs.map(t => (
-          <TabButton key={t.id} id={t.id} active={tab===t.id} onClick={setTab}>{t.label}</TabButton>
-        ))}
-      </div>
+      {/* Main Layout Grid */}
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 relative z-10">
+        
+        {/* Left Sidebar Layout */}
+        <div className="w-full lg:w-72 flex-shrink-0 flex flex-col gap-6">
+          
+          {/* User Profile Mini-Card */}
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="glass-frame p-6 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-[var(--glow-cyan)] to-transparent opacity-5" />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="relative">
+                <div className="absolute inset-0 bg-[var(--accent-cyan)] rounded-full blur-sm opacity-50 group-hover:opacity-100 transition-opacity" />
+                <img src={user?.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${user?.email || 'user'}`} alt="avatar" className="w-16 h-16 rounded-full border-2 border-[#15151a] relative z-10 object-cover bg-black" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-bold text-[var(--fg-color)] truncate tracking-tight">{user?.name || 'Authorized User'}</h1>
+                <div className="text-xs text-[var(--accent-cyan)] font-mono truncate mt-0.5">ID: {user?.id?.substring(0,8) || 'xxxx-xxxx'}</div>
+              </div>
+            </div>
+            
+            <div className="mt-6 pt-5 border-t border-[var(--card-border)] grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted font-bold mb-1">Status</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                  <span className="text-sm font-medium text-[var(--fg-color)]">Online</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted font-bold mb-1">Completion</div>
+                <div className="text-sm font-bold font-mono text-[var(--fg-color)]">{profile?.profile_completion || 0}%</div>
+                <div className="w-full h-1 bg-[var(--surface-3)] mt-1.5 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-teal-500 to-emerald-400" style={{ width: `${profile?.profile_completion || 0}%` }} />
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
-      <div className="rounded-lg p-5 border border-theme" style={{background:'var(--card-bg)'}}>
-        {tab === 'overview' && <OverviewTab profile={profile} onAvatarChange={(url)=>setProfile(p=>({...p, profile_picture: url}))} onSaved={() => refresh()} />}
-        {tab === 'profile' && <ProfileInfoTab profile={profile} onUpdated={() => { 
-          const refreshProfile = async () => {
-            const res = await profileService.getMe();
-            if (res.ok) setProfile(res.data);
-          };
-          refreshProfile();
-        }} />}
-        {tab === 'preferences' && <PreferencesTab profile={profile} onUpdated={(prefs)=>setProfile(p=>({...p, preferences: prefs}))} />}
-        {tab === 'security' && <SecurityTab />}
-        {tab === 'sessions' && <SessionsTab onSessionsLoaded={(count) => setSessionCount(count)} />}
-        {tab === 'analytics' && <AnalyticsTab />}
-        {tab === 'accounts' && <AccountsTab />}
-        {tab === 'phone' && <PhoneTab profile={profile} onUpdated={(p)=>setProfile(p)} />}
-        {tab === 'data' && <DataTab />}
+          {/* Navigation Sidebar */}
+          <motion.nav initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 gap-2 custom-scrollbar hide-scrollbar-on-mobile">
+            {tabs.map(t => (
+              <TabButton key={t.id} id={t.id} icon={t.icon} active={tab===t.id} onClick={setTab}>{t.label}</TabButton>
+            ))}
+          </motion.nav>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {tab === 'overview' && <OverviewTab profile={profile} onAvatarChange={(url)=>{setProfile(p=>({...p, profile_picture: url})); refresh()}} />}
+              {tab === 'profile' && <ProfileInfoTab profile={profile} onUpdated={async () => { const res = await profileService.getMe(); if (res.ok) setProfile(res.data); }} />}
+              {tab === 'links' && <SocialLinksTab profile={profile} onUpdated={async () => { const res = await profileService.getMe(); if (res.ok) setProfile(res.data); }} />}
+              {tab === 'preferences' && <PreferencesTab profile={profile} onUpdated={(prefs)=>setProfile(p=>({...p, preferences: prefs}))} />}
+              {tab === 'security' && <SecurityTab />}
+              {tab === 'accounts' && <ConnectedAccountsTab />}
+              {tab === 'analytics' && <AnalyticsTab />}
+              {tab === 'data' && <PrivacyTab />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        
       </div>
     </div>
   );
 };
 
 export default ProfilePage;
-
-// Phone Tab Component
-const PhoneTab = ({ profile, onUpdated }) => {
-  const [phone, setPhone] = useState(profile?.phone || '');
-  const [otp, setOtp] = useState('');
-  const [status, setStatus] = useState('');
-  const [devOtp, setDevOtp] = useState('');
-  const [loading, setLoading] = useState(false);
-  const token = localStorage.getItem('auth_token');
-  const apiBase = (window.API_BASE_URL) || (profileService?.API_BASE) || '';
-
-  const setNumber = async () => {
-    if (!phone) { setStatus('Enter phone'); return; }
-    setLoading(true); setStatus('');
-    try {
-      const res = await fetch(`${API_BASE}/profile/phone/set`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body: JSON.stringify({ phone }) });
-      const data = await res.json().catch(()=>({}));
-      if (res.ok) { setStatus(data.message || 'Phone set'); onUpdated({...profile, phone, phone_verified:false}); }
-      else setStatus(data.detail || 'Failed');
-    } finally { setLoading(false); }
-  };
-  const resend = async () => {
-    setLoading(true); setStatus('');
-    try {
-      const res = await fetch(`${API_BASE}/profile/phone/resend`, { method:'POST', headers:{'Authorization':`Bearer ${token}`}});
-      const data = await res.json().catch(()=>({}));
-      setStatus(res.ok ? (data.message || 'OTP sent') : (data.detail || 'Failed'));
-    } finally { setLoading(false); }
-  };
-  const verify = async () => {
-    if (!otp) { setStatus('Enter OTP'); return; }
-    setLoading(true); setStatus('');
-    try {
-      const res = await fetch(`${API_BASE}/profile/phone/verify`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body: JSON.stringify({ phone, otp }) });
-      const data = await res.json().catch(()=>({}));
-      if (res.ok) { setStatus('Phone verified'); onUpdated({...profile, phone_verified:true}); }
-      else setStatus(data.detail || 'Failed');
-    } finally { setLoading(false); }
-  };
-  const fetchLatestOtpDev = async () => {
-    if (!phone) { setStatus('Enter phone'); return; }
-    try {
-      const url = `${API_BASE}/auth/phone/debug-latest-otp?phone=${encodeURIComponent(phone)}`;
-      const res = await fetch(url);
-      const data = await res.json().catch(()=>({}));
-      if (res.ok && data.otp) {
-        setDevOtp(String(data.otp));
-        setStatus('Fetched latest OTP (dev)');
-      } else if (res.status === 403) {
-        setStatus('DEV_OTP_DEBUG not enabled on server');
-      } else {
-        setStatus(data.detail || 'No OTP found');
-      }
-    } catch {
-      setStatus('Failed to fetch OTP');
-    }
-  };
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">Phone (E.164 format)</label>
-        <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+15551234567" className="w-full bg-gray-900 border border-gray-800 rounded-md px-3 py-2 text-gray-100" />
-      </div>
-      <div className="flex gap-2 flex-wrap">
-        <button onClick={setNumber} disabled={loading} className="px-3 py-1.5 rounded bg-gray-800 text-gray-100 text-xs border border-gray-700 disabled:opacity-50">Set / Replace</button>
-        <button onClick={resend} disabled={loading || !profile?.phone || profile?.phone_verified} className="px-3 py-1.5 rounded bg-gray-800 text-gray-100 text-xs border border-gray-700 disabled:opacity-50">Resend OTP</button>
-        <button onClick={fetchLatestOtpDev} disabled={!phone} className="px-3 py-1.5 rounded bg-gray-800 text-gray-100 text-xs border border-gray-700 disabled:opacity-50">Fetch OTP (dev)</button>
-      </div>
-      {!profile?.phone_verified && profile?.phone && (
-        <div className="space-y-2">
-          <label className="block text-xs text-gray-400">Enter OTP</label>
-          <div className="flex gap-2">
-            <input value={otp} onChange={e=>setOtp(e.target.value.replace(/[^0-9]/g,''))} maxLength={6} placeholder="123456" className="flex-1 bg-gray-900 border border-gray-800 rounded-md px-3 py-2 text-gray-100" />
-            <button onClick={verify} disabled={loading || otp.length!==6} className="px-3 py-1.5 rounded bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-xs disabled:opacity-40">Verify</button>
-          </div>
-          {devOtp && (
-            <div className="text-xs text-gray-300">Latest OTP (dev): <span className="font-mono">{devOtp}</span></div>
-          )}
-        </div>
-      )}
-      <div className="text-xs text-gray-400">Status: {profile?.phone_verified ? 'Verified ✅' : (profile?.phone ? 'Pending verification' : 'Not set')}</div>
-      {status && <div className="text-xs text-gray-300">{status}</div>}
-    </div>
-  );
-};

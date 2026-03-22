@@ -118,14 +118,7 @@ const AuthPage = () => {
           <div className="grid grid-cols-2 gap-3">
             <button type="button" disabled={loading} onClick={() => handleSocial('google')} className="btn-secondary">Google</button>
             <button type="button" disabled={loading} onClick={() => handleSocial('github')} className="btn-secondary">GitHub</button>
-            <button type="button" disabled={loading} onClick={() => handleSocial('facebook')} className="btn-secondary">Facebook</button>
-            <button type="button" disabled={loading} onClick={() => handleSocial('linkedin')} className="btn-secondary">LinkedIn</button>
           </div>
-          {isLogin && (
-            <div className="mt-4">
-              <button type="button" onClick={()=>navigate('/auth/phone')} className="w-full py-2.5 rounded-lg btn-secondary text-sm">Sign in with phone</button>
-            </div>
-          )}
         </div>
       </div>
     </AuthLayout>

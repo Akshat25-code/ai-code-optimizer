@@ -192,18 +192,6 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
               onClick={() => handleSocial('github')}
               className="border border-gray-300 rounded-md py-2 hover:bg-gray-50"
             >GitHub</button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleSocial('facebook')}
-              className="border border-gray-300 rounded-md py-2 hover:bg-gray-50"
-            >Facebook</button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleSocial('linkedin')}
-              className="border border-gray-300 rounded-md py-2 hover:bg-gray-50"
-            >LinkedIn</button>
           </div>
         </div>
       </div>

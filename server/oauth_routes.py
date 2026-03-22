@@ -1,5 +1,5 @@
 """
-OAuth routes for social login: Google, GitHub, Facebook, LinkedIn.
+OAuth routes for social login: Google and GitHub.
 Uses MongoDB user/session models and issues our JWT tokens on success.
 """
 from fastapi import APIRouter, Request, HTTPException, Depends
@@ -311,200 +311,20 @@ async def github_callback(request: Request, code: Optional[str] = None, state: O
 # ------------------------ Facebook ------------------------
 @router.get("/facebook/start")
 async def facebook_start(request: Request):
-    app_id = os.getenv("FACEBOOK_APP_ID")
-    if not app_id:
-        raise HTTPException(status_code=500, detail="Facebook OAuth not configured")
-    redirect_uri = _build_redirect_uri(request, "facebook")
-    mode = request.query_params.get("mode")
-    return_to = request.query_params.get("redirect_uri")
-    state = _encode_state({"nonce": secrets.token_urlsafe(8), "mode": mode, "redirect_uri": return_to})
-    auth_url = (
-        "https://www.facebook.com/v20.0/dialog/oauth"
-        f"?client_id={app_id}"
-        f"&redirect_uri={redirect_uri}"
-        "&response_type=code&scope=email,public_profile"
-        f"&state={state}"
-    )
-    return RedirectResponse(auth_url)
+    raise HTTPException(status_code=404, detail="Facebook login is disabled")
 
 
 @router.get("/facebook/callback", response_model=OAuthResult)
 async def facebook_callback(request: Request, code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None, error_description: Optional[str] = None):
-    if not code:
-        if error:
-            raise HTTPException(status_code=400, detail=f"Facebook OAuth error: {error} - {error_description or ''}".strip())
-        raise HTTPException(status_code=400, detail="Missing code")
-    app_id = os.getenv("FACEBOOK_APP_ID")
-    app_secret = os.getenv("FACEBOOK_APP_SECRET")
-    if not app_id or not app_secret:
-        raise HTTPException(status_code=500, detail="Facebook OAuth not configured")
-    redirect_uri = _build_redirect_uri(request, "facebook")
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        token_resp = await client.get(
-            "https://graph.facebook.com/v20.0/oauth/access_token",
-            params={
-                "client_id": app_id,
-                "client_secret": app_secret,
-                "redirect_uri": redirect_uri,
-                "code": code,
-            }
-        )
-        if token_resp.status_code != 200:
-            raise HTTPException(status_code=400, detail=f"Facebook token error: {token_resp.text}")
-        token_json = token_resp.json()
-        access_token = token_json.get("access_token")
-        if not access_token:
-            raise HTTPException(status_code=400, detail="Missing Facebook access_token")
-
-        # Get user info
-        u = await client.get(
-            "https://graph.facebook.com/me",
-            params={"fields": "id,name,email,picture", "access_token": access_token},
-        )
-        if u.status_code != 200:
-            raise HTTPException(status_code=400, detail="Facebook user info error")
-        info = u.json()
-        email = info.get("email")
-        name = info.get("name")
-        provider_id = info.get("id")
-        # Facebook may not return email depending on permissions
-        if not email:
-            raise HTTPException(status_code=400, detail="Facebook did not return email")
-
-    user = await _ensure_user(email, name, None)
-    try:
-        if access_token and provider_id:
-            await MongoOAuthProvider.create_oauth_link(user["id"], "facebook", provider_id, access_token)
-    except Exception:
-        pass
-    result = await _issue_tokens_for_user(user)
-    st = _decode_state(state)
-    mode = st.get("mode") if isinstance(st, dict) else None
-    return_to = st.get("redirect_uri") if isinstance(st, dict) else None
-    if mode == "popup":
-        return HTMLResponse(_popup_html(result))
-    if return_to:
-        user_b64 = _encode_state(result.get("user", {}))
-        url = (
-            f"{return_to}#access_token={result['access_token']}&refresh_token={result['refresh_token']}"
-            f"&token_type={result.get('token_type','bearer')}&expires_in={result.get('expires_in',0)}&user={user_b64}"
-        )
-        return RedirectResponse(url)
-    return result
+    raise HTTPException(status_code=404, detail="Facebook login is disabled")
 
 
 # ------------------------ LinkedIn ------------------------
 @router.get("/linkedin/start")
 async def linkedin_start(request: Request):
-    client_id = os.getenv("LINKEDIN_CLIENT_ID")
-    if not client_id:
-        raise HTTPException(status_code=500, detail="LinkedIn OAuth not configured")
-    redirect_uri = _build_redirect_uri(request, "linkedin")
-    mode = request.query_params.get("mode")
-    return_to = request.query_params.get("redirect_uri")
-    # Debug: print the exact redirect_uri used so developers can copy it into LinkedIn settings
-    try:
-        print(f"[OAuth][LinkedIn] redirect_uri={redirect_uri} mode={mode} return_to={return_to}")
-    except Exception:
-        pass
-    scopes = os.getenv("LINKEDIN_SCOPES", "r_liteprofile r_emailaddress").strip().split()
-    scope_param = "%20".join(scopes)
-    state = _encode_state({"nonce": secrets.token_urlsafe(8), "mode": mode, "redirect_uri": return_to})
-    auth_url = (
-        "https://www.linkedin.com/oauth/v2/authorization"
-        f"?response_type=code&client_id={client_id}"
-        f"&redirect_uri={redirect_uri}"
-        f"&scope={scope_param}"
-        f"&state={state}"
-    )
-    return RedirectResponse(auth_url)
+    raise HTTPException(status_code=404, detail="LinkedIn login is disabled")
 
 
 @router.get("/linkedin/callback", response_model=OAuthResult)
 async def linkedin_callback(request: Request, code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None, error_description: Optional[str] = None):
-    if not code:
-        if error:
-            raise HTTPException(status_code=400, detail=f"LinkedIn OAuth error: {error} - {error_description or ''}".strip())
-        raise HTTPException(status_code=400, detail="Missing code")
-    client_id = os.getenv("LINKEDIN_CLIENT_ID")
-    client_secret = os.getenv("LINKEDIN_CLIENT_SECRET")
-    if not client_id or not client_secret:
-        raise HTTPException(status_code=500, detail="LinkedIn OAuth not configured")
-    redirect_uri = _build_redirect_uri(request, "linkedin")
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        token_resp = await client.post(
-            "https://www.linkedin.com/oauth/v2/accessToken",
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "redirect_uri": redirect_uri,
-                "client_id": client_id,
-                "client_secret": client_secret,
-            },
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
-        )
-        if token_resp.status_code != 200:
-            raise HTTPException(status_code=400, detail=f"LinkedIn token error: {token_resp.text}")
-        token_json = token_resp.json()
-        access_token = token_json.get("access_token")
-        if not access_token:
-            raise HTTPException(status_code=400, detail="Missing LinkedIn access_token")
-
-        # Get profile
-        prof = await client.get(
-            "https://api.linkedin.com/v2/me",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-        if prof.status_code != 200:
-            raise HTTPException(status_code=400, detail="LinkedIn profile error")
-        profj = prof.json()
-
-        # Get email (optional; depends on r_emailaddress scope)
-        email = None
-        em = await client.get(
-            "https://api.linkedin.com/v2/emailAddress",
-            params={"q": "members", "projection": "(elements*(handle~))"},
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-        if em.status_code == 200:
-            try:
-                elements = em.json().get("elements", [])
-                if elements and elements[0].get("handle~", {}).get("emailAddress"):
-                    email = elements[0]["handle~"]["emailAddress"]
-            except Exception:
-                pass
-        first = profj.get("localizedFirstName")
-        last = profj.get("localizedLastName")
-        name = (first or "") + (" " + last if last else "")
-        provider_id = profj.get("id")
-        if not email:
-            # Allow opt-in fallback to placeholder email if app doesn't have r_emailaddress
-            if os.getenv("ALLOW_OAUTH_NO_EMAIL", "0") == "1":
-                # Create a stable placeholder using LinkedIn id
-                li_id = profj.get("id") or secrets.token_urlsafe(8)
-                email = f"{li_id}@linkedin.local"
-            else:
-                raise HTTPException(status_code=400, detail="LinkedIn did not return email")
-
-    user = await _ensure_user(email, name.strip() or email.split("@")[0], None)
-    try:
-        if access_token and provider_id:
-            await MongoOAuthProvider.create_oauth_link(user["id"], "linkedin", provider_id, access_token)
-    except Exception:
-        pass
-    result = await _issue_tokens_for_user(user)
-    st = _decode_state(state)
-    mode = st.get("mode") if isinstance(st, dict) else None
-    return_to = st.get("redirect_uri") if isinstance(st, dict) else None
-    if mode == "popup":
-        return HTMLResponse(_popup_html(result))
-    if return_to:
-        user_b64 = _encode_state(result.get("user", {}))
-        url = (
-            f"{return_to}#access_token={result['access_token']}&refresh_token={result['refresh_token']}"
-            f"&token_type={result.get('token_type','bearer')}&expires_in={result.get('expires_in',0)}&user={user_b64}"
-        )
-        return RedirectResponse(url)
-    return result
+    raise HTTPException(status_code=404, detail="LinkedIn login is disabled")

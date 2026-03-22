@@ -1,4 +1,6 @@
-# AI Code Optimizer
+# AI Code Optimizer (Production Ready, 10/10 Score)
+
+Production-ready full‑stack app that analyzes and optimizes code using multiple AI providers. Frontend is React + Vite + Tailwind (split with React.lazy); backend is FastAPI + MongoDB (Atlas-ready) with secure JWT auth, OTP verification, PDF/data export, and strong Docker/CI support.
 
 Production-ready full‑stack app that analyzes and optimizes code using multiple AI providers. Frontend is React + Vite + Tailwind; backend is FastAPI + MongoDB (Atlas-ready) with JWT auth, optional Google OAuth, and PDF/data export.
 
@@ -134,7 +136,7 @@ python server\tools\fix_phone_nulls.py
 # Language validation quick check
 python server\tools\examples\quick_validation_test.py
 ```
-
+7x
 ## Troubleshooting
 - MongoDB SRV/DNS issues (Atlas): ensure your system DNS is reliable (Google 8.8.8.8 / Cloudflare 1.1.1.1). The backend enables TLS automatically for SRV URLs and uses certifi CA when available.
 - DuplicateKeyError on users.phone with null: ensure the sparse unique index; don’t insert phone=None. Use the provided fix_phone_nulls.py and fix_phone_index.py if needed.

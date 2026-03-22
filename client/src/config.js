@@ -17,3 +17,4 @@ const getApiBase = () => {
 };
 
 export const API_BASE = getApiBase();
+export const WS_BASE = API_BASE.replace(/^http/, 'ws');

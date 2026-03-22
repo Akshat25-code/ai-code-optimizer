@@ -1,462 +1,296 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Brain, Zap, Target, Code2, Play } from 'lucide-react';
+import { Brain, Zap, Target, Code2, Play, ArrowRight, Sparkles } from 'lucide-react';
 
 const features = [
-	{ icon: <Zap className="w-5 h-5" />, title: 'Faster Performance', desc: 'Reduce complexity and speed up execution.' },
-	{ icon: <Target className="w-5 h-5" />, title: 'Precision Analysis', desc: 'Pinpoint bottlenecks and inefficiencies.' },
-	{ icon: <Code2 className="w-5 h-5" />, title: 'Clean Refactors', desc: 'Improve readability without changing behavior.' },
+	{ icon: <Zap className="w-6 h-6" />, title: 'Hyper-Speed Execution', desc: 'Reduce architectural complexity and dramatically speed up runtime execution with deep AI-powered optimizations.' },
+	{ icon: <Target className="w-6 h-6" />, title: 'Surgical Precision', desc: 'Pinpoint critical bottlenecks and obscure inefficiencies across 7 multidimensional quality metrics.' },
+	{ icon: <Code2 className="w-6 h-6" />, title: 'Flawless Refactoring', desc: 'Re-architect module structure and elevate readability without altering intended behavior.' },
+];
+
+const featurePages = [
+	{ icon: '🚀', title: 'Optimization Core', desc: 'Boost performance and maximum efficiency with intelligent heuristic suggestions', path: '/optimization', gradient: 'from-[#00f5d4]/20 to-[#10b981]/5', border: 'rgba(0,245,212,0.3)' },
+	{ icon: '📊', title: 'Analysis Matrix', desc: 'Quality assessment across 7 dimensions with detailed granular scoring', path: '/analysis', gradient: 'from-[#00f5d4]/20 to-[#0ea5e9]/5', border: 'rgba(14,165,233,0.3)' },
+	{ icon: '🐛', title: 'Anomaly Detection', desc: 'Preempt compile-time, runtime & logic errors before production shipment', path: '/bug-detection', gradient: 'from-[#ff716c]/20 to-[#f43f5e]/5', border: 'rgba(244,63,94,0.3)' },
+	{ icon: '📚', title: 'Auto-Documentation', desc: 'Auto-generate comprehensive, standards-compliant specs from your codebase', path: '/documentation', gradient: 'from-[#a78bfa]/20 to-[#8b5cf6]/5', border: 'rgba(139,92,246,0.3)' },
+	{ icon: '🏗️', title: 'Structural Refactoring', desc: 'Modernize structure and enforce strict design patterns systematically', path: '/refactoring', gradient: 'from-[#fbbf24]/20 to-[#f59e0b]/5', border: 'rgba(245,158,11,0.3)' },
+	{ icon: '🔧', title: 'Intelligent Debugger', desc: 'AI-derived anomaly resolutions with comprehensive root cause analysis', path: '/debugging', gradient: 'from-[#10b981]/20 to-[#059669]/5', border: 'rgba(16,185,129,0.3)' },
 ];
 
 const samples = [
 	{
-		title: 'Python: Two Sum (optimize)',
+		title: 'Python: Two Sum Matrix',
 		language: 'python',
 		task: 'optimization',
-		code: `# O(n^2) version\n# Improve to O(n) using a hashmap\ndef two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return None`,
+		badge: 'Optimize',
+		color: '#00f5d4',
+		code: `# O(n²) version\n# Improve to O(n) using a hashmap\ndef two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return None`,
 	},
 	{
-		title: 'JS: Debounce (refactor)',
+		title: 'JS: Edge-case Debounce',
 		language: 'javascript',
 		task: 'refactoring',
-		code: `// Debounce with some edge cases\nfunction debounce(fn, wait, immediate){\n  var timeout;\n  return function(){\n    var ctx = this, args = arguments;\n    var later = function(){ timeout = null; if(!immediate) fn.apply(ctx, args); };\n    var callNow = immediate && !timeout;\n    clearTimeout(timeout);\n    timeout = setTimeout(later, wait);\n    if(callNow) fn.apply(ctx, args);\n  }\n}`,
+		badge: 'Refactor',
+		color: '#fbbf24',
+		code: `// Debounce with strict edge case bounds\nfunction debounce(fn, wait, immediate){\n  var timeout;\n  return function(){\n    var ctx = this, args = arguments;\n    var later = function(){\n      timeout = null;\n      if(!immediate) fn.apply(ctx, args);\n    };\n    clearTimeout(timeout);\n    timeout = setTimeout(later, wait);\n  }\n}`,
 	},
 	{
-		title: 'C++: Remove Duplicates (analyze)',
+		title: 'C++: Vector Dedupe',
 		language: 'cpp',
 		task: 'analysis',
-		code: `#include <vector>\nusing namespace std;\nint removeDuplicates(vector<int>& nums){\n  int n = nums.size();\n  if(n==0) return 0;\n  int k = 0;\n  for(int i=1;i<n;i++){\n    if(nums[i]!=nums[k]){\n      k++;\n      nums[k]=nums[i];\n    }\n  }\n  return k+1;\n}`,
+		badge: 'Analyze',
+		color: '#8b5cf6',
+		code: `#include <vector>\nusing namespace std;\nint removeDuplicates(vector<int>& nums){\n  int n = nums.size();\n  if(n==0) return 0;\n  int k = 0;\n  for(int i=1;i<n;i++){\n    if(nums[i]!=nums[k]){\n      k++; nums[k]=nums[i];\n    }\n  }\n  return k+1;\n}`,
 	},
 ];
 
+const stats = [
+	{ value: '20+', label: 'Languages Supported' },
+	{ value: '7.5x', label: 'Average Speedup' },
+	{ value: '0-Copy', label: 'Intent Preservation' },
+];
+
+// Complex Animation variants
+const staggerContainer = {
+	hidden: { opacity: 0 },
+	show: {
+		opacity: 1,
+		transition: { staggerChildren: 0.12, delayChildren: 0.1 }
+	}
+};
+
+const fadeUp = {
+	hidden: { opacity: 0, y: 30, scale: 0.95 },
+	show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
+};
+
+const slideInLeft = {
+	hidden: { opacity: 0, x: -40 },
+	show: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
+};
+
 const WelcomePage = ({ onStart, onExample }) => {
 	const navigate = useNavigate();
+
 	return (
-		<div className="min-h-screen theme-hero relative overflow-hidden">
-			{/* soft gradient blobs */}
-			<motion.div
-				aria-hidden
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={{ duration: 0.8 }}
-				className="pointer-events-none absolute -top-40 -right-32 w-[40rem] h-[40rem] rounded-full bg-teal-500/20 blur-3xl"
-			/>
-			<motion.div
-				aria-hidden
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={{ duration: 0.8, delay: 0.15 }}
-				className="pointer-events-none absolute -bottom-40 -left-32 w-[40rem] h-[40rem] rounded-full bg-emerald-500/15 blur-3xl"
-			/>
+		<div className="min-h-screen theme-hero relative overflow-hidden bg-[var(--bg-color)]">
+			{/* Epic Ambient Orbs */}
+			<div className="pointer-events-none absolute -top-40 right-10 w-[800px] h-[800px] bg-teal-500/10 rounded-full blur-[120px] animate-pulse-glow" />
+			<div className="pointer-events-none absolute bottom-0 left-[-20%] w-[1000px] h-[1000px] bg-blue-600/5 rounded-full blur-[150px] animate-pulse-glow" style={{ animationDelay: '2s' }} />
 
-			{/* page header (not the global nav) */}
-			<header className="relative z-10 themed-header">
-				<div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
-					<div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 grid place-items-center">
-						<Brain className="w-6 h-6" />
-					</div>
-					<span className="text-lg font-semibold">AI Code Optimizer</span>
-				</div>
-			</header>
-
-			{/* hero */}
-			<main className="max-w-7xl mx-auto px-6">
-				<section className="py-20 text-center">
-					<motion.h1
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.6 }}
-						className="text-4xl md:text-6xl font-bold tracking-tight"
+			<main className="max-w-[1400px] mx-auto px-6 relative z-10">
+				{/* ═══ HERO SECTION ═══ */}
+				<section className="pt-32 pb-24 text-center relative flex flex-col items-center justify-center min-h-[80vh]">
+					{/* Glowing HUD Badge */}
+					<motion.div
+						initial={{ opacity: 0, scale: 0.8 }}
+						animate={{ opacity: 1, scale: 1 }}
+						transition={{ duration: 0.7, type: "spring", bounce: 0.4 }}
+						className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest mb-10 shadow-[0_0_30px_rgba(0,245,212,0.2)]"
+						style={{ background: 'var(--surface-2)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 245, 212, 0.4)' }}
 					>
-						Optimize code with confidence
+						<span className="relative flex h-2.5 w-2.5 mr-1">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500"></span>
+                        </span>
+						Neural Engine v4 Active
+					</motion.div>
+
+					<motion.h1
+						initial={{ opacity: 0, y: 40, filter: 'blur(10px)' }}
+						animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+						transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+						className="text-6xl md:text-8xl font-black tracking-tighter leading-[1.05]"
+						style={{ color: 'var(--fg-color)' }}
+					>
+						Re-engineer code with
+						<br />
+						<span className="text-gradient-cyber inline-block animate-float" style={{ animationDelay: '0s' }}>absolute intent.</span>
 					</motion.h1>
+
 					<motion.p
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.6, delay: 0.1 }}
-						className="mt-5 text-muted text-lg max-w-2xl mx-auto"
+						transition={{ duration: 0.8, delay: 0.3 }}
+						className="mt-8 text-muted text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed font-light"
 					>
-						Get fast, reliable AI suggestions to improve performance, readability, and maintainability — without changing
-						intent.
+						Deploy enterprise-grade AI algorithms to optimize vectors, resolve logical anomalies, and architect flawless systems in milliseconds.
 					</motion.p>
 
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.6, delay: 0.2 }}
-						className="mt-10 flex items-center justify-center gap-3"
+						transition={{ duration: 0.8, delay: 0.5 }}
+						className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5"
 					>
-						<button onClick={() => (onStart ? onStart() : navigate('/optimize'))} className="btn-primary flex items-center gap-2">
-							<Play className="w-5 h-5" /> Start optimizing
+						<button
+							onClick={() => (onStart ? onStart() : navigate('/optimize'))}
+							className="group relative px-10 py-4 font-bold text-lg rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white overflow-hidden shadow-[0_0_40px_rgba(20,184,166,0.4)] hover:shadow-[0_0_60px_rgba(20,184,166,0.6)] transition-all duration-300 hover:scale-105"
+						>
+							<div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+							<div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
+							<span className="relative z-10 flex items-center justify-center gap-3">
+								<Play className="w-5 h-5 fill-current" /> Initialize Optimizer
+							</span>
 						</button>
-						<a href="#how" className="btn-secondary">
-							How it works
+						<a href="#features" className="group px-8 py-4 font-bold text-lg rounded-2xl border-2 border-[var(--card-border)] hover:border-[var(--card-hover-border)] bg-[var(--surface-1)] text-[var(--fg-color)] transition-all duration-300 hover:bg-[var(--surface-2)] flex items-center gap-2">
+							Explore Matrix <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
 						</a>
 					</motion.div>
 				</section>
 
-				{/* features */}
-				<section className="pb-10">
-					<div className="grid md:grid-cols-3 gap-6">
+				{/* ═══ STATS BAR ═══ */}
+				<motion.section 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.8 }}
+                  className="pb-24 z-20 relative"
+                >
+					<div className="glass-frame p-2 relative overflow-hidden animate-stunning-glow" style={{ borderRadius: '24px' }}>
+                        <div className="absolute inset-0 bg-[#050508]/80 backdrop-blur-3xl z-0" />
+						<div className="relative z-10 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--card-border)]">
+							{stats.map((s, i) => (
+								<div key={s.label} className="text-center py-8 px-6 group hover:bg-[var(--surface-1)] transition-colors duration-500">
+									<div className="text-4xl md:text-5xl font-black font-mono text-gradient-cyber mb-2 tracking-tight group-hover:scale-110 transition-transform duration-500 origin-bottom">{s.value}</div>
+									<div className="text-sm uppercase tracking-widest font-bold text-muted">{s.label}</div>
+								</div>
+							))}
+						</div>
+					</div>
+				</motion.section>
+
+				{/* ═══ FEATURE HIGHLIGHTS ═══ */}
+				<motion.section
+					variants={staggerContainer}
+					initial="hidden"
+					whileInView="show"
+					viewport={{ once: true, margin: "-100px" }}
+					className="pb-32"
+				>
+					<div className="grid lg:grid-cols-3 gap-8">
 						{features.map((f, i) => (
 							<motion.div
 								key={f.title}
-								initial={{ opacity: 0, y: 20 }}
-								animate={{ opacity: 1, y: 0 }}
-								transition={{ duration: 0.5, delay: 0.1 * i }}
-								className="card p-6 transition-all"
+								variants={fadeUp}
+								className="glass-frame p-8 sm:p-10 relative group overflow-hidden hover:scale-[1.02] transition-transform duration-500"
 							>
-								<div className="w-10 h-10 rounded-lg grid place-items-center mb-3 text-teal-500" style={{ background: 'var(--card-bg)' }}>
-									{f.icon}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-cyan)] opacity-0 group-hover:opacity-10 rounded-bl-full transition-opacity duration-700 blur-2xl" />
+								<div className="w-14 h-14 rounded-2xl grid place-items-center mb-8 relative" style={{ background: 'var(--surface-2)', border: '1px solid var(--card-border)' }}>
+                                    <div className="absolute inset-0 bg-[var(--accent-cyan)] opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-md rounded-2xl" />
+                                    <span style={{ color: 'var(--accent-cyan)' }} className="relative z-10 group-hover:scale-110 transition-transform duration-300">{f.icon}</span>
 								</div>
-								<h3 className="font-semibold mb-1">{f.title}</h3>
-								<p className="text-sm text-muted">{f.desc}</p>
+								<h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--fg-color)' }}>{f.title}</h3>
+								<p className="text-base text-gray-400 leading-relaxed font-medium">{f.desc}</p>
 							</motion.div>
 						))}
 					</div>
-				</section>
+				</motion.section>
 
-				{/* examples */}
-				<section className="pb-6">
-					<div className="card p-6">
-						<h3 className="text-xl font-bold mb-4">Quick examples</h3>
-						<div className="grid md:grid-cols-3 gap-4">
-							{samples.map((s) => (
-								<div key={s.title} className="p-4 rounded-xl border border-theme" style={{ background: 'var(--card-bg)' }}>
-									<div className="text-sm text-teal-400 mb-1">{s.language} • {s.task}</div>
-									<div className="font-medium mb-3">{s.title}</div>
-									<pre className="text-xs themed-code rounded-lg p-3 h-28 overflow-auto whitespace-pre-wrap">{s.code}</pre>
-									<button
-										onClick={() => onExample ? onExample(s) : navigate('/optimize', { state: { prefill: s } })}
-										className="mt-3 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white text-sm hover:from-teal-500 hover:to-emerald-400"
-									>
-										Try this
-									</button>
-								</div>
-							))}
-						</div>
-					</div>
-				</section>
-
-							{/* quick stats */}
-							<section className="pb-6">
-								<div className="grid md:grid-cols-3 gap-4 text-center">
-									{[
-										{ k: '20+', v: 'Languages supported' },
-										{ k: '7+', v: 'Task modes' },
-										{ k: '0-copy', v: 'Your intent preserved' },
-									].map((s) => (
-										<div key={s.v} className="p-5 rounded-xl border border-theme" style={{ background: 'var(--card-bg)' }}>
-											<div className="text-2xl font-bold" style={{ color: 'var(--fg-color)' }}>{s.k}</div>
-											<div className="text-sm text-muted">{s.v}</div>
-										</div>
-									))}
-								</div>
-							</section>
-
-							{/* Feature Pages Grid */}
-							<section className="py-10">
-								<div className="card p-8">
-									<h2 className="text-2xl font-bold mb-2">Explore Features</h2>
-									<p className="text-muted mb-6">Choose a specific tool for your coding needs</p>
-									<div className="grid md:grid-cols-3 gap-4">
-										{[
-											{ icon: '🚀', title: 'Code Optimization', desc: 'Boost performance and efficiency', path: '/optimization', color: 'teal' },
-											{ icon: '📊', title: 'Code Analysis', desc: 'Quality assessment across 7 dimensions', path: '/analysis', color: 'teal' },
-											{ icon: '🐛', title: 'Bug Detection', desc: 'Find compile, runtime & logic errors', path: '/bug-detection', color: 'red' },
-											{ icon: '📚', title: 'Documentation', desc: 'Auto-generate comprehensive docs', path: '/documentation', color: 'teal' },
-											{ icon: '🏗️', title: 'Code Refactoring', desc: 'Improve structure & design patterns', path: '/refactoring', color: 'teal' },
-											{ icon: '🔧', title: 'Debugging', desc: 'AI-powered bug fixes', path: '/debugging', color: 'emerald' },
-										].map((f) => (
-											<motion.button
-												key={f.path}
-												onClick={() => navigate(f.path)}
-												whileHover={{ scale: 1.02, y: -2 }}
-												whileTap={{ scale: 0.98 }}
-												className="p-5 rounded-xl border border-theme text-left transition-all hover:border-teal-500/50"
-												style={{ background: 'var(--card-bg)' }}
-											>
-												<div className="text-3xl mb-3">{f.icon}</div>
-												<div className="font-semibold mb-1" style={{ color: 'var(--fg-color)' }}>{f.title}</div>
-												<div className="text-sm text-muted">{f.desc}</div>
-											</motion.button>
-										))}
-									</div>
-								</div>
-							</section>
-
-							{/* what is it */}
-							<section className="py-10">
-								<div className="card p-8">
-									<h2 className="text-2xl font-bold mb-4">What is AI Code Optimizer?</h2>
-									<p className="text-muted leading-relaxed">
-										AI Code Optimizer is your developer sidekick for faster, cleaner, and safer code. Paste any snippet—across languages—and get
-										actionable recommendations: performance tweaks, bug detection, security notes, documentation hints, and clear refactor steps.
-										It’s trained to keep your intent intact while improving execution and readability.
-									</p>
-									<div className="grid md:grid-cols-3 gap-4 mt-6">
-										<div className="p-5 rounded-xl border border-theme" style={{ background: 'var(--card-bg)' }}>
-											<div className="text-sm font-semibold mb-1">Multi-language</div>
-											<div className="text-sm text-muted">Works with popular languages and lets you specify any other.</div>
-										</div>
-										<div className="p-5 rounded-xl border border-theme" style={{ background: 'var(--card-bg)' }}>
-											<div className="text-sm font-semibold mb-1">Task-focused</div>
-											<div className="text-sm text-muted">Optimize, analyze, explain, debug, refactor or document—your call.</div>
-										</div>
-										<div className="p-5 rounded-xl border border-theme" style={{ background: 'var(--card-bg)' }}>
-											<div className="text-sm font-semibold mb-1">Developer-first</div>
-											<div className="text-sm text-muted">Concise, trustworthy output. No fluff, no hallucinated changes.</div>
-										</div>
-									</div>
-								</div>
-							</section>
-
-									{/* why choose us */}
-									<section className="py-6">
-										<div className="grid md:grid-cols-3 gap-6">
-											{[{
-												title: 'Performance you can feel',
-												desc: 'Guided optimizations that reduce time/space complexity and remove hidden bottlenecks.'
-											},{
-												title: 'Readable by design',
-												desc: 'Refactors prefer clarity and maintainability; we preserve your original intent.'
-											},{
-												title: 'Actionable outputs',
-												desc: 'Code-level diffs, bullet points, and rationale so you can apply changes with confidence.'
-											}].map((b) => (
-												<motion.div key={b.title} initial={{opacity:0, y:12}} whileInView={{opacity:1, y:0}} viewport={{once:true, amount:0.3}} transition={{duration:0.5}} className="card p-6">
-													<div className="font-semibold mb-1">{b.title}</div>
-													<div className="text-sm text-muted">{b.desc}</div>
-												</motion.div>
-											))}
-										</div>
-									</section>
-
-									{/* capabilities */}
-									<section className="py-6">
-										<div className="card p-8">
-											<h3 className="text-xl font-bold mb-4">Capabilities</h3>
-											<div className="grid md:grid-cols-2 gap-4 text-sm text-muted">
-												<ul className="space-y-2 list-disc list-inside">
-													<li>Algorithmic optimizations and micro-optimizations</li>
-													<li>Bug detection with suggested fixes and severity</li>
-													<li>Complexity insights and performance notes</li>
-													<li>Idiomatic refactors following language conventions</li>
-												</ul>
-												<ul className="space-y-2 list-disc list-inside">
-													<li>Clear code explanations for rapid onboarding</li>
-													<li>Documentation stubs and examples</li>
-													<li>Security considerations and edge cases</li>
-													<li>Works across languages, plus a custom “Other” mode</li>
-												</ul>
-											</div>
-										</div>
-									</section>
-
-									{/* privacy & security */}
-									<section className="py-6">
-										<div className="card p-8 space-y-5">
-											<div>
-												<h3 className="text-xl font-bold mb-3">Privacy & Security</h3>
-												<p className="text-sm text-muted leading-relaxed">
-													Your code is processed transiently in-memory to produce optimizations or analysis. We do not persist raw snippets unless
-													you explicitly save a session. Saved sessions store only the original code, generated optimization, and metadata; you can export or delete them any time. We never sell or train on your private code.
-												</p>
-											</div>
-											<div className="grid md:grid-cols-3 gap-4 text-xs text-muted">
-												<div className="p-4 rounded-lg border border-theme" style={{ background: 'var(--card-bg)' }}>
-													<div className="font-semibold mb-1">Minimal retention</div>
-													<div>Unsaved requests are discarded after response generation.</div>
-												</div>
-												<div className="p-4 rounded-lg border border-theme" style={{ background: 'var(--card-bg)' }}>
-													<div className="font-semibold mb-1">Account data</div>
-													<div>We store only your name, email, optional phone (hashed), and preferences.</div>
-												</div>
-												<div className="p-4 rounded-lg border border-theme" style={{ background: 'var(--card-bg)' }}>
-													<div className="font-semibold mb-1">Secrets hygiene</div>
-													<div>Keep API keys out of code; replace with placeholders like API_KEY_HERE.</div>
-												</div>
-											</div>
-											<div className="pt-2 text-xs text-muted">
-												Planned: end‑to‑end encryption for stored sessions, organization workspaces, audit trails.
-											</div>
-										</div>
-									</section>
-
-									{/* about project */}
-									<section className="py-6">
-										<div className="card p-8 space-y-4">
-											<h3 className="text-xl font-bold">About this project</h3>
-											<p className="text-sm text-muted leading-relaxed">AI Code Optimizer is a focused developer tool: no chat clutter, just structured outputs. It combines static patterns, heuristics, and model guidance to surface performance wins, refactor opportunities, and reliability improvements. The interface favors clarity and deterministic formatting so you can diff and apply changes quickly.</p>
-											<div className="grid md:grid-cols-4 gap-4 text-xs">
-												<div className="p-4 rounded-lg border border-theme" style={{ background: 'var(--card-bg)' }}>
-													<div className="font-semibold mb-1">Stack</div>
-													<div className="text-muted">React + FastAPI + MongoDB</div>
-												</div>
-												<div className="p-4 rounded-lg border border-theme" style={{ background: 'var(--card-bg)' }}>
-													<div className="font-semibold mb-1">Auth Methods</div>
-													<div className="text-muted">Email/Password, Phone, Google, GitHub, Facebook, LinkedIn</div>
-												</div>
-												<div className="p-4 rounded-lg border border-theme" style={{ background: 'var(--card-bg)' }}>
-													<div className="font-semibold mb-1">Session Control</div>
-													<div className="text-muted">JWT + server-side session hashing & revocation</div>
-												</div>
-												<div className="p-4 rounded-lg border border-theme" style={{ background: 'var(--card-bg)' }}>
-													<div className="font-semibold mb-1">Exportability</div>
-													<div className="text-muted">One-click export of optimization history</div>
-												</div>
-											</div>
-										</div>
-									</section>
-
-									{/* FAQ */}
-									<section className="py-6">
-										<div className="card p-8">
-											<h3 className="text-xl font-bold mb-4">FAQ</h3>
-											<div className="grid md:grid-cols-2 gap-6 text-sm">
-												<div>
-													<div className="font-medium">Does it change my code automatically?</div>
-													<div className="text-muted">No. You remain in control—review suggestions and apply what you like.</div>
-												</div>
-												<div>
-													<div className="font-medium">What if my language isn’t listed?</div>
-													<div className="text-muted">Choose “Other” and type it—our prompts adapt to your input.</div>
-												</div>
-											</div>
-										</div>
-									</section>
-
-				{/* Use cases */}
-				<section className="py-10">
-					<div className="card p-8">
-						<h3 className="text-xl font-bold mb-4">Where it helps most</h3>
-						<div className="grid md:grid-cols-3 gap-4 text-sm text-muted">
-							<div className="p-4 rounded-lg border border-theme" style={{background:'var(--card-bg)'}}>
-								<div className="font-semibold mb-1" style={{color:'var(--fg-color)'}}>Backend services</div>
-								<div>Reduce hot‑path latency, cache smarter, tighten DB access, and remove incidental allocations.</div>
-							</div>
-							<div className="p-4 rounded-lg border border-theme" style={{background:'var(--card-bg)'}}>
-								<div className="font-semibold mb-1" style={{color:'var(--fg-color)'}}>Frontend apps</div>
-								<div>Eliminate re‑renders, split bundles, memoize selectors, and simplify state updates.</div>
-							</div>
-							<div className="p-4 rounded-lg border border-theme" style={{background:'var(--card-bg)'}}>
-								<div className="font-semibold mb-1" style={{color:'var(--fg-color)'}}>Data pipelines</div>
-								<div>Stream instead of load‑all, vectorize operations, and surface memory/sort hotspots.</div>
-							</div>
-							<div className="p-4 rounded-lg border border-theme" style={{background:'var(--card-bg)'}}>
-								<div className="font-semibold mb-1" style={{color:'var(--fg-color)'}}>Scripting / tooling</div>
-								<div>Speed up everyday scripts and CLIs with smarter IO, caching and error handling.</div>
-							</div>
-							<div className="p-4 rounded-lg border border-theme" style={{background:'var(--card-bg)'}}>
-								<div className="font-semibold mb-1" style={{color:'var(--fg-color)'}}>Libraries / SDKs</div>
-								<div>Improve API ergonomics, reduce complexity, and add rationale docs for consumers.</div>
-							</div>
-							<div className="p-4 rounded-lg border border-theme" style={{background:'var(--card-bg)'}}>
-								<div className="font-semibold mb-1" style={{color:'var(--fg-color)'}}>Competitive coding</div>
-								<div>Get complexity notes and edge‑case hints to move from AC to clean, optimal AC.</div>
-							</div>
-						</div>
-					</div>
-				</section>
-
-				{/* Optimization strategies */}
-				<section className="py-6">
-					<div className="card p-8">
-						<h3 className="text-xl font-bold mb-4">What optimizations you’ll see</h3>
-						<div className="grid md:grid-cols-2 gap-6 text-sm text-muted">
-							<ul className="space-y-2 list-disc list-inside">
-								<li>Algorithmic: replace O(n²) with maps/sets/heap, early exits, pruning.</li>
-								<li>Memory/locality: reuse buffers, avoid copies, prefer streaming.</li>
-								<li>Concurrency: batching, async boundaries, contention awareness.</li>
-								<li>IO: pagination, timeouts, backoff, N+1 query detection.</li>
-							</ul>
-							<ul className="space-y-2 list-disc list-inside">
-								<li>Readability: small functions, clear naming, dead code removal.</li>
-								<li>Safety: bounds checks, null/None guards, error paths, invariants.</li>
-								<li>Docs: rationale, complexity notes, and “why this is safe”.</li>
-								<li>Tests: minimal cases for happy path + 1–2 edge cases.</li>
-							</ul>
-						</div>
-					</div>
-				</section>
-
-				{/* Supported languages */}
-				<section className="py-6">
-					<div className="card p-8">
-						<h3 className="text-xl font-bold mb-4">Supported languages</h3>
-						<div className="flex flex-wrap gap-2 text-sm">
-							{['Python','JavaScript','TypeScript','C++','Java','Go','Rust','C#','PHP','Ruby','Swift','Kotlin','SQL','Shell','Other'].map(l => (
-								<span key={l} className="px-3 py-1 rounded-full border border-theme" style={{background:'var(--card-bg)', color:'var(--fg-color)'}}>{l}</span>
-							))}
-						</div>
-					</div>
-				</section>
-
-				{/* Task modes detail (sequential) */}
-				<section className="py-6">
-					<div className="card p-8">
-						<h3 className="text-xl font-bold mb-4">Task modes</h3>
-						<ol className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-muted counter-list">
-							{[
-								{ title: 'Optimize', desc: 'Reduce time/space complexity and micro‑tune hot paths without changing behavior.' },
-								{ title: 'Analyze', desc: 'Explain complexity, highlight bottlenecks, and list actionable next steps.' },
-								{ title: 'Bug Detection', desc: 'Identify likely bugs, risky branches, and missing edge‑case handling with suggested fixes.' },
-								{ title: 'Explain', desc: 'Plain‑English walkthrough of what the code does, key invariants, and complexity notes.' },
-								{ title: 'Debugging', desc: 'Surface suspicious state transitions, error paths, and add actionable probes.' },
-								{ title: 'Document', desc: 'Readable summaries, rationale, and snippet‑level comments for teammates.' },
-								{ title: 'Refactor', desc: 'Reorganize for clarity: naming, function boundaries, and duplication removal.' },
-							].map((item, idx) => (
-								<li key={item.title} className="p-4 rounded-lg border border-theme flex gap-3" style={{background:'var(--card-bg)'}}>
-									<div className="shrink-0 w-8 h-8 rounded-full grid place-items-center font-semibold" style={{background:'rgba(99,102,241,0.15)', color:'var(--fg-color)'}}>{idx+1}</div>
-									<div>
-										<div className="font-semibold mb-1" style={{color:'var(--fg-color)'}}>{item.title}</div>
-										<div>{item.desc}</div>
-									</div>
-								</li>
-							))}
-						</ol>
-					</div>
-				</section>
-
-
-				{/* how it works */}
-				<section id="how" className="py-16">
-					<motion.h2
+				{/* ═══ EXPLORE FEATURES ═══ */}
+				<section id="features" className="pb-32 relative">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] bg-emerald-500/5 blur-[100px] pointer-events-none rounded-full" />
+					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true, amount: 0.3 }}
-						transition={{ duration: 0.6 }}
-						className="text-2xl font-bold mb-6 text-left"
+						viewport={{ once: true }}
+						className="text-center mb-16 relative z-10"
 					>
-						How it works
-					</motion.h2>
-					<div className="grid md:grid-cols-3 gap-6">
-					 {[
-              { step: '1', title: 'Paste code', desc: 'Drop in any snippet or file segment.' },
-              { step: '2', title: 'Pick intent', desc: 'Optimize, analyze, refactor or document.' },
-              { step: '3', title: 'Review & apply', desc: 'Receive concise suggestions you can trust.' },
-            ].map((s, i) => (
-              <motion.div
-                key={s.step}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.5, delay: 0.05 * i }}
-                className="card p-6"
-              >
-                <div className="text-sm text-teal-500 mb-2">Step {s.step}</div>
-                <div className="font-semibold">{s.title}</div>
-                <div className="text-sm text-muted mt-1">{s.desc}</div>
-              </motion.div>
-            ))}
-					</div>
+						<h2 className="text-4xl md:text-5xl font-black mb-4 tracking-tight" style={{ color: 'var(--fg-color)' }}>Core Subsystems</h2>
+						<p className="text-xl text-muted font-light">Modular intelligent components for every development phase</p>
+					</motion.div>
+
+					<motion.div
+						variants={staggerContainer}
+						initial="hidden"
+						whileInView="show"
+						viewport={{ once: true, margin: "-50px" }}
+						className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10"
+					>
+						{featurePages.map((f) => (
+							<motion.button
+								key={f.path}
+								variants={fadeUp}
+								onClick={() => navigate(f.path)}
+								className={`glass-frame p-8 text-left group bg-gradient-to-br ${f.gradient} relative overflow-hidden transition-all duration-500 hover:-translate-y-2`}
+                                style={{ border: `1px solid ${f.border}` }}
+							>
+                                <div className="absolute inset-0 bg-[#050508]/40 group-hover:bg-transparent transition-colors duration-500 z-0" />
+								<div className="text-5xl mb-6 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 origin-bottom-left relative z-10 font-emoji drop-shadow-lg">{f.icon}</div>
+								<div className="text-xl font-bold mb-3 relative z-10 tracking-tight" style={{ color: 'var(--fg-color)' }}>{f.title}</div>
+								<div className="text-sm text-gray-300 leading-relaxed font-medium relative z-10">{f.desc}</div>
+								<div className="mt-6 flex items-center gap-2 text-sm font-bold uppercase tracking-widest relative z-10 group-hover:translate-x-2 transition-transform duration-300" style={{ color: f.border.replace('0.3', '1') }}>
+									Initialize <ArrowRight className="w-4 h-4" />
+								</div>
+							</motion.button>
+						))}
+					</motion.div>
+				</section>
+
+				{/* ═══ CODE EXAMPLES ═══ */}
+				<section className="pb-32">
+					<motion.div
+						initial={{ opacity: 0, x: -30 }}
+						whileInView={{ opacity: 1, x: 0 }}
+						viewport={{ once: true }}
+						className="mb-12 flex items-end justify-between"
+					>
+						<div>
+                            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4" style={{ color: 'var(--fg-color)' }}>Terminal Feed</h2>
+                            <p className="text-xl text-muted font-light">Pre-configured execution vectors ready for analysis</p>
+                        </div>
+					</motion.div>
+
+					<motion.div
+						variants={staggerContainer}
+						initial="hidden"
+						whileInView="show"
+						viewport={{ once: true, margin: "-100px" }}
+						className="grid lg:grid-cols-3 gap-8"
+					>
+						{samples.map((s) => (
+							<motion.div
+								key={s.title}
+								variants={fadeUp}
+								className="glass-frame overflow-hidden group hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-all duration-500"
+							>
+								<div className="p-5 flex items-center justify-between" style={{ background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--card-border)' }}>
+									<div className="flex items-center gap-3">
+										<span className="w-3 h-3 rounded-full shadow-[0_0_10px_currentColor]" style={{ color: s.color, backgroundColor: s.color }} />
+										<div className="font-bold text-sm" style={{ color: 'var(--fg-color)' }}>{s.title}</div>
+									</div>
+									<span className="text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-md font-bold" style={{ border: `1px solid ${s.color}80`, color: s.color, background: `${s.color}15` }}>{s.badge}</span>
+								</div>
+								<div className="relative">
+                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#050508]/80 pointer-events-none z-10 group-hover:opacity-0 transition-opacity duration-300" />
+                                    <pre className="p-6 text-xs leading-loose overflow-hidden h-48 font-mono custom-scrollbar relative z-0" style={{ background: '#0a0a0f', color: 'var(--code-fg)' }}>
+                                        {s.code}
+                                    </pre>
+                                </div>
+								<div className="p-5 border-t border-[var(--card-border)] bg-[var(--surface-1)]">
+									<button
+										onClick={() => onExample ? onExample(s) : navigate('/optimize', { state: { prefill: s } })}
+										className="w-full relative px-6 py-3 font-bold text-sm rounded-xl overflow-hidden group/btn text-white transition-all duration-300 shadow-[0_0_15px_currentColor]"
+                                        style={{ color: s.color }}
+									>
+                                        <div className="absolute inset-0 opacity-20 transition-opacity duration-300 group-hover/btn:opacity-40" style={{ background: s.color }} />
+                                        <div className="absolute inset-0 border border-current rounded-xl opacity-50" />
+										<span className="relative z-10 flex items-center justify-center gap-2">
+											<Play className="w-4 h-4 fill-current" /> Execute Sequence
+										</span>
+									</button>
+								</div>
+							</motion.div>
+						))}
+					</motion.div>
 				</section>
 			</main>
 
-			{/* footer */}
-			<footer className="px-6 py-10 border-t border-theme text-center text-muted">
-				Built for developers — subtle motion, zero noise.
+			{/* Footer */}
+			<footer className="px-6 py-12 text-center relative z-10 mt-20" style={{ borderTop: '1px solid var(--card-border)', background: 'var(--surface-1)' }}>
+				<div className="text-sm font-bold uppercase tracking-widest text-[var(--accent-cyan)] mb-2">Neural Code Engine v4</div>
+				<p className="text-muted text-xs font-mono">Synthesizing perfection from entropy.</p>
 			</footer>
 		</div>
 	);

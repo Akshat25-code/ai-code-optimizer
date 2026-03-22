@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime, timezone
 
 from mongodb_database import get_database
@@ -15,9 +15,11 @@ class CreateSessionReq(BaseModel):
     title: Optional[str] = Field(default=None, max_length=120)
     code: str
     language: str
-    task: str
+    task: str = "optimization"
     provider_used: Optional[str] = None
-    result: Optional[str] = None
+    result: Optional[Any] = None
+    tokens_in: Optional[int] = 0
+    tokens_out: Optional[int] = 0
 
 
 class SessionItem(BaseModel):
@@ -26,6 +28,8 @@ class SessionItem(BaseModel):
     language: str
     task: str
     provider_used: Optional[str]
+    code: Optional[str] = None
+    result: Optional[Any] = None
     created_at: datetime
 
 
@@ -41,6 +45,8 @@ async def create_session(payload: CreateSessionReq, current_user: dict = Depends
         "task": payload.task,
         "provider_used": payload.provider_used,
         "result": payload.result,
+        "tokens_in": payload.tokens_in or 0,
+        "tokens_out": payload.tokens_out or 0,
         "created_at": now,
         "updated_at": now,
     }
@@ -51,6 +57,8 @@ async def create_session(payload: CreateSessionReq, current_user: dict = Depends
         language=doc["language"],
         task=doc["task"],
         provider_used=doc["provider_used"],
+        code=doc.get("code"),
+        result=doc.get("result"),
         created_at=doc["created_at"],
     )
 
@@ -67,6 +75,8 @@ async def list_sessions(current_user: dict = Depends(get_current_user), limit: i
             language=d.get("language"),
             task=d.get("task"),
             provider_used=d.get("provider_used"),
+            code=d.get("code"),
+            result=d.get("result"),
             created_at=d.get("created_at"),
         ))
     return items
@@ -115,3 +125,27 @@ async def export_sessions(current_user: dict = Depends(get_current_user)):
     return StreamingResponse(iter([data]), media_type="application/json", headers={
         "Content-Disposition": "attachment; filename=sessions_export.json"
     })
+
+@router.get("/analytics/stats")
+async def get_analytics_stats(current_user: dict = Depends(get_current_user)):
+    """Aggregate token usage stats for the user"""
+    db = get_database()
+    pipeline = [
+        {"$match": {"user_id": current_user["id"]}},
+        {"$group": {
+            "_id": "$provider_used",
+            "total_tokens_in": {"$sum": "$tokens_in"},
+            "total_tokens_out": {"$sum": "$tokens_out"},
+            "session_count": {"$sum": 1}
+        }}
+    ]
+    cursor = db.optimize_sessions.aggregate(pipeline)
+    stats = []
+    async for d in cursor:
+        stats.append({
+            "provider": d["_id"] or "unknown",
+            "tokens_in": d["total_tokens_in"],
+            "tokens_out": d["total_tokens_out"],
+            "count": d["session_count"]
+        })
+    return stats

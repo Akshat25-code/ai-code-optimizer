@@ -69,6 +69,10 @@ class AuthService {
   // Social login using popup mode
   async loginWithProvider(provider) {
     try {
+      const supportedProviders = new Set(['google', 'github']);
+      if (!supportedProviders.has(provider)) {
+        return { success: false, error: `${provider} login is disabled` };
+      }
       const returnTo = window.location.origin;
       const startUrl = `${API_BASE_URL}/auth/oauth/${provider}/start?mode=popup&redirect_uri=${encodeURIComponent(returnTo)}`;
       const result = await this.openOAuthPopup(startUrl);
@@ -298,10 +302,9 @@ class AuthService {
     }
   }
 
-  // Helper: smart login with email or phone
+  // Helper: simple email login
   async smartLogin(identifier, password) {
-    const payload = identifier.includes('@') ? { email: identifier, password } : { phone: identifier, password };
-    return this.login(payload);
+    return this.login({ email: identifier, password });
   }
 
   // Make authenticated API request

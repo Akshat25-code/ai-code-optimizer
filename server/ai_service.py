@@ -1,15 +1,35 @@
 # ai_service.py
 from __future__ import annotations
 import httpx, json
+import os
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from settings import settings
+
+try:
+    from ast_analyzer import analyze_python_ast
+except ImportError:
+    analyze_python_ast = None
 
 HTTP_TIMEOUT = 45  # seconds
 
 def _client():
     return httpx.AsyncClient(timeout=HTTP_TIMEOUT)
 
-def build_prompt(
+
+def _upstream_error(prefix: str, response: httpx.Response) -> ProviderConfigError:
+    """Return a concise, user-actionable provider error with upstream payload snippet."""
+    detail = ""
+    try:
+        payload = response.json()
+        detail = json.dumps(payload)
+    except Exception:
+        detail = response.text or ""
+    detail = " ".join(detail.split())
+    if len(detail) > 320:
+        detail = detail[:320] + "..."
+    return ProviderConfigError(f"{prefix} error {response.status_code}: {detail}" if detail else f"{prefix} error {response.status_code}")
+
+def _build_prompt_base(
     task: str,
     language: str,
     code: str,
@@ -28,6 +48,7 @@ def build_prompt(
         "refactor": "refactoring",
     }
     task = aliases.get(task, task)
+
     
     # Enhanced prompts for better outputs
     if task == "bug_detection":
@@ -86,7 +107,7 @@ def build_prompt(
         focus = ", ".join(optimization_focus or [])
         if not user_instructions:
             user_instructions = "Minimize code length while maintaining readability and performance."
-        return f"""You are an expert {language} performance engineer. Optimize this code comprehensively:
+        return f"""You are an expert {language} performance engineer. Optimize this code comprehensively. You MUST follow the EXACT required output format. Do not skip any sections.
 
 **User Instructions:**
 {user_instructions}
@@ -100,35 +121,37 @@ def build_prompt(
 3. **Memory Management**: Reduce allocations and improve garbage collection
 4. **I/O Operations**: Optimize database calls, file operations, network requests
 5. **Concurrency**: Add parallel processing where beneficial
-6. **Caching**: Implement smart caching strategies
-7. **Language-Specific**: Use {language}-specific optimizations and patterns
-8. **Scalability**: Ensure code scales well with larger inputs
 
 **Code to Optimize:**
 ```{language}
 {code}
 ```
 
-**Required Output Format:**
+**CRITICAL: REQUIRED OUTPUT FORMAT:**
+You MUST use these exact headings. Do not skip the explanation or analysis.
+
 ⚡ **Performance Analysis:**
-[Current performance characteristics and bottlenecks]
+[Explain the current performance characteristics, bottlenecks, and why your changes improve them. Be detailed!]
 
 🚀 **Optimized Code:**
 ```{language}
-[Fully optimized version with comments explaining improvements]
+[Fully optimized version with comments explaining improvements. Do not skip this block!]
 ```
 
 📊 **Improvements Made:**
 - **Time Complexity**: [Old] → [New]
 - **Space Complexity**: [Old] → [New] 
-- **Key Optimizations**: [List major improvements]
+- **Key Optimizations**: [List major improvements mathematically or logically]"""
 
-🎯 **Performance Impact:**
-[Quantify expected performance gains]
+    elif task == "auto_fix":
+        return f"""You are an expert {language} developer responding to a critical runtime error. Your job is to FIX the following code based ONLY on the error traceback provided. Output ONLY the fully corrected code. DO NOT wrap the code in markdown formatting or include any conversational explanation.
+        
+**Original Code:**
+{code}
 
-🔧 **Implementation Notes:**
-[Important considerations for deployment]"""
-
+**Error Traceback:**
+{user_instructions}
+"""
     elif task == "explanation":
         return f"""You are an expert {language} teacher. Provide a comprehensive, educational explanation of this code:
 
@@ -285,6 +308,21 @@ Provide ONLY the JSON object with no surrounding text."""
 
 Provide detailed, actionable insights for each area."""
 
+def build_prompt(
+    task: str,
+    language: str,
+    code: str,
+    user_instructions: str | None = None,
+    optimization_focus: list[str] | None = None,
+) -> str:
+    base = _build_prompt_base(task, language, code, user_instructions, optimization_focus)
+    ast_context = ""
+    if analyze_python_ast and language.lower() == "python":
+        ast_json = analyze_python_ast(code)
+        if ast_json:
+            ast_context = "\n\n=== AST METADATA (System Context Only) ===\n" + ast_json + "\n"
+    return base + ast_context
+
 class TransientAIError(Exception): ...
 class ProviderConfigError(Exception): ...
 
@@ -306,7 +344,7 @@ async def ask_openai(prompt: str) -> str:
     }
     async with _client() as client:
         r = await client.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-    if r.status_code >= 500:
+    if r.status_code >= 500 or r.status_code == 429:
         raise TransientAIError(f"OpenAI transient error {r.status_code}")
     r.raise_for_status()
     data = r.json()
@@ -327,18 +365,37 @@ async def ask_claude(prompt: str) -> str:
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     }
-    payload = {
-        "model": settings.anthropic_model,
-        "max_tokens": 1200,
-        "temperature": 0.2,
-        "messages": [{"role": "user", "content": prompt}],
-    }
+    candidate_models = [
+        settings.anthropic_model,
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-haiku-20241022",
+        "claude-3-haiku-20240307",
+    ]
+
+    last_resp = None
     async with _client() as client:
-        r = await client.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload)
-    if r.status_code >= 500:
-        raise TransientAIError(f"Anthropic transient error {r.status_code}")
-    r.raise_for_status()
-    data = r.json()
+        for model in dict.fromkeys(candidate_models):
+            payload = {
+                "model": model,
+                "max_tokens": 1200,
+                "temperature": 0.2,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+            r = await client.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload)
+            last_resp = r
+            if r.status_code == 404:
+                continue
+            if r.status_code >= 500 or r.status_code == 429:
+                raise TransientAIError(f"Anthropic transient error {r.status_code}")
+            r.raise_for_status()
+            data = r.json()
+            break
+        else:
+            # Every model attempt returned 404/not found
+            if last_resp is not None:
+                last_resp.raise_for_status()
+            raise ProviderConfigError("Anthropic model resolution failed")
+
     # Anthropic returns list of content blocks; concatenate text parts
     parts = []
     for block in data.get("content", []):
@@ -356,15 +413,33 @@ async def ask_claude(prompt: str) -> str:
 async def ask_gemini(prompt: str) -> str:
     if not settings.gemini_api_key:
         raise ProviderConfigError("Gemini key missing")
-    # Generative Language API (v1beta)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent?key={settings.gemini_api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.2}}
+    candidate_models = [
+        settings.gemini_model,
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-pro-latest",
+        "gemini-2.0-flash",
+    ]
+
+    last_resp = None
     async with _client() as client:
-        r = await client.post(url, json=payload)
-    if r.status_code >= 500:
-        raise TransientAIError(f"Gemini transient error {r.status_code}")
-    r.raise_for_status()
-    data = r.json()
+        for model in dict.fromkeys(candidate_models):
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={settings.gemini_api_key}"
+            r = await client.post(url, json=payload)
+            last_resp = r
+            if r.status_code == 404:
+                continue
+            if r.status_code >= 500 or r.status_code == 429:
+                raise TransientAIError(f"Gemini transient error {r.status_code}")
+            r.raise_for_status()
+            data = r.json()
+            break
+        else:
+            # Every model attempt returned 404/not found
+            if last_resp is not None:
+                last_resp.raise_for_status()
+            raise ProviderConfigError("Gemini model resolution failed")
+
     # Extract text safely
     try:
         return data["candidates"][0]["content"]["parts"][0]["text"]
@@ -372,16 +447,110 @@ async def ask_gemini(prompt: str) -> str:
         # Fallback readable error
         return data.get("promptFeedback", {}).get("blockReason", "Unknown Gemini response structure")
 
+
+# ---------- DeepSeek ----------
+@retry(
+    retry=retry_if_exception_type(TransientAIError),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+    reraise=True,
+)
+async def ask_deepseek(prompt: str) -> str:
+    if not settings.deepseek_api_key:
+        raise ProviderConfigError("DeepSeek key missing")
+    headers = {"Authorization": f"Bearer {settings.deepseek_api_key}"}
+    payload = {
+        "model": settings.deepseek_model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.2,
+    }
+    base_url = settings.deepseek_base_url.rstrip("/")
+    async with _client() as client:
+        r = await client.post(f"{base_url}/chat/completions", headers=headers, json=payload)
+    if r.status_code >= 500 or r.status_code == 429:
+        raise TransientAIError(f"DeepSeek transient error {r.status_code}")
+    if r.status_code >= 400:
+        raise _upstream_error("DeepSeek", r)
+    data = r.json()
+    return data["choices"][0]["message"]["content"]
+
+
+# ---------- xAI Grok ----------
+@retry(
+    retry=retry_if_exception_type(TransientAIError),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+    reraise=True,
+)
+async def ask_grok(prompt: str) -> str:
+    key = settings.grok_api_key or settings.groq_api_key
+    if not key:
+        raise ProviderConfigError("Grok key missing (set GROK_API_KEY or GROQ_API_KEY)")
+
+    using_groq_fallback = bool(settings.groq_api_key and not settings.grok_api_key)
+    headers = {"Authorization": f"Bearer {key}"}
+    if using_groq_fallback:
+        base_url = settings.groq_base_url.rstrip("/")
+        candidate_models = [
+            settings.groq_model,
+            "llama-3.3-70b-versatile",
+            "llama-3.1-70b-versatile",
+            "mixtral-8x7b-32768",
+        ]
+    else:
+        base_url = settings.grok_base_url.rstrip("/")
+        candidate_models = [
+            settings.grok_model,
+            "grok-2-latest",
+            "grok-beta",
+            "grok-2",
+            "grok-2-1212",
+        ]
+
+    last_resp = None
+    async with _client() as client:
+        for model in dict.fromkeys(candidate_models):
+            payload = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.2,
+            }
+            r = await client.post(f"{base_url}/v1/chat/completions", headers=headers, json=payload)
+            last_resp = r
+            if r.status_code >= 500 or r.status_code == 429:
+                raise TransientAIError(f"Grok transient error {r.status_code}")
+            if r.status_code == 400:
+                # Commonly indicates model/account mismatch; try next known model.
+                continue
+            if r.status_code >= 400:
+                raise _upstream_error("Grok", r)
+            data = r.json()
+            break
+        else:
+            if last_resp is not None:
+                raise _upstream_error("Grok", last_resp)
+            raise ProviderConfigError("Grok request failed before receiving a response")
+
+    return data["choices"][0]["message"]["content"]
+
 # ---------- Intelligent Provider Selection ----------
 def pick_provider(task: str, code: str, language: str = "") -> str:
     """Smart provider selection based on task type, code characteristics, and language"""
     task = task.lower().strip()
     code_length = len(code)
     language = language.lower()
+    primary_provider = os.getenv("PRIMARY_AI_PROVIDER", "claude").lower().strip()
+    if primary_provider == "anthropic":
+        primary_provider = "claude"
+    allowed_primary = {"openai", "claude", "gemini"}
+    if settings.experimental_providers_enabled:
+        allowed_primary.update({"deepseek", "grok"})
+    if primary_provider not in allowed_primary:
+        primary_provider = "claude"
     
-    # OpenAI GPT - Best for code optimization, complex logic, and programming tasks
+    # Use configured primary provider for optimization to reduce hard failures from one provider quota.
     if task in ["optimization", "refactoring"] or code_length > 2000:
-        return "openai"
+        return primary_provider
     
     # Claude - Best for explanations, documentation, and educational content
     if task in ["explanation", "documentation", "analysis"] or "comment" in task:
@@ -408,6 +577,14 @@ def pick_provider(task: str, code: str, language: str = "") -> str:
     # Default: OpenAI for general code tasks
     return "openai"
 
+def count_tokens(text: str) -> int:
+    try:
+        import tiktoken
+        enc = tiktoken.get_encoding("cl100k_base")
+        return len(enc.encode(text))
+    except Exception:
+        return 0
+
 async def ask_ai(
     task: str,
     language: str,
@@ -415,55 +592,77 @@ async def ask_ai(
     provider: str | None,
     user_instructions: str | None = None,
     optimization_focus: list[str] | None = None,
-) -> tuple[str, str]:
-    """Enhanced AI service with intelligent provider selection and better error handling"""
+) -> tuple[str, str, int, int]:
+    """Enhanced AI service with intelligent provider selection and better error handling, now tracking tokens."""
     prompt = build_prompt(task, language, code, user_instructions=user_instructions, optimization_focus=optimization_focus)
+    prompt_tokens = count_tokens(prompt)
+
+    provider_aliases = {
+        "anthropic": "claude",
+        "xai": "grok",
+    }
     
     # Use provided provider or auto-select the best one
     explicit_provider = bool(provider and provider != "auto")
 
     if explicit_provider:
-        selected = provider
+        selected = provider_aliases.get((provider or "").lower().strip(), (provider or "").lower().strip())
     else:
         selected = pick_provider(task, code, language)
+
+    if not settings.experimental_providers_enabled and selected in {"deepseek", "grok"}:
+        raise ProviderConfigError("Provider is temporarily disabled")
     
+    async def run_and_track(p: str, ask_fn):
+        res = await ask_fn(prompt)
+        return p, res, prompt_tokens, count_tokens(res)
+
     try:
         if selected == "openai":
-            return "openai", await ask_openai(prompt)
+            return await run_and_track("openai", ask_openai)
         elif selected == "claude":
-            return "claude", await ask_claude(prompt)
+            return await run_and_track("claude", ask_claude)
         elif selected == "gemini":
-            return "gemini", await ask_gemini(prompt)
+            return await run_and_track("gemini", ask_gemini)
+        elif selected == "deepseek":
+            return await run_and_track("deepseek", ask_deepseek)
+        elif selected == "grok":
+            return await run_and_track("grok", ask_grok)
         else:
             # Fallback to auto-selection
-            auto_provider = pick_provider(task, code, language)
-            if auto_provider == "openai":
-                return "openai", await ask_openai(prompt)
-            elif auto_provider == "claude":
-                return "claude", await ask_claude(prompt)
+            auto_prov = pick_provider(task, code, language)
+            if auto_prov == "openai":
+                return await run_and_track("openai", ask_openai)
+            elif auto_prov == "claude":
+                return await run_and_track("claude", ask_claude)
+            elif auto_prov == "deepseek":
+                return await run_and_track("deepseek", ask_deepseek)
+            elif auto_prov == "grok":
+                return await run_and_track("grok", ask_grok)
             else:
-                return "gemini", await ask_gemini(prompt)
+                return await run_and_track("gemini", ask_gemini)
     except Exception as e:
-        # If the caller explicitly requested a provider, do not silently fall back.
-        # This keeps behavior transparent (especially for compare mode).
         if explicit_provider:
             raise
 
-        # If primary provider fails, try fallback providers
-        fallback_providers = ["openai", "claude", "gemini"]
+        fallback_providers = ["claude", "openai", "gemini"]
+        if settings.experimental_providers_enabled:
+            fallback_providers = ["claude", "deepseek", "grok", "openai", "gemini"]
         if selected in fallback_providers:
             fallback_providers.remove(selected)
         
         for fallback in fallback_providers:
             try:
                 if fallback == "openai":
-                    return f"{fallback}(fallback)", await ask_openai(prompt)
+                    return await run_and_track("openai(fallback)", ask_openai)
                 elif fallback == "claude":
-                    return f"{fallback}(fallback)", await ask_claude(prompt)
+                    return await run_and_track("claude(fallback)", ask_claude)
+                elif fallback == "deepseek":
+                    return await run_and_track("deepseek(fallback)", ask_deepseek)
+                elif fallback == "grok":
+                    return await run_and_track("grok(fallback)", ask_grok)
                 else:
-                    return f"{fallback}(fallback)", await ask_gemini(prompt)
+                    return await run_and_track("gemini(fallback)", ask_gemini)
             except:
                 continue
-        
-        # If all providers fail, raise the original exception
         raise e

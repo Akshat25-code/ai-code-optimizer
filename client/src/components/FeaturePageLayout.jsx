@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CodeEditor from './CodeEditor';
 import FileExplorer from './FileExplorer';
 
@@ -148,10 +148,10 @@ const FileDropZone = ({ onFileImport, showFileExplorer }) => {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`px-4 py-2 rounded-lg border border-dashed flex items-center justify-between transition-all ${
+      className={`px-4 py-3 rounded-xl border border-dashed flex items-center justify-between transition-all ${
         isDragging 
-          ? 'border-teal-500 bg-teal-500/10' 
-          : 'border-gray-600 hover:border-teal-500/50'
+          ? 'border-[var(--accent-cyan)] bg-[var(--glow-cyan)]' 
+          : 'border-[var(--card-border)] hover:border-[var(--card-hover-border)] bg-[var(--surface-1)]'
       }`}
     >
       <input
@@ -171,51 +171,39 @@ const FileDropZone = ({ onFileImport, showFileExplorer }) => {
         onChange={handleFolderSelect}
         className="hidden"
       />
-      <div className="flex items-center gap-2">
-        <span className="text-lg">📂</span>
-        <span className="text-xs text-muted">
-          {isDragging ? 'Drop here!' : 'Drag & drop or'}
+      <div className="flex items-center gap-3">
+        <span className="text-xl">📄</span>
+        <span className="text-sm text-muted">
+          {isDragging ? 'Drop files here!' : 'Drag & drop files or'}
         </span>
       </div>
       <div className="flex gap-2">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-          className="text-xs px-2 py-1 rounded transition-colors hover:bg-teal-500/20"
-          style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', color: 'var(--fg-color)' }}
+          className="text-xs px-3 py-1.5 rounded-lg transition-colors bg-[var(--surface-2)] border border-[var(--card-border)] hover:bg-[var(--glow-cyan)] hover:border-[var(--accent-cyan)] text-[var(--fg-color)]"
         >
-          📄 Import Files
+          Import Files
         </button>
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); folderInputRef.current?.click(); }}
-          className="text-xs px-2 py-1 rounded transition-colors hover:bg-teal-500/20"
-          style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', color: 'var(--fg-color)' }}
+          className="text-xs px-3 py-1.5 rounded-lg transition-colors bg-[var(--surface-2)] border border-[var(--card-border)] hover:bg-[var(--glow-cyan)] hover:border-[var(--accent-cyan)] text-[var(--fg-color)]"
         >
-          📁 Import Folder
+          Import Folder
         </button>
       </div>
     </div>
   );
 };
 
-// CSS-only ambient background
-const AmbientBackground = ({ color1 = 'teal', color2 = 'emerald' }) => (
+// Ambient Background Layer
+const AmbientBackground = () => (
   <>
-    <motion.div
-      aria-hidden
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-      className={`pointer-events-none absolute -top-40 -right-32 w-[40rem] h-[40rem] rounded-full bg-${color1}-500/15 blur-3xl`}
-    />
-    <motion.div
-      aria-hidden
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8, delay: 0.1 }}
-      className={`pointer-events-none absolute -bottom-40 -left-32 w-[40rem] h-[40rem] rounded-full bg-${color2}-500/15 blur-3xl`}
-    />
+    <div className="fixed inset-0 pointer-events-none z-0">
+      <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-[var(--glow-cyan)] blur-[120px] mix-blend-screen opacity-50" />
+      <div className="absolute top-[60%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[var(--glow-emerald)] blur-[100px] mix-blend-screen opacity-40" />
+    </div>
   </>
 );
 
@@ -277,7 +265,7 @@ const FeaturePageLayout = ({
   user,
 }) => {
   const navigate = useNavigate();
-  const [professionalMode, setProfessionalMode] = React.useState(true);
+  const location = useLocation();
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = (text) => {
@@ -287,251 +275,266 @@ const FeaturePageLayout = ({
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: 'var(--bg-color)' }}>
-      <AmbientBackground color1={accentColor} color2="emerald" />
+    <div className="min-h-screen relative overflow-hidden bg-[var(--bg-color)]">
+      <AmbientBackground />
       
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pt-20">
+      <div className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20">
         {/* Toast Notification */}
         <AnimatePresence>
           {toast && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={`fixed top-20 right-6 z-50 px-4 py-3 rounded-xl shadow-lg ${
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              className={`fixed bottom-8 right-8 z-50 px-5 py-3.5 rounded-xl shadow-2xl backdrop-blur-md border ${
                 toast.type === 'success' 
-                  ? 'bg-emerald-600 text-white' 
-                  : 'bg-red-600 text-white'
-              }`}
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
+              } flex items-center gap-3`}
             >
-              {toast.message}
+              {toast.type === 'success' ? '✓' : '⚠️'} {toast.message}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Compact Page Header */}
+        {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center gap-3 mb-4"
+          className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-[var(--card-border)] gap-4"
         >
-          <span className="text-2xl">{icon}</span>
-          <h1 className="text-xl md:text-2xl font-bold" style={{ color: 'var(--fg-color)' }}>
-            {title}
-          </h1>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--surface-2)] border border-[var(--card-border)] flex items-center justify-center text-2xl shadow-inner">
+              {icon}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--fg-color)] tracking-tight">
+                {title}
+              </h1>
+              {subtitle && <p className="text-sm text-muted mt-0.5">{subtitle}</p>}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 bg-[var(--surface-1)] p-1.5 rounded-xl border border-[var(--card-border)]">
+             <button
+                onClick={() => navigate('/')}
+                className="px-4 py-2 text-sm font-medium rounded-lg text-muted hover:text-[var(--fg-color)] hover:bg-[var(--surface-2)] transition-all"
+             >
+                Home
+             </button>
+             <div className="w-px h-5 bg-[var(--border-strong)]" />
+             <div className="px-4 py-2 text-sm font-medium text-[var(--accent-cyan)] bg-[var(--glow-cyan)] rounded-lg">
+                Workspace
+             </div>
+          </div>
         </motion.div>
 
-        {/* Backend Status */}
-        {backendHealthy === false && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-4 p-4 rounded-xl bg-red-500/20 border border-red-500/40 text-center"
-          >
-            <span className="text-red-400">⚠️ Backend server is not responding. Please ensure the server is running.</span>
-          </motion.div>
-        )}
+        {/* Status Alerts */}
+        <AnimatePresence>
+          {(backendHealthy === false || error) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-6 overflow-hidden"
+            >
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex gap-3">
+                <span className="text-red-400 mt-0.5">⚠️</span>
+                <div className="text-sm text-red-400">
+                  {backendHealthy === false && <p>Backend server is not responding. Please ensure the server is running.</p>}
+                  {error && <p>{error}</p>}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Error Display */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-4 p-4 rounded-xl bg-red-500/20 border border-red-500/40"
-          >
-            <span className="text-red-400">{error}</span>
-          </motion.div>
-        )}
-
-        {/* Main Content Grid */}
-        <div className="flex gap-6">
-          {/* File Explorer Sidebar */}
+        {/* Main Workspace Layout */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* OPTIONAL File Explorer Sidebar */}
           {showFileExplorer && (
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.05 }}
-              className="flex-shrink-0 rounded-xl overflow-hidden"
-              style={{ 
-                background: 'var(--card-bg)', 
-                border: '1px solid var(--card-border)',
-                height: 'calc(100vh - 180px)',
-                minHeight: '500px',
-              }}
+              transition={{ delay: 0.1 }}
+              className={`flex-shrink-0 transition-all duration-300 ${explorerCollapsed ? 'w-12' : 'w-64'}`}
             >
-              <FileExplorer
-                files={files}
-                activeFileId={activeFileId}
-                onFileSelect={onFileSelect}
-                onFileCreate={onFileCreate}
-                onFileImport={onFileImport}
-                onFileDelete={onFileDelete}
-                onFileRename={onFileRename}
-                collapsed={explorerCollapsed}
-                onToggleCollapse={onToggleExplorerCollapse}
-              />
+              <div 
+                className="sticky top-24 rounded-2xl glass-frame shadow-xl"
+                style={{ height: 'calc(100vh - 180px)', minHeight: '600px' }}
+              >
+                <FileExplorer
+                  files={files}
+                  activeFileId={activeFileId}
+                  onFileSelect={onFileSelect}
+                  onFileCreate={onFileCreate}
+                  onFileImport={onFileImport}
+                  onFileDelete={onFileDelete}
+                  onFileRename={onFileRename}
+                  collapsed={explorerCollapsed}
+                  onToggleCollapse={onToggleExplorerCollapse}
+                />
+              </div>
             </motion.div>
           )}
 
-          {/* Main Content */}
-          <div className={`flex-1 grid ${showFileExplorer ? 'lg:grid-cols-2' : 'lg:grid-cols-2'} gap-6`}>
-          {/* Left Panel - Input */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-4"
-          >
-            {/* Controls Bar */}
-            <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl" style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)` }}>
-              {/* Language Selector */}
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted">Language:</label>
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg text-sm"
-                  style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)`, color: 'var(--fg-color)' }}
+          {/* Central Workspace Grid */}
+          <div className="flex-1 w-full grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            
+            {/* ─── LEFT PANEL: INPUT ─── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="flex flex-col gap-5 sticky top-24"
+            >
+              {/* Controls Bar */}
+              <div className="glass-frame p-4 flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-1.5 h-4 bg-[var(--accent-cyan)] rounded-full mr-1" />
+                  <label className="text-xs font-semibold text-muted uppercase tracking-wider">Language</label>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="select text-sm font-medium bg-[var(--surface-2)]"
+                  >
+                    <option value="auto">Auto-detect</option>
+                    {supportedLanguages?.map((lang) => (
+                      <option key={lang.key} value={lang.key}>{lang.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2.5 ml-auto">
+                  <div className="w-1.5 h-4 bg-purple-500 rounded-full mr-1" />
+                  <label className="text-xs font-semibold text-muted uppercase tracking-wider">AI Core</label>
+                  <select
+                    value={aiProvider}
+                    onChange={(e) => setAiProvider(e.target.value)}
+                    className="select text-sm font-medium bg-[var(--surface-2)]"
+                  >
+                    <option value="auto">Auto-Select Best</option>
+                    <option value="openai">OpenAI (GPT-4)</option>
+                    <option value="claude">Anthropic (Claude)</option>
+                    <option value="gemini">Google (Gemini)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* File Drop Area */}
+              <FileDropZone onFileImport={onFileImport} showFileExplorer={showFileExplorer} />
+
+              {/* Specific Feature Options (Injected via props) */}
+              {optionsSection && (
+                <div className="glass-frame p-5">
+                  {optionsSection}
+                </div>
+              )}
+
+              {/* Code Editor Frame */}
+              <div className="glass-frame flex flex-col shadow-lg transition-all focus-within:shadow-[0_0_0_1px_var(--accent-cyan)]">
+                <div className="glass-frame-header">
+                  <div className="flex items-center gap-2 text-sm font-medium text-[var(--fg-color)]">
+                    <span className="text-[var(--accent-cyan)]">{'<>'}</span> Source Code
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-muted border border-[var(--card-border)] font-mono">
+                      {resolvedEditorLanguage || language}
+                    </span>
+                  </div>
+                </div>
+                <div className="h-[450px] relative pb-2 bg-[var(--code-bg)]">
+                  <CodeEditor
+                    value={code}
+                    onChange={setCode}
+                    language={resolvedEditorLanguage?.toLowerCase() || 'javascript'}
+                  />
+                  {/* Glowing bottom edge */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--accent-cyan)] to-transparent opacity-20" />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <button
+                  onClick={handleClear}
+                  disabled={isOptimizing}
+                  className="btn-secondary px-6"
                 >
-                  <option value="auto">Auto-detect</option>
-                  {supportedLanguages.map((lang) => (
-                    <option key={lang.key} value={lang.key}>{lang.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* AI Provider */}
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted">AI:</label>
-                <select
-                  value={aiProvider}
-                  onChange={(e) => setAiProvider(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg text-sm"
-                  style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)`, color: 'var(--fg-color)' }}
+                  Clear
+                </button>
+                <button
+                  onClick={handleProcess}
+                  disabled={isOptimizing || !code.trim()}
+                  className="btn-primary flex-1 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
-                  <option value="auto">Auto</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="claude">Claude</option>
-                  <option value="gemini">Gemini</option>
-                </select>
+                  {isOptimizing ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>{progressStep || 'Processing...'}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 text-lg">
+                      <span className="group-hover:scale-110 transition-transform">{actionIcon}</span> 
+                      <span>{actionLabel}</span>
+                    </div>
+                  )}
+                </button>
               </div>
-            </div>
+            </motion.div>
 
-            {/* File Import Drop Zone */}
-            <FileDropZone onFileImport={onFileImport} showFileExplorer={showFileExplorer} />
-
-            {/* Custom Options Section */}
-            {optionsSection}
-
-            {/* Code Editor */}
-            <div className="rounded-xl overflow-hidden" style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)` }}>
-              <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: `1px solid var(--card-border)` }}>
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--fg-color)' }}>📝 Input Code</h3>
-                <span className="text-xs text-muted">{resolvedEditorLanguage}</span>
-              </div>
-              <div className="h-[500px]">
-                <CodeEditor
-                  value={code}
-                  onChange={setCode}
-                  language={resolvedEditorLanguage?.toLowerCase() || 'javascript'}
-                />
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleProcess}
-                disabled={isOptimizing || !code.trim()}
-                className={`flex-1 py-3 px-6 rounded-xl font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-${accentColor}-600 to-emerald-500 hover:from-${accentColor}-500 hover:to-emerald-400`}
-                style={{ background: isOptimizing ? undefined : `linear-gradient(135deg, #0d9488 0%, #10b981 100%)` }}
-              >
-                {isOptimizing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    >
-                      ⏳
-                    </motion.span>
-                    {progressStep || 'Processing...'}
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    {actionIcon} {actionLabel}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={handleClear}
-                className="px-4 py-3 rounded-xl font-semibold transition-colors"
-                style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)`, color: 'var(--fg-color)' }}
-              >
-                Clear
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Right Panel - Results */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-4"
-          >
-            {resultsSection}
-          </motion.div>
+            {/* ─── RIGHT PANEL: RESULTS ─── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="flex flex-col gap-5 h-full"
+            >
+              {resultsSection}
+            </motion.div>
+            
           </div>
         </div>
-
-        {/* Back to Home Link */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center mt-8"
-        >
-          <button
-            onClick={() => navigate('/')}
-            className="text-sm text-muted hover:text-teal-400 transition-colors"
-          >
-            ← Back to Home
-          </button>
-        </motion.div>
       </div>
 
-      {/* Auth Modal */}
+      {/* Auth Modal (Premium Upgrade/Limit Reached) */}
       <AnimatePresence>
         {showAuthModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md"
           >
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="p-8 rounded-2xl bg-gray-900 border border-gray-700 max-w-md text-center"
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: -20 }}
+              className="p-8 rounded-2xl max-w-md w-full text-center relative overflow-hidden"
+              style={{ background: 'var(--card-bg-solid)', border: '1px solid var(--card-border)', boxShadow: '0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,245,212,0.1)' }}
             >
-              <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold mb-4">Free Trial Complete!</h2>
-              <p className="text-gray-300 mb-6">
-                You've used your 2 free optimizations. Sign up to continue with unlimited access!
+              {/* Premium Glow Effect */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--accent-gold)] via-[var(--accent-cyan)] to-[var(--accent-gold)] opacity-80" />
+              
+              <div className="w-16 h-16 rounded-full mx-auto mb-5 bg-[var(--glow-cyan)] flex items-center justify-center border border-[var(--accent-cyan)] text-2xl shadow-[0_0_20px_rgba(0,245,212,0.2)]">
+                💎
+              </div>
+              <h2 className="text-2xl font-bold mb-3 text-[var(--fg-color)]">Unlock Unlimited Access</h2>
+              <p className="text-muted mb-8 leading-relaxed">
+                You've experienced the power of AI optimization. Sign up now to continue refining your codebase without limits.
               </p>
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={() => setShowAuthModal(false)}
-                  className="px-6 py-3 rounded-xl bg-gray-700 hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
+              <div className="flex flex-col gap-3">
                 <button
                   onClick={() => navigate('/auth', { state: { from: location.pathname } })}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-500 hover:to-emerald-400 transition-all duration-200"
+                  className="w-full btn-primary py-3 text-base shadow-[0_0_20px_rgba(0,245,212,0.2)]"
                 >
-                  Sign Up
+                  Sign Up & Continue
+                </button>
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="w-full btn-secondary py-3"
+                >
+                  Maybe Later
                 </button>
               </div>
             </motion.div>

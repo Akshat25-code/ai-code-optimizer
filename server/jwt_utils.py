@@ -70,7 +70,7 @@ class JWTManager:
             return payload
         except jwt.ExpiredSignatureError:
             return None
-        except jwt.JWTError:
+        except jwt.PyJWTError:
             return None
     
     @staticmethod
@@ -79,7 +79,7 @@ class JWTManager:
         try:
             payload = jwt.decode(token, options={"verify_signature": False})
             return payload
-        except jwt.JWTError:
+        except jwt.PyJWTError:
             return None
 
 class PasswordManager:
