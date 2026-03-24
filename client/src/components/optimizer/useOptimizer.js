@@ -290,15 +290,19 @@ export default function useOptimizer() {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       setProgressStep('processing');
       const result = await response.json();
-      const raw = result.optimized_code
-        || (typeof result.result === 'string' ? result.result : result.result?.optimized_code || result.result?.analysis)
-        || result.result_text
+      const rawText = result.result_text
+        || (typeof result.result === 'string' ? result.result : result.result?.analysis)
         || '';
+      const backendCode = result.optimized_code
+        || (typeof result.result === 'object' ? result.result?.optimized_code : '')
+        || '';
+      const raw = rawText || backendCode;
       setProgressStep('rendering');
       setOptimizedCode(raw || 'No optimization result received');
       setLastTokens({ in: result.tokens_in || 0, out: result.tokens_out || 0, provider: result.provider_used });
       const parsed = parseAiResult(raw);
-      setOutCode(parsed.code); setOutExplanation(parsed.explanation);
+      setOutCode(parsed.code || backendCode || code);
+      setOutExplanation(parsed.explanation || 'No detailed explanation provided by the AI.');
       setOptimizationCount((prev) => prev + 1);
       setToast({ type: 'success', message: 'Task completed successfully!' });
       setTimeout(() => setToast(null), 4000);

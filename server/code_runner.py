@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import locale
 import os
+import shutil
 import subprocess
 import tempfile
 import time
@@ -15,6 +17,23 @@ class RunResult:
     stderr: str
     exec_time_ms: int
     peak_kb: int | None = None
+
+
+def _safe_subprocess_run(cmd, timeout_s: float, cwd: str | None = None, stdin_text: str | None = None):
+    """Run subprocess with robust, platform-friendly decoding across platforms."""
+    preferred_encoding = os.getenv("RUNNER_OUTPUT_ENCODING") or locale.getpreferredencoding(False) or "utf-8"
+    kwargs = {
+        "capture_output": True,
+        "text": True,
+        "encoding": preferred_encoding,
+        "errors": "replace",
+        "timeout": timeout_s,
+    }
+    if cwd is not None:
+        kwargs["cwd"] = cwd
+    if stdin_text is not None:
+        kwargs["input"] = stdin_text
+    return subprocess.run(cmd, **kwargs)
 
 
 _WRAPPER = r"""
@@ -160,11 +179,9 @@ def run_python(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunRe
             python_exe = "python"
 
         try:
-            cp = subprocess.run(
+            cp = _safe_subprocess_run(
                 [python_exe, wrapper_path, user_code_path, stdin_text],
-                capture_output=True,
-                text=True,
-                timeout=max(0.1, timeout_ms / 1000),
+                timeout_s=max(0.1, timeout_ms / 1000),
             )
         except subprocess.TimeoutExpired:
             return RunResult(ok=False, stdout="", stderr="Timeout", exec_time_ms=int((time.perf_counter() - start) * 1000), peak_kb=None)
@@ -206,12 +223,10 @@ def run_javascript(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> R
         node_exe = "node"
         
         try:
-            cp = subprocess.run(
+            cp = _safe_subprocess_run(
                 [node_exe, user_code_path],
-                input=stdin_text,
-                capture_output=True,
-                text=True,
-                timeout=max(0.1, timeout_ms / 1000),
+                stdin_text=stdin_text,
+                timeout_s=max(0.1, timeout_ms / 1000),
             )
             exec_time = int((time.perf_counter() - start) * 1000)
             return RunResult(
@@ -264,12 +279,10 @@ def run_typescript(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> R
         # Try ts-node first, then npx ts-node
         for cmd in [["ts-node", user_code_path], ["npx", "ts-node", user_code_path]]:
             try:
-                cp = subprocess.run(
+                cp = _safe_subprocess_run(
                     cmd,
-                    input=stdin_text,
-                    capture_output=True,
-                    text=True,
-                    timeout=max(0.1, timeout_ms / 1000),
+                    stdin_text=stdin_text,
+                    timeout_s=max(0.1, timeout_ms / 1000),
                     cwd=td,
                 )
                 exec_time = int((time.perf_counter() - start) * 1000)
@@ -303,11 +316,9 @@ def run_java(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResu
         
         try:
             # Compile
-            compile_result = subprocess.run(
+            compile_result = _safe_subprocess_run(
                 ["javac", java_file],
-                capture_output=True,
-                text=True,
-                timeout=max(0.1, timeout_ms / 1000),
+                timeout_s=max(0.1, timeout_ms / 1000),
                 cwd=td,
             )
             
@@ -321,12 +332,10 @@ def run_java(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResu
                 )
             
             # Run
-            run_result = subprocess.run(
+            run_result = _safe_subprocess_run(
                 ["java", class_name],
-                input=stdin_text,
-                capture_output=True,
-                text=True,
-                timeout=max(0.1, timeout_ms / 1000),
+                stdin_text=stdin_text,
+                timeout_s=max(0.1, timeout_ms / 1000),
                 cwd=td,
             )
             
@@ -349,7 +358,17 @@ def run_cpp(code: str, lang: str, stdin_text: str = "", timeout_ms: int = 5000) 
     start = time.perf_counter()
     
     ext = ".c" if lang == "c" else ".cpp"
-    compiler = "gcc" if lang == "c" else "g++"
+    compiler_candidates = ["gcc", "clang", "cc"] if lang == "c" else ["g++", "clang++", "c++"]
+    available_compilers = [c for c in compiler_candidates if shutil.which(c)]
+    if not available_compilers:
+        pretty = " / ".join(compiler_candidates)
+        return RunResult(
+            ok=False,
+            stdout="",
+            stderr=f"No C/C++ compiler found. Tried: {pretty}. Install GCC/Clang and add it to PATH.",
+            exec_time_ms=0,
+            peak_kb=None,
+        )
     
     with tempfile.TemporaryDirectory(prefix="ai_code_optimizer_run_cpp_") as td:
         source_file = os.path.join(td, f"code{ext}")
@@ -359,31 +378,36 @@ def run_cpp(code: str, lang: str, stdin_text: str = "", timeout_ms: int = 5000) 
             f.write(code or "")
         
         try:
-            # Compile
-            compile_result = subprocess.run(
-                [compiler, source_file, "-o", exe_file],
-                capture_output=True,
-                text=True,
-                timeout=max(0.1, timeout_ms / 1000),
-                cwd=td,
-            )
-            
-            if compile_result.returncode != 0:
+            # Compile with the first available compiler that succeeds.
+            compile_result = None
+            compile_errors: list[str] = []
+            used_compiler = None
+            for compiler in available_compilers:
+                attempt = _safe_subprocess_run(
+                    [compiler, source_file, "-o", exe_file],
+                    timeout_s=max(0.1, timeout_ms / 1000),
+                    cwd=td,
+                )
+                if attempt.returncode == 0:
+                    compile_result = attempt
+                    used_compiler = compiler
+                    break
+                compile_errors.append(f"[{compiler}]\n{attempt.stderr or attempt.stdout}")
+
+            if compile_result is None:
                 return RunResult(
                     ok=False,
                     stdout="",
-                    stderr=f"Compilation error:\n{compile_result.stderr}",
+                    stderr="Compilation error:\n" + "\n\n".join(compile_errors),
                     exec_time_ms=int((time.perf_counter() - start) * 1000),
                     peak_kb=None,
                 )
             
             # Run
-            run_result = subprocess.run(
+            run_result = _safe_subprocess_run(
                 [exe_file],
-                input=stdin_text,
-                capture_output=True,
-                text=True,
-                timeout=max(0.1, timeout_ms / 1000),
+                stdin_text=stdin_text,
+                timeout_s=max(0.1, timeout_ms / 1000),
                 cwd=td,
             )
             
@@ -398,7 +422,7 @@ def run_cpp(code: str, lang: str, stdin_text: str = "", timeout_ms: int = 5000) 
         except subprocess.TimeoutExpired:
             return RunResult(ok=False, stdout="", stderr="Timeout", exec_time_ms=int((time.perf_counter() - start) * 1000), peak_kb=None)
         except FileNotFoundError:
-            return RunResult(ok=False, stdout="", stderr=f"{compiler} not found. Please install GCC/G++ to run C/C++ code.", exec_time_ms=0, peak_kb=None)
+            return RunResult(ok=False, stdout="", stderr="Compiler/runtime not found while running C/C++ code.", exec_time_ms=0, peak_kb=None)
 
 
 def run_go(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
@@ -412,12 +436,10 @@ def run_go(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult
             f.write(code or "")
         
         try:
-            cp = subprocess.run(
+            cp = _safe_subprocess_run(
                 ["go", "run", go_file],
-                input=stdin_text,
-                capture_output=True,
-                text=True,
-                timeout=max(0.1, timeout_ms / 1000),
+                stdin_text=stdin_text,
+                timeout_s=max(0.1, timeout_ms / 1000),
                 cwd=td,
             )
             exec_time = int((time.perf_counter() - start) * 1000)
@@ -445,12 +467,10 @@ def run_ruby(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResu
             f.write(code or "")
         
         try:
-            cp = subprocess.run(
+            cp = _safe_subprocess_run(
                 ["ruby", ruby_file],
-                input=stdin_text,
-                capture_output=True,
-                text=True,
-                timeout=max(0.1, timeout_ms / 1000),
+                stdin_text=stdin_text,
+                timeout_s=max(0.1, timeout_ms / 1000),
                 cwd=td,
             )
             exec_time = int((time.perf_counter() - start) * 1000)
@@ -478,12 +498,10 @@ def run_php(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResul
             f.write(code or "")
         
         try:
-            cp = subprocess.run(
+            cp = _safe_subprocess_run(
                 ["php", php_file],
-                input=stdin_text,
-                capture_output=True,
-                text=True,
-                timeout=max(0.1, timeout_ms / 1000),
+                stdin_text=stdin_text,
+                timeout_s=max(0.1, timeout_ms / 1000),
                 cwd=td,
             )
             exec_time = int((time.perf_counter() - start) * 1000)

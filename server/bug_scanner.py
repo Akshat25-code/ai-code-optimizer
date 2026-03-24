@@ -134,11 +134,19 @@ def _build_report(issues: list[Issue], code: str) -> dict:
     runtime = [asdict(i) for i in issues if i.category == "runtime"]
     logic = [asdict(i) for i in issues if i.category == "logic"]
 
+    # Frontend expects flat severity counters at summary level.
+    total_counts = _severity_counts(issues)
     summary = {
-        "compile_time": _severity_counts([i for i in issues if i.category == "compile_time"]),
-        "runtime": _severity_counts([i for i in issues if i.category == "runtime"]),
-        "logic": _severity_counts([i for i in issues if i.category == "logic"]),
-        "total": _severity_counts(issues),
+        "Critical": total_counts["Critical"],
+        "High": total_counts["High"],
+        "Medium": total_counts["Medium"],
+        "Low": total_counts["Low"],
+        "total": total_counts["total"],
+        "by_category": {
+            "compile_time": _severity_counts([i for i in issues if i.category == "compile_time"]),
+            "runtime": _severity_counts([i for i in issues if i.category == "runtime"]),
+            "logic": _severity_counts([i for i in issues if i.category == "logic"]),
+        },
     }
 
     top_priorities = []
@@ -173,3 +181,40 @@ def _build_report(issues: list[Issue], code: str) -> dict:
 
 def to_json(report: dict) -> str:
     return json.dumps(report, ensure_ascii=False, indent=2)
+
+
+def scan_javascript(code: str) -> dict:
+    """Lightweight JavaScript static checks.
+
+    This intentionally focuses on safe, deterministic heuristics without external linters.
+    """
+    issues: list[Issue] = []
+    lines = code.splitlines()
+
+    # Missing semicolon heuristic (can trigger ASI hazards in production code style).
+    for i, line_text in enumerate(lines, start=1):
+        stripped = line_text.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("//"):
+            continue
+        if stripped.endswith((";", "{", "}", ",", ":")):
+            continue
+        if re.match(r"^(if|for|while|switch|catch|function)\b", stripped):
+            continue
+
+        issues.append(
+            Issue(
+                line=i,
+                column=None,
+                category="logic",
+                severity="Low",
+                error_type="StyleRisk",
+                error_name="Missing semicolon",
+                message="Statement appears to be missing a semicolon; this can cause ASI-related bugs.",
+                code_snippet=line_text,
+                suggested_fix="Add ';' at the end of the statement.",
+            )
+        )
+
+    return _build_report(issues, code)

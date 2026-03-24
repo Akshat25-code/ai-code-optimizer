@@ -26,11 +26,8 @@ const parseAiResult = (raw) => {
     const explanation = raw.replace(fenceMatch[0], '').trim();
     return { code, explanation };
   }
-  // Fallback: If no fences, assume the whole thing is code if it doesn't look like a long essay,
-  // but for simplicity and to prevent completely empty code panels, treat everything as code.
-  // We can treat any inline backticks as code, or just split on double newlines.
-  // Assuming the user wants code, let's return it as code.
-  return { code: raw.trim(), explanation: 'No detailed explanation provided by the AI.' };
+  // If no fenced code exists, treat content as explanation and let caller supply code fallback.
+  return { code: '', explanation: raw.trim() };
 };
 
 // Try to extract JSON object from string
@@ -290,15 +287,18 @@ export const useCodeOptimizer = (defaultTask = 'optimization', enableFileManager
 
       setProgressStep('processing');
       const result = await response.json();
-      const raw = result.optimized_code
-        || (typeof result.result === 'string' ? result.result : result.result?.optimized_code || result.result?.analysis)
-        || result.result_text
+      const rawText = result.result_text
+        || (typeof result.result === 'string' ? result.result : result.result?.analysis)
         || '';
+      const backendCode = result.optimized_code
+        || (typeof result.result === 'object' ? result.result?.optimized_code : '')
+        || '';
+      const raw = rawText || backendCode;
       setProgressStep('rendering');
       setOptimizedCode(raw || 'No result received');
       const parsed = parseAiResult(raw);
-      setOutCode(parsed.code);
-      setOutExplanation(parsed.explanation);
+      setOutCode(parsed.code || backendCode || code);
+      setOutExplanation(parsed.explanation || 'No detailed explanation provided by the AI.');
       setOptimizationCount(prev => prev + 1);
       setToast({ type: 'success', message: 'Task completed successfully!' });
       setTimeout(() => setToast(null), 4000);

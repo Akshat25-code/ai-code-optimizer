@@ -58,6 +58,17 @@ const CodeOptimizer = () => {
     }
   };
 
+  const cleanExplanationText = (text) => {
+    if (!text) return '';
+    return String(text)
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/_(.*?)_/g, '$1')
+      .replace(/[ \t]+$/gm, '')
+      .trim();
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden theme-hero" style={{ color: 'var(--fg-color)' }}>
       {/* Ambient Background (CSS only) */}
@@ -253,7 +264,7 @@ const CodeOptimizer = () => {
                                   <pre className="themed-code font-mono text-sm whitespace-pre leading-relaxed max-h-48 overflow-auto">{parsed.code || raw || 'No output'}</pre>
                                   <div className="text-xs text-muted mt-3 mb-2">Explanation</div>
                                   <div className="text-sm whitespace-pre-wrap leading-relaxed max-h-40 overflow-auto" style={{ color: 'var(--fg-color)' }}>
-                                    {parsed.explanation || ''}
+                                    {cleanExplanationText(parsed.explanation || '')}
                                   </div>
                                 </>
                               )}
@@ -486,6 +497,22 @@ const CodeOptimizer = () => {
 
                     {task === 'bug_detection' && (
                       <div className="space-y-6 mb-6">
+                        {(() => {
+                          const summary = bugReport?.summary || {};
+                          const nestedTotal = summary?.total && typeof summary.total === 'object' ? summary.total : null;
+                          const getCount = (key) => {
+                            if (typeof summary[key] === 'number') return summary[key];
+                            if (nestedTotal && typeof nestedTotal[key] === 'number') return nestedTotal[key];
+                            return 0;
+                          };
+                          const totalCount = typeof summary.total === 'number'
+                            ? summary.total
+                            : (nestedTotal && typeof nestedTotal.total === 'number'
+                                ? nestedTotal.total
+                                : getCount('Critical') + getCount('High') + getCount('Medium') + getCount('Low'));
+
+                          return (
+                            <>
                         {/* Professional Bug Report Header */}
                         <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(249, 115, 22, 0.08) 100%)', border: `1px solid var(--card-border)` }}>
                           <div className="p-6">
@@ -496,11 +523,11 @@ const CodeOptimizer = () => {
                               </div>
                               <div className="text-right">
                                 <div className="text-4xl font-bold" style={{ 
-                                  color: (bugReport?.summary?.total ?? 0) === 0 ? '#10b981' : 
-                                         (bugReport?.summary?.Critical ?? 0) > 0 ? '#ef4444' : 
-                                         (bugReport?.summary?.High ?? 0) > 0 ? '#f97316' : '#f59e0b'
+                                  color: totalCount === 0 ? '#10b981' : 
+                                         getCount('Critical') > 0 ? '#ef4444' : 
+                                         getCount('High') > 0 ? '#f97316' : '#f59e0b'
                                 }}>
-                                  {bugReport?.summary?.total ?? 0}
+                                  {totalCount}
                                 </div>
                                 <div className="text-xs text-muted mt-1">Issues Found</div>
                               </div>
@@ -524,7 +551,7 @@ const CodeOptimizer = () => {
                                   >
                                     <span>{icon}</span>
                                     <span className="text-sm font-medium" style={{ color }}>{key}</span>
-                                    <span className="text-lg font-bold" style={{ color }}>{bugReport.summary[key] ?? 0}</span>
+                                    <span className="text-lg font-bold" style={{ color }}>{getCount(key)}</span>
                                   </motion.div>
                                 ))}
                               </div>
@@ -668,7 +695,7 @@ const CodeOptimizer = () => {
                             )}
 
                             {/* No Issues Found */}
-                            {(bugReport?.summary?.total ?? 0) === 0 && (
+                            {totalCount === 0 && (
                               <div className="rounded-xl p-8 text-center" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(20, 184, 166, 0.08) 100%)', border: `1px solid rgba(16, 185, 129, 0.3)` }}>
                                 <div className="text-5xl mb-4">🎉</div>
                                 <h3 className="text-xl font-bold text-emerald-400 mb-2">No Issues Found!</h3>
@@ -677,6 +704,9 @@ const CodeOptimizer = () => {
                             )}
                           </>
                         )}
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
 
@@ -945,7 +975,7 @@ const CodeOptimizer = () => {
                       <div className="h-56 p-4 overflow-auto">
                         {outExplanation ? (
                           <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--fg-color)' }}>
-                            {professionalMode ? sanitizeProfessional(outExplanation) : outExplanation}
+                            {professionalMode ? sanitizeProfessional(outExplanation) : cleanExplanationText(outExplanation)}
                           </div>
                         ) : (
                           <div className="h-full flex items-center justify-center text-muted text-sm">No explanation provided</div>

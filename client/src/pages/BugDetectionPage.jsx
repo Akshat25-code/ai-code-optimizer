@@ -6,6 +6,19 @@ import useCodeOptimizer from '../hooks/useCodeOptimizer';
 const BugDetectionPage = () => {
   const optimizer = useCodeOptimizer('bug_detection', true);
 
+  const summary = optimizer.bugReport?.summary || {};
+  const nestedTotal = summary?.total && typeof summary.total === 'object' ? summary.total : null;
+  const getCount = (key) => {
+    if (typeof summary[key] === 'number') return summary[key];
+    if (nestedTotal && typeof nestedTotal[key] === 'number') return nestedTotal[key];
+    return 0;
+  };
+  const totalCount = typeof summary.total === 'number'
+    ? summary.total
+    : (nestedTotal && typeof nestedTotal.total === 'number'
+        ? nestedTotal.total
+        : getCount('Critical') + getCount('High') + getCount('Medium') + getCount('Low'));
+
   const getSeverityColor = (severity) => {
     const s = (severity || '').toLowerCase();
     if (s === 'critical') return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)' };
@@ -58,13 +71,13 @@ const BugDetectionPage = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-5xl font-black font-mono tracking-tighter" style={{ 
-                    color: (optimizer.bugReport?.summary?.total ?? 0) === 0 ? '#10b981' : 
-                           (optimizer.bugReport?.summary?.Critical ?? 0) > 0 ? '#ef4444' : 
-                           (optimizer.bugReport?.summary?.High ?? 0) > 0 ? '#f97316' : '#f59e0b',
-                    textShadow: (optimizer.bugReport?.summary?.total ?? 0) === 0 ? '0 0 20px rgba(16,185,129,0.3)' : 
-                               (optimizer.bugReport?.summary?.Critical ?? 0) > 0 ? '0 0 20px rgba(239,68,68,0.3)' : 'none'
+                    color: totalCount === 0 ? '#10b981' : 
+                           getCount('Critical') > 0 ? '#ef4444' : 
+                           getCount('High') > 0 ? '#f97316' : '#f59e0b',
+                    textShadow: totalCount === 0 ? '0 0 20px rgba(16,185,129,0.3)' : 
+                               getCount('Critical') > 0 ? '0 0 20px rgba(239,68,68,0.3)' : 'none'
                   }}>
-                    {optimizer.bugReport?.summary?.total ?? 0}
+                    {totalCount}
                   </div>
                   <div className="text-xs uppercase tracking-widest text-muted mt-1 font-semibold">Issues Found</div>
                 </div>
@@ -83,7 +96,7 @@ const BugDetectionPage = () => {
                     >
                       <span className="text-xs opacity-80">{icon}</span>
                       <span className="text-xs font-semibold uppercase tracking-wider" style={{ color }}>{key}</span>
-                      <span className="text-base font-bold font-mono" style={{ color }}>{optimizer.bugReport.summary[key] ?? 0}</span>
+                      <span className="text-base font-bold font-mono" style={{ color }}>{getCount(key)}</span>
                     </motion.div>
                   ))}
                 </div>
@@ -92,7 +105,7 @@ const BugDetectionPage = () => {
           </motion.div>
 
           {/* No Issues Found */}
-          {(optimizer.bugReport?.summary?.total ?? 0) === 0 && (
+          {totalCount === 0 && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
               className="glass-frame p-10 text-center relative overflow-hidden group" 

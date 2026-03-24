@@ -12,11 +12,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, validator
 from typing import Any
 from ai_service import ask_ai, ProviderConfigError
-from bug_scanner import scan_python, to_json as bug_report_to_json
+from bug_scanner import scan_python, scan_javascript, to_json as bug_report_to_json
 from code_runner import run_python, run_code, to_dict as run_result_to_dict
 from simple_enhanced_ai_service import evaluate_code_optimization
 from language_validator import (
     validate_programming_language, 
+    normalize_programming_language,
     LanguageValidationError, 
     programming_language_validator,
     get_supported_languages,
@@ -209,8 +210,7 @@ class AnalyzeReq(BaseModel):
     def validate_language(cls, v):
         """Validate that language is a supported programming language"""
         try:
-            validate_programming_language(v)
-            return v
+            return normalize_programming_language(v)
         except LanguageValidationError as e:
             raise ValueError(str(e))
 
@@ -234,8 +234,7 @@ class RunCodeReq(BaseModel):
     @validator('language')
     def validate_language(cls, v):
         try:
-            validate_programming_language(v)
-            return v
+            return normalize_programming_language(v)
         except LanguageValidationError as e:
             raise ValueError(str(e))
 
@@ -251,8 +250,7 @@ class RunCompareReq(BaseModel):
     @validator('language')
     def validate_language(cls, v):
         try:
-            validate_programming_language(v)
-            return v
+            return normalize_programming_language(v)
         except LanguageValidationError as e:
             raise ValueError(str(e))
 
@@ -359,9 +357,14 @@ async def analyze_code(req: AnalyzeReq):
     try:
         # Static bug detection (fast, deterministic) for Python
         norm_task = (req.task or "").strip().lower()
-        if norm_task in {"bug_detection", "bug-detection", "bug", "bugs"} and req.language == "Python":
-            report = scan_python(req.code)
-            return _format_analyze_response("static", bug_report_to_json(report), 0, 0)
+        if norm_task in {"bug_detection", "bug-detection", "bug", "bugs"}:
+            lang = (req.language or "").strip().lower()
+            if lang == "python":
+                report = scan_python(req.code)
+                return _format_analyze_response("static", bug_report_to_json(report), 0, 0)
+            if lang in {"javascript", "typescript"}:
+                report = scan_javascript(req.code)
+                return _format_analyze_response("static", bug_report_to_json(report), 0, 0)
 
         # Language validation is already handled by Pydantic validator
         # Guard against long external timeouts

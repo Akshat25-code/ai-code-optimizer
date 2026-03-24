@@ -189,6 +189,28 @@ SUPPORTED_LANGUAGES: Dict[str, LanguageInfo] = {
     )
 }
 
+# Common aliases from editors, file extensions, and API clients.
+LANGUAGE_ALIASES: Dict[str, str] = {
+    "py": "Python",
+    "python3": "Python",
+    "js": "JavaScript",
+    "node": "JavaScript",
+    "nodejs": "JavaScript",
+    "ts": "TypeScript",
+    "tsx": "TypeScript",
+    "jsx": "JavaScript",
+    "cpp": "C++",
+    "cxx": "C++",
+    "cc": "C++",
+    "c++": "C++",
+    "hpp": "C++",
+    "cs": "C#",
+    "csharp": "C#",
+    "golang": "Go",
+    "rb": "Ruby",
+    "rscript": "R",
+}
+
 # Common non-programming languages that users might mistakenly enter
 NON_PROGRAMMING_LANGUAGES: Set[str] = {
     # Natural Languages
@@ -252,6 +274,11 @@ def validate_programming_language(language: str) -> LanguageInfo:
     # Normalize input (handle case insensitive matching)
     language = language.strip()
     normalized_language = language.lower()
+
+    # Resolve common aliases first (e.g., cpp -> C++).
+    canonical = LANGUAGE_ALIASES.get(normalized_language)
+    if canonical:
+        return SUPPORTED_LANGUAGES[canonical]
     
     # Check for exact matches first (case insensitive)
     for supported_lang, info in SUPPORTED_LANGUAGES.items():
@@ -265,6 +292,12 @@ def validate_programming_language(language: str) -> LanguageInfo:
     
     # If not found in either list, it's unsupported
     raise LanguageValidationError(language)
+
+
+def normalize_programming_language(language: str) -> str:
+    """Normalize user input to canonical language key used across the backend."""
+    info = validate_programming_language(language)
+    return info.name
 
 def get_supported_languages() -> Dict[str, LanguageInfo]:
     """Get all supported programming languages"""

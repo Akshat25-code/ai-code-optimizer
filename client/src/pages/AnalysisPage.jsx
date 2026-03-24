@@ -6,6 +6,34 @@ import useCodeOptimizer from '../hooks/useCodeOptimizer';
 const AnalysisPage = () => {
   const optimizer = useCodeOptimizer('analysis', true);
 
+  const toDisplayText = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    if (Array.isArray(value)) {
+      return value.map((v) => toDisplayText(v)).filter(Boolean).join(', ');
+    }
+    if (typeof value === 'object') {
+      const severityKeys = ['Critical', 'High', 'Medium', 'Low', 'total'];
+      const hasSeveritySummary = severityKeys.some((k) => Object.prototype.hasOwnProperty.call(value, k));
+      if (hasSeveritySummary) {
+        return severityKeys
+          .filter((k) => value[k] !== null && value[k] !== undefined)
+          .map((k) => `${k}: ${value[k]}`)
+          .join(' | ');
+      }
+
+      const entries = Object.entries(value)
+        .filter(([, v]) => v !== null && v !== undefined && v !== '')
+        .slice(0, 4)
+        .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+
+      return entries.length ? entries.join(' | ') : JSON.stringify(value);
+    }
+    return '';
+  };
+
   const getScoreColor = (score) => {
     if (score >= 8) return '#10b981'; // Emerald
     if (score >= 6) return '#f59e0b'; // Amber
@@ -98,7 +126,7 @@ const AnalysisPage = () => {
             {categories.map(({ key, label, icon, desc }, i) => {
               const item = optimizer.analysisReport?.detailed_scores?.[key];
               if (!item) return null;
-              const score = item.score ?? 0;
+              const score = Number(item.score ?? 0) || 0;
               return (
                 <motion.div
                   key={key}
@@ -129,7 +157,7 @@ const AnalysisPage = () => {
                   {item.status && (
                     <div className="px-4 py-2 border-t border-[var(--card-border)] bg-[#050508]/50">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-center" style={{ color: getScoreColor(score) }}>
-                        {item.status}
+                        {toDisplayText(item.status)}
                       </div>
                     </div>
                   )}
@@ -161,7 +189,7 @@ const AnalysisPage = () => {
                         <div className="w-5 h-5 rounded flex-shrink-0 bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mt-0.5">
                           <span className="text-emerald-400 text-[10px] font-bold">✓</span>
                         </div>
-                        <span className="text-sm text-gray-300 leading-relaxed font-medium">{s}</span>
+                        <span className="text-sm text-gray-300 leading-relaxed font-medium">{toDisplayText(s)}</span>
                       </li>
                     ))}
                   </ul>
@@ -186,7 +214,7 @@ const AnalysisPage = () => {
                     {optimizer.analysisReport.top_issues.slice(0, 4).map((issue, i) => (
                       <li key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[var(--surface-1)] border border-[var(--card-border)]">
                         <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5 flex-shrink-0 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-                        <span className="text-sm text-[var(--fg-color)] leading-relaxed font-medium">{issue}</span>
+                        <span className="text-sm text-[var(--fg-color)] leading-relaxed font-medium">{toDisplayText(issue)}</span>
                       </li>
                     ))}
                   </ul>
@@ -216,7 +244,7 @@ const AnalysisPage = () => {
                         <div className="flex-shrink-0 w-7 h-7 rounded bg-[var(--surface-2)] border border-[var(--accent-cyan)]/30 text-[var(--accent-cyan)] flex items-center justify-center text-xs font-black shadow-[0_0_10px_rgba(0,245,212,0.1)]">
                           {i + 1}
                         </div>
-                        <span className="text-sm text-gray-300 font-medium leading-relaxed relative z-10">{action}</span>
+                        <span className="text-sm text-gray-300 font-medium leading-relaxed relative z-10">{toDisplayText(action)}</span>
                       </div>
                     ))}
                   </div>
@@ -266,7 +294,7 @@ const AnalysisPage = () => {
                            <ul className="space-y-2">
                              {item.issues.map((issue, i) => (
                                <li key={i} className="text-sm text-gray-300 leading-relaxed pl-3 border-l-2 border-red-500/30">
-                                 {issue}
+                                 {toDisplayText(issue)}
                                </li>
                              ))}
                            </ul>
@@ -281,7 +309,7 @@ const AnalysisPage = () => {
                            <ul className="space-y-2">
                              {item.recommendations.map((rec, i) => (
                                <li key={i} className="text-sm text-gray-300 leading-relaxed pl-3 border-l-2 border-teal-500/30">
-                                 {rec}
+                                 {toDisplayText(rec)}
                                </li>
                              ))}
                            </ul>

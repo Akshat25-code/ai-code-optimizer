@@ -17,6 +17,17 @@ const OptimizationPage = () => {
   const optimizer = useCodeOptimizer('optimization', true); // Enable file manager
   const [copied, setCopied] = React.useState(false);
 
+  const cleanExplanationText = (text) => {
+    if (!text) return '';
+    return String(text)
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/_(.*?)_/g, '$1')
+      .replace(/[ \t]+$/gm, '')
+      .trim();
+  };
+
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -293,7 +304,7 @@ const OptimizationPage = () => {
                 </span>
               </div>
               <div className="p-4 text-sm leading-relaxed max-h-48 overflow-y-auto custom-scrollbar" style={{ color: 'var(--fg-color)' }}>
-                {optimizer.outExplanation}
+                {cleanExplanationText(optimizer.outExplanation)}
               </div>
             </motion.div>
           )}
