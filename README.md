@@ -17,7 +17,7 @@ Production-ready full‑stack app that analyzes and optimizes code using multipl
 - Environment variables
 - Run the app (dev)
 - Tools
--  tests
+- Tests
 - Troubleshooting
 - License
 
