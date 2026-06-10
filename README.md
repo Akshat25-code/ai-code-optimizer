@@ -16,7 +16,8 @@ Production-ready full‑stack app that analyzes and optimizes code using multipl
 - Quick start (Windows/PowerShell)
 - Environment variables
 - Run the app (dev)
-- Tools and tests
+- Tools
+-  tests
 - Troubleshooting
 - License
 
