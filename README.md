@@ -144,7 +144,7 @@ python server\tools\examples\quick_validation_test.py
  - 422 Invalid language: the backend validates programming languages. Use the dropdown (populated from `/supported-languages`) or pick Auto.
 
 ## License
-MIT — see LICENSE.
+MIT — See LICENSE.
 
 ---
 
