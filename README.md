@@ -1,4 +1,4 @@
-# AI Code Optimizer (Production Ready, 10/10 Score)
+# AI Code Optimizer
 
 Production-ready full‑stack app that analyzes and optimizes code using multiple AI providers. Frontend is React + Vite + Tailwind (split with React.lazy); backend is FastAPI + MongoDB (Atlas-ready) with secure JWT auth, OTP verification, PDF/data export, and strong Docker/CI support.
 
