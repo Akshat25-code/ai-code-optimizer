@@ -33,7 +33,7 @@ def _safe_subprocess_run(
 
 def should_use_docker() -> bool:
     """Check if Docker sandbox is enabled and available."""
-    return os.getenv("USE_DOCKER_SANDBOX", "1") == "1" and bool(shutil.which("docker"))
+    return os.getenv("USE_DOCKER_SANDBOX", "0") == "1" and bool(shutil.which("docker"))
 
 
 def run_in_docker(
