@@ -54,6 +54,12 @@ client/.env.*
 coverage.xml
 *.sqlite3
 
+# Local assistant / scratch planning files
+.claude/
+CLAUDE.md
+plan.md
+ROADMAP.md
+
 # Generated academic/testing artifacts
 /cfg_analyze_code.png
 /cfg_analyze_code.svg

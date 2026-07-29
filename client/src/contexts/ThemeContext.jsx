@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+﻿import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const ThemeContext = createContext({
 	theme: 'system', // 'system' | 'dark' | 'light'
@@ -26,7 +26,7 @@ export const ThemeProvider = ({ children, initial }) => {
 
 	useEffect(() => {
 		applyTheme(theme);
-		try { localStorage.setItem('theme', theme); } catch {}
+		try { localStorage.setItem('theme', theme); } catch (_e) { /* private/incognito mode */ }
 	}, [theme]);
 
 	useEffect(() => {
@@ -42,3 +42,4 @@ export const ThemeProvider = ({ children, initial }) => {
 };
 
 export const useTheme = () => useContext(ThemeContext);
+

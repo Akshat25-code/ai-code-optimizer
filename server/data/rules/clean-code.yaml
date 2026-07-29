@@ -1,0 +1,28 @@
+﻿name: Clean Code
+description: Enforces maintainability, readability, and limits complexity.
+rules:
+  - name: Max Function Length
+    description: Flags functions that are too long.
+    severity: Medium
+    category: Maintainability
+    pattern:
+      type: metric
+      value:
+        metric: max_function_length
+        threshold: 30
+    languages:
+      - "*"
+    message: "Function is too long ({actual} lines). Consider breaking it down into smaller, focused functions. (Threshold: {threshold} lines)"
+
+  - name: Max Cyclomatic Complexity
+    description: Flags functions with too many conditional branches (if, loops).
+    severity: High
+    category: Complexity
+    pattern:
+      type: metric
+      value:
+        metric: max_cyclomatic_complexity
+        threshold: 10
+    languages:
+      - "*"
+    message: "Function is too complex (score: {actual}). High complexity makes testing hard and increases bugs. (Threshold: {threshold})"

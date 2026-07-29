@@ -1,5 +1,5 @@
-import { API_BASE_URL } from '../config/api';
-import authService from './authService';
+﻿import { API_BASE_URL } from '@/config';
+import authService from '@/services/authService';
 
 const base = `${API_BASE_URL}/profile`;
 
@@ -52,12 +52,11 @@ const profileService = {
   },
 
   async uploadAvatar(file) {
-    const token = authService.getAccessToken();
     const form = new FormData();
     form.append('file', file);
     const res = await fetch(`${base}/upload-avatar`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
+      credentials: 'include',
       body: form,
     });
     const data = await res.json();
@@ -65,9 +64,8 @@ const profileService = {
   },
 
   async exportProfile() {
-    const token = authService.getAccessToken();
     const res = await fetch(`${base}/export`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+      credentials: 'include',
     });
     return res; // caller handles download
   },
@@ -82,7 +80,7 @@ const profileService = {
   async updateProfileSection(section, payload) {
     const endpoints = {
       'profile': `${base}/me`,
-      'location': `${base}/location`, 
+      'location': `${base}/location`,
       'professional': `${base}/professional`,
       'social-links': `${base}/social-links`
     };
@@ -122,23 +120,15 @@ const profileService = {
   },
 
   async exportProfilePDF() {
-    const token = authService.getAccessToken();
-    let url = `${base}/export-pdf-demo`; // Default to demo endpoint
-    let headers = {};
-    
-    if (token) {
-      url = `${base}/export-pdf`;
-      headers = { 'Authorization': `Bearer ${token}` };
-    }
-    
+    const isAuth = authService.isAuthenticated();
+    const url = isAuth ? `${base}/export-pdf` : `${base}/export-pdf-demo`;
     const res = await fetch(url, {
       method: 'GET',
-      headers: headers,
+      credentials: 'include',
     });
-    
-    // Don't try to parse as JSON - return raw response for blob handling
     return res;
   }
 };
 
 export default profileService;
+

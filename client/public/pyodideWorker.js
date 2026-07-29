@@ -1,53 +1,86 @@
-// pyodideWorker.js
-importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
+﻿// Pyodide In-Browser Execution Web Worker
+// Loads Pyodide dynamically with fallback handling
 
-let pyodideReadyPromise = null;
+let pyodide = null;
+let pyodideLoadingPromise = null;
 
-async function loadPyodideAndPackages() {
-  if (!pyodideReadyPromise) {
-    pyodideReadyPromise = loadPyodide();
-  }
-  return await pyodideReadyPromise;
+async function loadPyodideEngine() {
+  if (pyodide) return pyodide;
+  if (pyodideLoadingPromise) return pyodideLoadingPromise;
+
+  pyodideLoadingPromise = (async () => {
+    try {
+      importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
+      pyodide = await self.loadPyodide({
+        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/',
+      });
+      return pyodide;
+    } catch (err) {
+      console.warn('[Pyodide Worker] Could not load Pyodide CDN (offline mode):', err.message);
+      return null;
+    }
+  })();
+
+  return pyodideLoadingPromise;
 }
 
-self.onmessage = async (event) => {
-  const { id, pythonCode } = event.data;
-  
-  if (!pythonCode) {
-    self.postMessage({ id, ok: false, error: 'No code provided.' });
-    return;
-  }
+self.onmessage = async (e) => {
+  const { id, pythonCode } = e.data;
+  if (!id || !pythonCode) return;
 
+  const startTime = performance.now();
   try {
-    const pyodide = await loadPyodideAndPackages();
-    
-    let stdoutText = '';
-    let stderrText = '';
-    
-    pyodide.setStdout({ batched: (msg) => { stdoutText += msg + '\\n'; } });
-    pyodide.setStderr({ batched: (msg) => { stderrText += msg + '\\n'; } });
+    const py = await loadPyodideEngine();
+    if (!py) {
+      // Fallback response if Pyodide CDN is unreachable
+      self.postMessage({
+        id,
+        ok: false,
+        error: 'Pyodide CDN is unavailable offline. Use server-side execution instead.',
+        success: false,
+        stdout: '',
+        stderr: 'Pyodide CDN is unavailable offline. Use server-side execution instead.',
+        exec_time_ms: Math.round(performance.now() - startTime),
+        executionTimeMs: Math.round(performance.now() - startTime),
+      });
+      return;
+    }
 
-    const start = performance.now();
-    await pyodide.runPythonAsync(pythonCode);
-    const end = performance.now();
-    
+    // Capture stdout
+    let stdoutBuffer = [];
+    py.setStdout({
+      batched: (text) => stdoutBuffer.push(text),
+    });
+
+    let stderrBuffer = [];
+    py.setStderr({
+      batched: (text) => stderrBuffer.push(text),
+    });
+
+    const result = await py.runPythonAsync(pythonCode);
+    const endTime = performance.now();
+
     self.postMessage({
       id,
       ok: true,
-      stdout: stdoutText + (stderrText ? '\\n' + stderrText : ''),
-      error: null,
-      exec_time_ms: parseInt(end - start),
-      memory_mb: 0
+      success: true,
+      result: result !== undefined ? String(result) : null,
+      stdout: stdoutBuffer.join('\n'),
+      stderr: stderrBuffer.join('\n'),
+      exec_time_ms: Math.round(endTime - startTime),
+      executionTimeMs: Math.round(endTime - startTime),
     });
-  } catch (err) {
+  } catch (error) {
+    const endTime = performance.now();
     self.postMessage({
       id,
       ok: false,
+      error: error.message || 'Execution error',
+      success: false,
       stdout: '',
-      error: err.toString(),
-      exec_time_ms: 0,
-      memory_mb: 0
+      stderr: error.message || 'Execution error',
+      exec_time_ms: Math.round(endTime - startTime),
+      executionTimeMs: Math.round(endTime - startTime),
     });
   }
 };
-

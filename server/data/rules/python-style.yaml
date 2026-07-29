@@ -1,0 +1,37 @@
+﻿name: Python Style Guide
+description: Style rules enforcing Python best practices and PEP8 guidelines.
+rules:
+  - name: Global Variables
+    description: Detects the usage of the global keyword.
+    severity: Medium
+    category: Style
+    pattern:
+      type: ast_node
+      value: Global
+    languages:
+      - python
+    message: "Avoid using global variables as they make state management difficult and code harder to test."
+
+  - name: Wildcard Imports
+    description: Detects from module import *
+    severity: Medium
+    category: Style
+    pattern:
+      type: ast_node
+      value: ImportStar
+    languages:
+      - python
+    message: "Avoid wildcard imports (import *). They pollute the namespace and make it unclear where functions come from."
+    autofix: "Import only the specific functions or classes you need."
+
+  - name: Bare Except
+    description: Detects bare except clauses which catch SystemExit and KeyboardInterrupt.
+    severity: High
+    category: Style
+    pattern:
+      type: regex
+      value: "^\\s*except\\s*:"
+    languages:
+      - python
+    message: "Avoid bare except clauses. Catch specific exceptions (e.g., except Exception as e:) to avoid suppressing important system errors."
+    autofix: "Change to 'except Exception as e:'"

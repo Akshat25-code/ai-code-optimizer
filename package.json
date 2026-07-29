@@ -1,6 +1,11 @@
-{
+﻿{
   "dependencies": {
     "mongodb": "^6.18.0",
     "react-simple-typewriter": "^5.0.1"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "start:client": "cd client && npm run dev",
+    "start:server": "cd server && .\\venv\\Scripts\\activate && uvicorn main:app --reload --port 8001"
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 
 // Generate unique ID
 const generateId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -303,3 +303,4 @@ export const useFileManager = (initialLanguage = 'javascript') => {
 };
 
 export default useFileManager;
+

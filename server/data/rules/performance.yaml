@@ -1,0 +1,95 @@
+﻿name: Performance
+description: Performance antipatterns and optimization opportunities.
+rules:
+  - name: Nested Loop O(N^2)
+    description: Detects nested for loops which may indicate O(NÂ²) complexity.
+    severity: Medium
+    category: Performance
+    pattern:
+      type: regex
+      value: "for\\s+.*:\\s*\\n\\s+for\\s+"
+    languages:
+      - python
+    message: "Nested loops detected â€” potential O(NÂ²) complexity. Consider using hash maps or sorting."
+
+  - name: String Concatenation in Loop
+    description: Detects string concatenation (+=) inside loops which creates O(NÂ²) copies.
+    severity: Medium
+    category: Performance
+    pattern:
+      type: regex
+      value: "\\+=\\s*['\"]|\\+=\\s*str\\("
+    languages:
+      - python
+    message: "String concatenation in a loop creates O(NÂ²) string copies. Use ''.join() or io.StringIO."
+    autofix: "Collect strings in a list and join at the end."
+
+  - name: Global Variable Access
+    description: Detects frequent global variable access in hot paths.
+    severity: Low
+    category: Performance
+    pattern:
+      type: regex
+      value: "\\bglobal\\s+\\w+"
+    languages:
+      - python
+    message: "Global variable access is slower than local. Assign to a local variable if used in a loop."
+
+  - name: Unnecessary List Comprehension
+    description: Detects list() wrapping a generator where the list is only iterated once.
+    severity: Low
+    category: Performance
+    pattern:
+      type: regex
+      value: "list\\s*\\(\\s*\\w+\\s+for\\s+"
+    languages:
+      - python
+    message: "Wrapping a generator in list() allocates memory. If only iterated once, use the generator directly."
+
+  - name: Large Default Mutable Argument
+    description: Detects mutable default arguments (list/dict) in function definitions.
+    severity: High
+    category: Performance
+    pattern:
+      type: regex
+      value: "def\\s+\\w+\\s*\\([^)]*=\\s*\\[\\]|def\\s+\\w+\\s*\\([^)]*=\\s*\\{\\}"
+    languages:
+      - python
+    message: "Mutable default argument is shared across calls â€” causes bugs and memory leaks. Use None as default."
+    autofix: "Use None as default and create the mutable inside the function body."
+
+  - name: No Select Star
+    description: Detects SELECT * in SQL queries.
+    severity: Medium
+    category: Performance
+    pattern:
+      type: regex
+      value: "SELECT\\s+\\*\\s+FROM"
+    languages:
+      - "*"
+    message: "SELECT * fetches all columns, wasting bandwidth and preventing index-only scans. Specify needed columns."
+
+  - name: N+1 Query Pattern
+    description: Detects potential N+1 query patterns (query inside a loop).
+    severity: High
+    category: Performance
+    pattern:
+      type: regex
+      value: "for\\s+.*:\\s*\\n.*\\.(find|query|execute|select|get)\\("
+    languages:
+      - python
+    message: "Potential N+1 query: database call inside a loop. Batch the query or use a JOIN."
+    autofix: "Move the query outside the loop and batch the operation."
+
+  - name: JS Bundle Bloat
+    description: Detects imports of large libraries that could be tree-shaken.
+    severity: Low
+    category: Performance
+    pattern:
+      type: regex
+      value: "import\\s+(?:_|lodash|moment)\\s+from"
+    languages:
+      - javascript
+      - typescript
+    message: "Importing the entire library increases bundle size. Use specific imports (e.g., lodash/get)."
+    autofix: "Use named imports from specific submodules."

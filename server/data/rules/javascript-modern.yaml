@@ -1,0 +1,86 @@
+﻿name: JavaScript Modern
+description: Best practices and modern idioms for JavaScript and TypeScript.
+rules:
+  - name: No var
+    description: Detects usage of var instead of let/const.
+    severity: Medium
+    category: Style
+    pattern:
+      type: regex
+      value: "\\bvar\\s+\\w+"
+    languages:
+      - javascript
+      - typescript
+    message: "Use 'let' or 'const' instead of 'var'. 'var' has function-level scope which causes bugs."
+    autofix: "Replace 'var' with 'let' (or 'const' if the variable is never reassigned)."
+
+  - name: No Console Log
+    description: Detects leftover console.log statements.
+    severity: Low
+    category: Clean Code
+    pattern:
+      type: regex
+      value: "\\bconsole\\.(log|debug|info)\\s*\\("
+    languages:
+      - javascript
+      - typescript
+    message: "Remove console.log() from production code. Use a proper logging library."
+
+  - name: No Alert
+    description: Detects browser alert() calls.
+    severity: Medium
+    category: Security
+    pattern:
+      type: regex
+      value: "\\balert\\s*\\("
+    languages:
+      - javascript
+    message: "Avoid alert() â€” it blocks the UI thread and is a UX antipattern."
+
+  - name: No Double Equals
+    description: Detects loose equality (==) instead of strict equality (===).
+    severity: Medium
+    category: Style
+    pattern:
+      type: regex
+      value: "[^!=]\\s*==[^=]"
+    languages:
+      - javascript
+    message: "Use strict equality (===) instead of loose equality (==) to avoid type coercion bugs."
+    autofix: "Replace '==' with '==='."
+
+  - name: No Unused Imports
+    description: Detects imports that are never used in the file.
+    severity: Low
+    category: Clean Code
+    pattern:
+      type: regex
+      value: "^import\\s+\\{?\\s*\\w+\\s*\\}?\\s+from\\s+"
+    languages:
+      - javascript
+      - typescript
+    message: "Check for unused imports. Tree-shaking helps at build time, but dead imports hurt readability."
+
+  - name: Prefer Arrow Functions
+    description: Detect function expressions that could be arrow functions.
+    severity: Low
+    category: Style
+    pattern:
+      type: regex
+      value: "\\bfunction\\s*\\("
+    languages:
+      - javascript
+      - typescript
+    message: "Consider using arrow functions for anonymous function expressions."
+
+  - name: No Synchronous XHR
+    description: Detects deprecated synchronous XMLHttpRequest calls.
+    severity: High
+    category: Performance
+    pattern:
+      type: regex
+      value: "\\.open\\s*\\([^)]*false\\s*\\)"
+    languages:
+      - javascript
+    message: "Synchronous XHR is deprecated and blocks the main thread. Use fetch() or async XHR."
+    autofix: "Use the Fetch API with async/await."

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import authService from '../services/authService';
+﻿import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import authService from '@/services/authService';
 
 const AuthContext = createContext({
   user: null,
@@ -14,18 +14,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load from storage or /auth/me
-    const existing = authService.getUserInfo();
-    if (existing) {
-      setUser(existing);
-      setLoading(false);
-    } else if (authService.getAccessToken()) {
-      authService.getUserProfile().then((res) => {
-        if (res.success) setUser(res.data);
-      }).finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+    // Load cached user info, then verify with /auth/me (cookie-based)
+    const cached = authService.getUserInfo();
+    if (cached) {
+      setUser(cached);
     }
+    // Always verify with server â€” cookie may be valid even without cached info
+    authService.getUserProfile().then((res) => {
+      if (res.success) setUser(res.data);
+      else if (cached) setUser(null); // cookie expired, clear stale cache
+    }).finally(() => setLoading(false));
   }, []);
 
   const value = useMemo(() => ({
@@ -55,3 +53,4 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+

@@ -1,152 +1,165 @@
-# AI Code Optimizer
+# AI Code Optimizer Pro Max
 
-Production-ready full‑stack app that analyzes and optimizes code using multiple AI providers. Frontend is React + Vite + Tailwind (split with React.lazy); backend is FastAPI + MongoDB (Atlas-ready) with secure JWT auth, OTP verification, PDF/data export, and strong Docker/CI support.
+AI Code Optimizer Pro Max is a full-stack code intelligence platform that combines AI assistance with deterministic local analysis, execution verification, repository scanning, custom rules, and proof-based reports.
 
-Production-ready full‑stack app that analyzes and optimizes code using multiple AI providers. Frontend is React + Vite + Tailwind; backend is FastAPI + MongoDB (Atlas-ready) with JWT auth, optional Google OAuth, and PDF/data export.
+It is designed to prove more than “an AI API returned some text”: the backend performs real code analysis, security checks, complexity scoring, sandboxed execution, and report generation around the AI layer.
 
-• Phone-first auth flow: name + phone → OTP → password (no OTP shown on screen)
-• Onboarding removed: users land directly in the app post-login
-• Robust MongoDB setup: SRV/TLS support, sparse unique index on users.phone, TTL for OTPs
-• Clean repo: tools under server/tools, tests under server/tests
+## Highlights
 
-## Table of contents
-- Overview
-- Tech stack
-- Project structure
-- Quick start (Windows/PowerShell)
-- Environment variables
-- Run the app (dev)
-- Tools
-- Tests
-- Troubleshooting
-- License
+- **Local code intelligence**: AST-based static analysis, quality scoring, bug detection, secret scanning, and complexity metrics.
+- **Verified optimization workflow**: Compare original and optimized code with runtime output checks, performance metrics, and proof panels.
+- **Repository analysis**: Scan multi-file projects, build file trees, detect dependencies, identify hotspots, and estimate project health.
+- **Custom rules engine**: Evaluate code against YAML rule packs for security, style, performance, and clean-code policies.
+- **AI provider layer**: Supports OpenAI, Anthropic, Gemini, and optional experimental providers with caching and fake-AI mode for local demos.
+- **Developer workspace UI**: React/Vite interface with editor, reports, GitHub integration, team tools, command palette, and PWA assets.
 
-## Overview
-AI Code Optimizer lets you paste code, pick a language/task, and get AI‑assisted analysis: optimization, bug detection, and explanations. It stores sessions, supports export (JSON/PDF), and provides profile and analytics pages.
+## Tech Stack
 
-Full details live in PROJECT_DOCUMENTATION.md; this README focuses on setup and daily usage.
+- **Frontend**: React, Vite, Tailwind CSS, Monaco Editor, Framer Motion
+- **Backend**: FastAPI, Python, MongoDB, Motor, Pytest
+- **Analysis**: Python AST, custom rules, secret scanning, complexity heuristics
+- **Execution**: Docker-aware sandbox runner with local fallback for development
+- **Reports**: JSON, HTML, and PDF-oriented reporting services
 
-## Tech stack
-- Frontend: React 18, Vite, TailwindCSS, React Router
-- Backend: FastAPI, Motor (async MongoDB), Pydantic, Uvicorn
-- Database: MongoDB Atlas (SRV), indexes initialized on startup
-- Auth: JWT (HS256), optional Google OAuth
-- PDF: ReportLab export service
+## Project Structure
 
-## Project structure
-```
-ai-code-optimizer/
-├─ client/                 # React app (Vite)
-├─ server/                 # FastAPI backend
-│  ├─ tools/               # maintenance scripts
-│  │  ├─ examples/         # quick demo scripts (auth, validation, pdf)
-│  ├─ tests/               # simple test scripts
-│  └─ uploads/             # user uploads (kept empty via .gitkeep)
-├─ LICENSE
-├─ PROJECT_DOCUMENTATION.md
-└─ README.md
+```text
+client/
+  src/
+    app/                  # React app shell and routes
+    components/           # Layout, editor, report, and shared UI components
+    features/             # Optimization, workspace, analysis, review, rules, team
+    services/             # API/auth/profile clients
+    styles/               # Global styles
+
+server/
+  api/                    # FastAPI route modules
+  core/                   # Config, database, auth/security, rate limits
+  data/rules/             # Built-in YAML rules
+  models/                 # Pydantic and database models
+  services/               # AI, analysis, execution, reports, GitHub, profile logic
+  tests/                  # Backend test suite
+  utils/                  # Shared code helpers
 ```
 
-## Quick start (Windows / PowerShell)
+## Prerequisites
 
-Prereqs: Python 3.11+ (3.13 supported), Node 18+ (20 recommended), MongoDB Atlas connection string.
+- Node.js 18+
+- Python 3.10+
+- MongoDB local or Atlas connection
+- Optional: Docker for stronger execution isolation
 
-1) Backend (FastAPI)
+## Backend Setup
+
 ```powershell
-cd "C:\Users\ASUS\ai-code-optimizer\server"
-python -m venv env
-env\Scripts\Activate.ps1
-pip install --upgrade pip
+cd server
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# Create .env from example (if you maintain one) and set vars below
-# then run
-python main.py
 ```
 
-2) Frontend (React + Vite)
+Create `server/.env`:
+
+```env
+MONGODB_URL=mongodb://localhost:27017/ai_code_optimizer
+MONGODB_DB=ai_code_optimizer
+JWT_SECRET_KEY=replace-with-a-long-random-secret
+ALLOW_FAKE_AI=1
+ENABLE_CODE_EXECUTION=0
+```
+
+Run the API:
+
 ```powershell
-cd "C:\Users\ASUS\ai-code-optimizer\client"
+uvicorn main:app --reload --port 8001
+```
+
+## Frontend Setup
+
+```powershell
+cd client
 npm install
 npm run dev
 ```
 
-Default ports: server http://127.0.0.1:8001, client http://127.0.0.1:5173
+Open `http://localhost:5173`.
 
-## Environment variables (server/.env)
+## Important Environment Variables
 
-Minimum useful set:
-```
-# MongoDB
-MONGODB_URL=mongodb+srv://<user>:<pass>@<cluster-host>/<db>?retryWrites=true&w=majority
-MONGODB_DB=ai_code_optimizer
+| Variable | Purpose |
+|---|---|
+| `MONGODB_URL` | MongoDB connection string |
+| `MONGODB_DB` | MongoDB database name |
+| `JWT_SECRET_KEY` | JWT signing secret; use a long random value |
+| `ALLOW_FAKE_AI=1` | Enables deterministic local demo responses when provider keys are missing |
+| `ENABLE_CODE_EXECUTION=1` | Enables code execution endpoints; keep off unless needed |
+| `USE_DOCKER_SANDBOX=1` | Uses Docker for execution when Docker is available |
+| `REDIS_URL` | Optional Redis-backed rate limit store |
+| `OPENAI_API_KEY` | OpenAI provider key |
+| `ANTHROPIC_API_KEY` | Anthropic provider key |
+| `GEMINI_API_KEY` | Gemini provider key |
+| `SKIP_MONGO_INIT=1` | Test/local flag to skip database initialization |
 
-# Security
-JWT_SECRET=change_me
+## Useful Commands
 
-# CORS
-FRONTEND_URL=http://localhost:5173
+Backend tests:
 
-# Optional TLS / tuning
-# MONGODB_TLS=1
-# MONGODB_TLS_CA_FILE=C:\path\to\ca.pem  # usually not needed if certifi is present
-```
-
-Optional providers (set only what you use):
-```
-# AI providers
-OPENAI_API_KEY=...
-ANTHROPIC_API_KEY=...
-GOOGLE_AI_API_KEY=...
-
-# OAuth
-GOOGLE_OAUTH_CLIENT_ID=...
-GOOGLE_OAUTH_CLIENT_SECRET=...
-```
-
-Notes
-- The backend reads MONGODB_URL and MONGODB_DB (see server/mongodb_database.py).
-- For optional unique phone numbers, we use a sparse unique index so documents without phone are ignored.
-
-## Run the app (dev)
-- Start backend first (FastAPI/Uvicorn): it will initialize collections and indexes.
-- Start frontend (Vite): it proxies API calls to the backend.
-- Visit the client app and try an analysis. If long AI calls time out, increase server timeouts as needed.
-
-### Multi‑model comparison and timeouts
-- The optimizer UI includes a "Compare across models" toggle to run OpenAI, Claude, and Gemini side‑by‑side.
-- Backend exposes `POST /analyze-code/compare` for programmatic comparisons.
-- Dev fallback: set `ALLOW_FAKE_AI=1` to return stubbed outputs when provider keys are missing or timeouts occur.
-- Tuning:
-	- `AI_TIMEOUT` (seconds): per‑provider max time (default 20)
-	- `AI_RETRIES`: retry count on timeout (default 1)
-
-## Tools and tests
-- Maintenance scripts: see server/tools/ (e.g., fix_phone_index.py, fix_phone_nulls.py, clean_duplicate_users.py)
-- Quick examples: server/tools/examples/ (PDF test server/page, quick auth/validation/optimization scripts)
-- Tests: server/tests/ (simple scripts to validate endpoints)
-
-Examples (PowerShell):
 ```powershell
-# Fix sparse unique phone index
-python server\tools\fix_phone_index.py
-
-# Remove null/empty phone fields to avoid unique collisions
-python server\tools\fix_phone_nulls.py
-
-# Language validation quick check
-python server\tools\examples\quick_validation_test.py
+cd server
+$env:SKIP_MONGO_INIT="1"
+$env:ALLOW_FAKE_AI="1"
+python -m pytest tests -q
 ```
-7x
-## Troubleshooting
-- MongoDB SRV/DNS issues (Atlas): ensure your system DNS is reliable (Google 8.8.8.8 / Cloudflare 1.1.1.1). The backend enables TLS automatically for SRV URLs and uses certifi CA when available.
-- DuplicateKeyError on users.phone with null: ensure the sparse unique index; don’t insert phone=None. Use the provided fix_phone_nulls.py and fix_phone_index.py if needed.
-- 201 vs 200: registration endpoints may return 201 Created; tests should treat 200/201 as success.
- - 422 Invalid language: the backend validates programming languages. Use the dropdown (populated from `/supported-languages`) or pick Auto.
+
+Frontend lint:
+
+```powershell
+cd client
+npm run lint
+```
+
+Frontend production build:
+
+```powershell
+cd client
+npm run build
+```
+
+Run both app layers in development:
+
+```powershell
+npm run dev
+```
+
+## API Highlights
+
+| Endpoint | Description |
+|---|---|
+| `POST /inspect-code` | Deterministic local code quality analysis |
+| `POST /analysis/complexity` | AST-based complexity report |
+| `POST /analyze-code` | AI-assisted analysis/optimization endpoint |
+| `POST /intelligence/scan-secrets` | Secret detection |
+| `POST /intelligence/scan-repo` | Repository health scan |
+| `POST /intelligence/verify-optimization` | Runtime verification and proof report |
+| `POST /intelligence/generate-tests` | AI-assisted test generation |
+| `POST /review/pipeline` | Multi-stage review pipeline |
+| `POST /rules/evaluate` | Custom rule evaluation |
+| `POST /github/repos/{owner}/{repo}/apply-patch` | GitHub patch + PR workflow |
+
+## Production Notes
+
+- Keep `ALLOW_FAKE_AI=0` in production.
+- Keep `ENABLE_CODE_EXECUTION=0` unless the execution environment is isolated and intentionally exposed.
+- Prefer Docker sandboxing for untrusted code execution.
+- Use strong `JWT_SECRET_KEY` values and production-grade MongoDB/Redis credentials.
+- Review CORS origins before deployment.
+
+## Current Quality Gates
+
+- Backend test suite passes.
+- Frontend production build passes.
+- Frontend lint runs successfully, with warnings remaining for unused imports/props in some UI modules.
 
 ## License
-MIT — See LICENSE.
 
----
-
-For a deep dive into features, routes, and data models, read PROJECT_DOCUMENTATION.md. If you want CI or Docker examples added, open an issue or PR.
+MIT — see `LICENSE`.

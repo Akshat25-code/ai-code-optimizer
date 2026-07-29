@@ -1,0 +1,49 @@
+﻿name: Security (OWASP)
+description: Security rules based on OWASP top 10 vulnerabilities.
+rules:
+  - name: No Eval
+    description: Detects usage of the dangerous eval() function.
+    severity: Critical
+    category: Security
+    pattern:
+      type: ast_call
+      value: eval
+    languages:
+      - python
+    message: "Avoid using eval(). It can execute arbitrary code and leads to severe security vulnerabilities."
+    autofix: "Consider using ast.literal_eval() for safe evaluation of strings."
+
+  - name: No Exec
+    description: Detects usage of the dangerous exec() function.
+    severity: Critical
+    category: Security
+    pattern:
+      type: ast_call
+      value: exec
+    languages:
+      - python
+    message: "Avoid using exec(). It executes arbitrary code and is a massive security risk."
+
+  - name: Hardcoded Secrets
+    description: Detects common patterns for hardcoded API keys or secrets.
+    severity: High
+    category: Security
+    pattern:
+      type: regex
+      value: "(?i)(api_key|secret|password|token)\\s*=\\s*['\"][A-Za-z0-9_-]{16,}['\"]"
+    languages:
+      - "*"
+    message: "Hardcoded secret detected. Use environment variables (e.g., os.getenv) or a secrets manager."
+    autofix: "Load this value from an environment variable."
+
+  - name: Weak Hashing (MD5)
+    description: Detects the use of MD5 which is cryptographically broken.
+    severity: High
+    category: Security
+    pattern:
+      type: regex
+      value: "(?i)hashlib\\.md5"
+    languages:
+      - python
+    message: "MD5 is weak and vulnerable to collision attacks. Use SHA-256 or stronger."
+    autofix: "Use hashlib.sha256() instead."
