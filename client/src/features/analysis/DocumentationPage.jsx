@@ -27,7 +27,7 @@ const DocumentationPage = () => {
       ) : optimizer.docReport ? (
         <div className="space-y-4">
           {/* Documentation Header */}
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%)', border: `1px solid var(--card-border)` }}>
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(232, 184, 75, 0.15) 0%, rgba(62, 207, 142, 0.1) 100%)', border: `1px solid var(--card-border)` }}>
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -76,7 +76,7 @@ const DocumentationPage = () => {
                   <span>âš™ï¸</span>
                   <h3 className="font-semibold" style={{ color: 'var(--fg-color)' }}>Functions</h3>
                 </div>
-                <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(20, 184, 166, 0.2)', color: '#14b8a6' }}>
+                <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(232, 184, 75, 0.2)', color: '#E8B84B' }}>
                   {optimizer.docReport.functions.length} functions
                 </span>
               </div>
@@ -86,7 +86,7 @@ const DocumentationPage = () => {
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-semibold text-teal-400">{fn.name}</h4>
                       {fn.returns && (
-                        <span className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981' }}>
+                        <span className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(62, 207, 142, 0.2)', color: '#3ECF8E' }}>
                           â†’ {fn.returns}
                         </span>
                       )}
@@ -136,7 +136,7 @@ const DocumentationPage = () => {
                   <span>ðŸ›ï¸</span>
                   <h3 className="font-semibold" style={{ color: 'var(--fg-color)' }}>Classes</h3>
                 </div>
-                <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(20, 184, 166, 0.2)', color: '#14b8a6' }}>
+                <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(232, 184, 75, 0.2)', color: '#E8B84B' }}>
                   {optimizer.docReport.classes.length} classes
                 </span>
               </div>

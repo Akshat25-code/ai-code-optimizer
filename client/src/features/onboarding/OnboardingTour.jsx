@@ -60,7 +60,7 @@ export default function OnboardingTour() {
           arrowColor: '#1e293b',
           backgroundColor: '#1e293b',
           overlayColor: 'rgba(0, 0, 0, 0.7)',
-          primaryColor: '#14b8a6', // teal-500
+          primaryColor: '#E8B84B', // gold accent
           textColor: '#f8fafc',
           width: 400,
           zIndex: 1000,

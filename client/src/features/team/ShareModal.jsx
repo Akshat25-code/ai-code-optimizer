@@ -96,8 +96,8 @@ export default function ShareModal({ isOpen, onClose, sessionId, snapshotData })
             <button
               onClick={handleGenerate}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white shadow-lg transition-all hover:scale-[1.02]"
-              style={{ background: 'linear-gradient(135deg, #0f766e, #14b8a6)', opacity: loading ? 0.7 : 1 }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold shadow-lg transition-all hover:scale-[1.02]"
+              style={{ background: 'var(--accent-cyan)', color: 'var(--gold-ink)', opacity: loading ? 0.7 : 1 }}
             >
               {loading ? 'Generating...' : 'Generate Secure Link'}
             </button>

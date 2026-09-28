@@ -28,7 +28,7 @@ const RefactoringPage = () => {
       ) : optimizer.refactorReport ? (
         <div className="space-y-4">
           {/* Refactoring Header */}
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%)', border: `1px solid var(--card-border)` }}>
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(232, 184, 75, 0.15) 0%, rgba(62, 207, 142, 0.1) 100%)', border: `1px solid var(--card-border)` }}>
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -101,14 +101,14 @@ const RefactoringPage = () => {
                   <span>ðŸ”„</span>
                   <h3 className="font-semibold" style={{ color: 'var(--fg-color)' }}>Changes Made</h3>
                 </div>
-                <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(20, 184, 166, 0.2)', color: '#14b8a6' }}>
+                <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(232, 184, 75, 0.2)', color: '#E8B84B' }}>
                   {optimizer.refactorReport.changes.length} changes
                 </span>
               </div>
               <div className="p-4 space-y-3 max-h-60 overflow-auto">
                 {optimizer.refactorReport.changes.map((change, i) => (
                   <div key={i} className="p-3 rounded-lg flex items-start gap-3" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid var(--card-border)` }}>
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(20, 184, 166, 0.2)', color: '#14b8a6' }}>{i + 1}</span>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(232, 184, 75, 0.2)', color: '#E8B84B' }}>{i + 1}</span>
                     <div className="flex-1">
                       {typeof change === 'string' ? (
                         <p className="text-sm" style={{ color: 'var(--fg-color)' }}>{change}</p>
@@ -124,7 +124,7 @@ const RefactoringPage = () => {
                           {change.after && (
                             <div className="mt-2">
                               <div className="text-xs text-emerald-400 mb-1">After:</div>
-                              <pre className="text-xs font-mono p-2 rounded-lg overflow-auto" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>{change.after}</pre>
+                              <pre className="text-xs font-mono p-2 rounded-lg overflow-auto" style={{ background: 'rgba(62, 207, 142, 0.1)' }}>{change.after}</pre>
                             </div>
                           )}
                         </>
@@ -142,7 +142,7 @@ const RefactoringPage = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="rounded-xl overflow-hidden"
-              style={{ background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(16, 185, 129, 0.08) 100%)', border: `1px solid var(--card-border)` }}
+              style={{ background: 'linear-gradient(135deg, rgba(232, 184, 75, 0.1) 0%, rgba(62, 207, 142, 0.08) 100%)', border: `1px solid var(--card-border)` }}
             >
               <div className="px-4 py-3 flex items-center gap-2">
                 <span>ðŸŽ¨</span>
@@ -151,7 +151,7 @@ const RefactoringPage = () => {
               <div className="p-4">
                 <div className="flex flex-wrap gap-2">
                   {optimizer.refactorReport.patterns_applied.map((pattern, i) => (
-                    <span key={i} className="px-3 py-1.5 rounded-lg text-sm" style={{ background: 'rgba(20, 184, 166, 0.2)', color: '#14b8a6' }}>
+                    <span key={i} className="px-3 py-1.5 rounded-lg text-sm" style={{ background: 'rgba(232, 184, 75, 0.2)', color: '#E8B84B' }}>
                       {typeof pattern === 'string' ? pattern : pattern.name || pattern.pattern}
                     </span>
                   ))}
@@ -168,7 +168,7 @@ const RefactoringPage = () => {
               className="rounded-xl overflow-hidden"
               style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)` }}
             >
-              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid var(--card-border)`, background: 'rgba(16, 185, 129, 0.1)' }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid var(--card-border)`, background: 'rgba(62, 207, 142, 0.1)' }}>
                 <span>ðŸ’ª</span>
                 <h3 className="font-semibold text-emerald-400">Improvements</h3>
               </div>

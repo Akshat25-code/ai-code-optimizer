@@ -30,7 +30,7 @@ export default function TabBar({
             `}
             style={{
               borderColor: 'var(--border-color, #334155)',
-              borderBottomColor: isActive ? '#14b8a6' : 'transparent'
+              borderBottomColor: isActive ? '#E8B84B' : 'transparent'
             }}
           >
             <span className="mr-2 opacity-70">

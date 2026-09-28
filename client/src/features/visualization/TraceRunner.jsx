@@ -46,7 +46,7 @@ export default function TraceRunner({ code, language }) {
           onClick={handleTrace}
           disabled={loading || !code}
           className="px-4 py-2 rounded font-medium text-sm text-white transition disabled:opacity-50"
-          style={{ background: 'var(--primary-color, #0ea5e9)' }}
+          style={{ background: 'var(--accent-cyan)', color: 'var(--gold-ink)' }}
         >
           {loading ? 'Tracing...' : 'Run Trace'}
         </button>

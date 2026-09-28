@@ -120,7 +120,7 @@ const AuthPage = () => {
               </div>
             )}
           </div>
-          <button type="submit" disabled={loading} className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white hover:from-teal-500 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+          <button type="submit" disabled={loading} className="btn-primary w-full py-2.5 px-4 disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? 'Processing...' : (isLogin ? 'Sign in' : 'Create account')}
           </button>
         </form>

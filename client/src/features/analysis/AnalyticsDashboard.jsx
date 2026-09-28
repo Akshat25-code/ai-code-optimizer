@@ -6,7 +6,7 @@ import {
 import { motion } from 'framer-motion';
 import { Activity, Cpu, Database, Zap } from 'lucide-react';
 
-const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = ['#6366f1', '#3ECF8E', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const AnalyticsDashboard = ({ analytics, fetchAnalytics }) => {
   useEffect(() => {
@@ -103,7 +103,7 @@ const AnalyticsDashboard = ({ analytics, fetchAnalytics }) => {
                 />
                 <Legend iconType="circle" />
                 <Bar dataKey="tokens_in" name="Inbound" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="tokens_out" name="Outbound" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="tokens_out" name="Outbound" fill="#3ECF8E" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

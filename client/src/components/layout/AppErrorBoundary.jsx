@@ -67,7 +67,7 @@ class AppErrorBoundary extends React.Component {
                 marginTop: "14px",
                 border: "none",
                 borderRadius: "8px",
-                background: "#0ea5e9",
+                background: "#E8B84B", color: "#241A05",
                 color: "#ffffff",
                 padding: "10px 14px",
                 fontWeight: 600,

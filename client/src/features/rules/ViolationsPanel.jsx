@@ -14,7 +14,7 @@ const SEVERITY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3, Info: 4 };
 export default function ViolationsPanel({ violations = [], complianceScore = 100, onJumpToLine }) {
   if (!violations || violations.length === 0) {
     return (
-      <div className="rounded-xl p-6 text-center" style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+      <div className="rounded-xl p-6 text-center" style={{ background: 'rgba(62, 207, 142, 0.08)', border: '1px solid rgba(62, 207, 142, 0.3)' }}>
         <div className="text-3xl mb-2">âœ…</div>
         <div className="font-semibold text-emerald-400 text-sm">No Rule Violations</div>
         <div className="text-xs opacity-50 mt-1">Your code passes all active linting rules.</div>
@@ -33,7 +33,7 @@ export default function ViolationsPanel({ violations = [], complianceScore = 100
     ([a], [b]) => (SEVERITY_ORDER[a] ?? 99) - (SEVERITY_ORDER[b] ?? 99)
   );
 
-  const scoreColor = complianceScore >= 80 ? '#10b981' : complianceScore >= 50 ? '#f59e0b' : '#ef4444';
+  const scoreColor = complianceScore >= 80 ? '#3ECF8E' : complianceScore >= 50 ? '#f59e0b' : '#ef4444';
 
   return (
     <div className="space-y-4">

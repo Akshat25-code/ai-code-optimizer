@@ -29,16 +29,9 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            {/* Glowing logo icon */}
-            <div className="relative">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-emerald)] grid place-items-center transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(0,245,212,0.3)]">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#050508]">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                </svg>
-              </div>
-            </div>
-            <span className="font-bold text-sm text-gradient-cyber tracking-tight">AI Code Optimizer</span>
+          <Link to="/" className="flex items-center gap-2.5 group" aria-label="AI Code Optimizer home">
+            <img src="/logo-prism.svg" alt="" width={32} height={32} className="w-8 h-8 transition-transform duration-300 group-hover:scale-105" />
+            <span className="font-display font-bold text-[17px] tracking-tight" style={{ color: 'var(--fg-strong)' }}>AI Code Optimizer</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">

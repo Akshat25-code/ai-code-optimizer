@@ -16,7 +16,7 @@ export default function NotFoundPage() {
       <div className="mt-8 flex flex-col sm:flex-row gap-3">
         <Link
           to="/"
-          className="px-8 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-500"
+          className="btn-primary px-8 py-3 rounded-2xl inline-block"
         >
           Back home
         </Link>

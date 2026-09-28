@@ -1,6 +1,8 @@
 # DESIGN.md — AI Code Optimizer redesign v2 ("Abyssal Gold")
 
-> Status: PROPOSAL v2 — review before any code changes. No code touched.
+> Status: IMPLEMENTED — landed in this tree (tokens, fonts, prism brand,
+> 3D hero, pinned transformation, proof strip, app-wide reskin). No code
+> touched *before* approval; everything below is now live.
 > Built with the `ui-ux-pro-max` skill (3D & Hyperrealism style guidance:
 > deep navy / gold / burgundy, WebGL-or-CSS-3D, parallax 3–5 layers,
 > perspective 1000px; scroll-choreography presets; chart guidance) plus

@@ -512,12 +512,12 @@ const FeaturePageLayout = ({
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: -20 }}
               className="p-8 rounded-2xl max-w-md w-full text-center relative overflow-hidden"
-              style={{ background: 'var(--card-bg-solid)', border: '1px solid var(--card-border)', boxShadow: '0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,245,212,0.1)' }}
+              style={{ background: 'var(--card-bg-solid)', border: '1px solid var(--card-border)', boxShadow: '0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(232,184,75,0.1)' }}
             >
               {/* Premium Glow Effect */}
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--accent-gold)] via-[var(--accent-cyan)] to-[var(--accent-gold)] opacity-80" />
 
-              <div className="w-16 h-16 rounded-full mx-auto mb-5 bg-[var(--glow-cyan)] flex items-center justify-center border border-[var(--accent-cyan)] text-2xl shadow-[0_0_20px_rgba(0,245,212,0.2)]">
+              <div className="w-16 h-16 rounded-full mx-auto mb-5 bg-[var(--glow-cyan)] flex items-center justify-center border border-[var(--accent-cyan)] text-2xl shadow-[0_0_20px_rgba(232,184,75,0.2)]">
                 ðŸ’Ž
               </div>
               <h2 className="text-2xl font-bold mb-3 text-[var(--fg-color)]">Unlock Unlimited Access</h2>
@@ -527,7 +527,7 @@ const FeaturePageLayout = ({
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => navigate('/auth', { state: { from: location.pathname } })}
-                  className="w-full btn-primary py-3 text-base shadow-[0_0_20px_rgba(0,245,212,0.2)]"
+                  className="w-full btn-primary py-3 text-base shadow-[0_0_20px_rgba(232,184,75,0.2)]"
                 >
                   Sign Up & Continue
                 </button>

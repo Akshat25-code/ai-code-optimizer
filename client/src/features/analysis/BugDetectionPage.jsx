@@ -24,7 +24,7 @@ const BugDetectionPage = () => {
     if (s === 'critical') return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)' };
     if (s === 'high') return { color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)', border: 'rgba(249, 115, 22, 0.4)' };
     if (s === 'medium') return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)' };
-    return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.4)' };
+    return { color: '#3ECF8E', bg: 'rgba(62, 207, 142, 0.15)', border: 'rgba(62, 207, 142, 0.4)' };
   };
 
   const errorCategories = [
@@ -37,7 +37,7 @@ const BugDetectionPage = () => {
     { key: 'Critical', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239,68,68,0.3)', icon: 'ðŸ”´' },
     { key: 'High', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)', border: 'rgba(249,115,22,0.3)', icon: 'ðŸŸ ' },
     { key: 'Medium', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245,158,11,0.3)', icon: 'ðŸŸ¡' },
-    { key: 'Low', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16,185,129,0.3)', icon: 'ðŸŸ¢' },
+    { key: 'Low', color: '#3ECF8E', bg: 'rgba(62, 207, 142, 0.15)', border: 'rgba(62,207,142,0.3)', icon: 'ðŸŸ¢' },
   ];
 
   // Results section
@@ -71,10 +71,10 @@ const BugDetectionPage = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-5xl font-black font-mono tracking-tighter" style={{
-                    color: totalCount === 0 ? '#10b981' :
+                    color: totalCount === 0 ? '#3ECF8E' :
                            getCount('Critical') > 0 ? '#ef4444' :
                            getCount('High') > 0 ? '#f97316' : '#f59e0b',
-                    textShadow: totalCount === 0 ? '0 0 20px rgba(16,185,129,0.3)' :
+                    textShadow: totalCount === 0 ? '0 0 20px rgba(62,207,142,0.3)' :
                                getCount('Critical') > 0 ? '0 0 20px rgba(239,68,68,0.3)' : 'none'
                   }}>
                     {totalCount}
@@ -189,7 +189,7 @@ const BugDetectionPage = () => {
 
                         {/* Suggested Fix */}
                         {item.suggested_fix && (
-                          <div className="p-4 rounded-xl border" style={{ background: 'rgba(16, 185, 129, 0.05)', borderColor: 'rgba(16, 185, 129, 0.2)' }}>
+                          <div className="p-4 rounded-xl border" style={{ background: 'rgba(62, 207, 142, 0.05)', borderColor: 'rgba(62, 207, 142, 0.2)' }}>
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-emerald-400 opacity-80">ðŸ’¡</span>
                               <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Resolution Strategy</span>

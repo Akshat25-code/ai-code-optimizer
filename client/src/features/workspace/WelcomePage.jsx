@@ -1,300 +1,372 @@
-﻿import React from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Brain, Zap, Target, Code2, Play, ArrowRight, Sparkles } from 'lucide-react';
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useScroll,
+  useReducedMotion,
+} from 'framer-motion';
+import {
+  Zap, Activity, Bug, BookOpen, Layers, Wrench,
+  ArrowRight, Play, ShieldCheck, FlaskConical,
+} from 'lucide-react';
 
-const features = [
-	{ icon: <Zap className="w-6 h-6" />, title: 'Hyper-Speed Execution', desc: 'Reduce architectural complexity and dramatically speed up runtime execution with deep AI-powered optimizations.' },
-	{ icon: <Target className="w-6 h-6" />, title: 'Surgical Precision', desc: 'Pinpoint critical bottlenecks and obscure inefficiencies across 7 multidimensional quality metrics.' },
-	{ icon: <Code2 className="w-6 h-6" />, title: 'Flawless Refactoring', desc: 'Re-architect module structure and elevate readability without altering intended behavior.' },
+/* Real figures — sources in comments. Never invent metrics. */
+const PROOF = [
+  { value: '12/12', label: 'Sandbox escapes blocked', source: 'server/tests/test_sandbox_escape.py' },
+  { value: '153', label: 'Backend checks green', source: 'pytest server/tests' },
+  { value: '60', label: 'Research benchmark cases', source: 'research/dataset/seed.json' },
 ];
 
-const featurePages = [
-	{ icon: 'ðŸš€', title: 'Optimization Core', desc: 'Boost performance and maximum efficiency with intelligent heuristic suggestions', path: '/optimization', gradient: 'from-[#00f5d4]/20 to-[#10b981]/5', border: 'rgba(0,245,212,0.3)' },
-	{ icon: 'ðŸ“Š', title: 'Analysis Matrix', desc: 'Quality assessment across 7 dimensions with detailed granular scoring', path: '/analysis', gradient: 'from-[#00f5d4]/20 to-[#0ea5e9]/5', border: 'rgba(14,165,233,0.3)' },
-	{ icon: 'ðŸ›', title: 'Anomaly Detection', desc: 'Preempt compile-time, runtime & logic errors before production shipment', path: '/bug-detection', gradient: 'from-[#ff716c]/20 to-[#f43f5e]/5', border: 'rgba(244,63,94,0.3)' },
-	{ icon: 'ðŸ“š', title: 'Auto-Documentation', desc: 'Auto-generate comprehensive, standards-compliant specs from your codebase', path: '/documentation', gradient: 'from-[#a78bfa]/20 to-[#8b5cf6]/5', border: 'rgba(139,92,246,0.3)' },
-	{ icon: 'ðŸ—ï¸', title: 'Structural Refactoring', desc: 'Modernize structure and enforce strict design patterns systematically', path: '/refactoring', gradient: 'from-[#fbbf24]/20 to-[#f59e0b]/5', border: 'rgba(245,158,11,0.3)' },
-	{ icon: 'ðŸ”§', title: 'Intelligent Debugger', desc: 'AI-derived anomaly resolutions with comprehensive root cause analysis', path: '/debugging', gradient: 'from-[#10b981]/20 to-[#059669]/5', border: 'rgba(16,185,129,0.3)' },
+const HERO_BUGGY = [
+  'def first_n(n):',
+  '    out = []',
+  '    for i in range(n + 1):',
+  '        out.append(i)',
+  '    return out',
+];
+const HERO_FIXED = [
+  'def first_n(n):',
+  '    out = []',
+  '    for i in range(n):',
+  '        out.append(i)',
+  '    return out',
 ];
 
-const samples = [
-	{
-		title: 'Python: Two Sum Matrix',
-		language: 'python',
-		task: 'optimization',
-		badge: 'Optimize',
-		color: '#00f5d4',
-		code: `# O(nÂ²) version\n# Improve to O(n) using a hashmap\ndef two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return None`,
-	},
-	{
-		title: 'JS: Edge-case Debounce',
-		language: 'javascript',
-		task: 'refactoring',
-		badge: 'Refactor',
-		color: '#fbbf24',
-		code: `// Debounce with strict edge case bounds\nfunction debounce(fn, wait, immediate){\n  var timeout;\n  return function(){\n    var ctx = this, args = arguments;\n    var later = function(){\n      timeout = null;\n      if(!immediate) fn.apply(ctx, args);\n    };\n    clearTimeout(timeout);\n    timeout = setTimeout(later, wait);\n  }\n}`,
-	},
-	{
-		title: 'C++: Vector Dedupe',
-		language: 'cpp',
-		task: 'analysis',
-		badge: 'Analyze',
-		color: '#8b5cf6',
-		code: `#include <vector>\nusing namespace std;\nint removeDuplicates(vector<int>& nums){\n  int n = nums.size();\n  if(n==0) return 0;\n  int k = 0;\n  for(int i=1;i<n;i++){\n    if(nums[i]!=nums[k]){\n      k++; nums[k]=nums[i];\n    }\n  }\n  return k+1;\n}`,
-	},
+/* Pinned story: the same real bug, staged across scroll progress. */
+const STORY_STAGES = [
+  { lines: HERO_BUGGY, note: 'Submitted code: off-by-one, returns n+1 items.' },
+  { lines: ['def first_n(n):', '    out = []', '    for i in range(n + 1):  # ← static flags this line', '        out.append(i)', '    return out'], note: 'Static analysis flags line 3.' },
+  { lines: HERO_FIXED, note: 'AI fix applied. Sandbox runs both versions.' },
+  { lines: HERO_FIXED, note: 'Outputs match. Proof recorded.', done: true },
 ];
 
-const stats = [
-	{ value: '20+', label: 'Languages Supported' },
-	{ value: '7.5x', label: 'Average Speedup' },
-	{ value: '0-Copy', label: 'Intent Preservation' },
+const FEATURES = [
+  { icon: <Zap size={22} />, title: 'Optimization', desc: 'Faster code with runtime proof, not promises.', path: '/optimization' },
+  { icon: <Activity size={22} />, title: 'Analysis', desc: 'Complexity, quality and compliance scoring.', path: '/analysis' },
+  { icon: <Bug size={22} />, title: 'Bug Detection', desc: 'Static scans plus AI review, ranked.', path: '/bug-detection' },
+  { icon: <BookOpen size={22} />, title: 'Documentation', desc: 'Specs generated from your codebase.', path: '/documentation' },
+  { icon: <Layers size={22} />, title: 'Refactoring', desc: 'Structure improvements that preserve behavior.', path: '/refactoring' },
+  { icon: <Wrench size={22} />, title: 'Debugging', desc: 'Root-cause fixes with step-through traces.', path: '/debugging' },
 ];
 
-// Complex Animation variants
-const staggerContainer = {
-	hidden: { opacity: 0 },
-	show: {
-		opacity: 1,
-		transition: { staggerChildren: 0.12, delayChildren: 0.1 }
-	}
-};
+const SAMPLES = [
+  {
+    title: 'Python: Two Sum',
+    language: 'python',
+    task: 'optimization',
+    code: 'def two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return None',
+  },
+  {
+    title: 'JS: Debounce',
+    language: 'javascript',
+    task: 'refactoring',
+    code: 'function debounce(fn, wait){\n  var timeout;\n  return function(){\n    var ctx = this, args = arguments;\n    clearTimeout(timeout);\n    timeout = setTimeout(function(){ fn.apply(ctx, args); }, wait);\n  }\n}',
+  },
+  {
+    title: 'C++: Vector Dedupe',
+    language: 'cpp',
+    task: 'analysis',
+    code: '#include <vector>\nusing namespace std;\nint removeDuplicates(vector<int>& nums){\n  int k = 0;\n  for(int i=1;i<(int)nums.size();i++){\n    if(nums[i]!=nums[k]){ k++; nums[k]=nums[i]; }\n  }\n  return k+1;\n}',
+  },
+];
 
-const fadeUp = {
-	hidden: { opacity: 0, y: 30, scale: 0.95 },
-	show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
-};
+function useCoarsePointer() {
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+    if (!mq) return;
+    setCoarse(mq.matches);
+    const fn = (e) => setCoarse(e.matches);
+    mq.addEventListener?.('change', fn);
+    return () => mq.removeEventListener?.('change', fn);
+  }, []);
+  return coarse;
+}
 
-const slideInLeft = {
-	hidden: { opacity: 0, x: -40 },
-	show: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
-};
+/** 3D tilting instrument with a looping buggy→fixed proof. */
+function HeroInstrument() {
+  const reduce = useReducedMotion();
+  const coarse = useCoarsePointer();
+  const ref = useRef(null);
+  const mx = useMotionValue(0.5);
+  const my = useMotionValue(0.5);
+  const rotateX = useSpring(useTransform(my, [0, 1], [5, -5]), { stiffness: 260, damping: 30 });
+  const rotateY = useSpring(useTransform(mx, [0, 1], [-7, 7]), { stiffness: 260, damping: 30 });
+  const [fixed, setFixed] = useState(false);
+
+  useEffect(() => {
+    if (reduce) {
+      setFixed(true);
+      return;
+    }
+    const t = setInterval(() => setFixed((v) => !v), 2600);
+    return () => clearInterval(t);
+  }, [reduce]);
+
+  const onMove = (e) => {
+    if (reduce || coarse || !ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    mx.set((e.clientX - r.left) / r.width);
+    my.set((e.clientY - r.top) / r.height);
+  };
+  const onLeave = () => {
+    mx.set(0.5);
+    my.set(0.5);
+  };
+
+  const lines = fixed ? HERO_FIXED : HERO_BUGGY;
+
+  return (
+    <div className="perspective-stage w-full max-w-xl mx-auto" style={{ perspective: '1000px' }}>
+      {/* ghost layers (parallax depth, decorative) */}
+      <div aria-hidden="true" className="absolute inset-x-8 top-10 bottom-[-16px] rounded-[14px] border hidden md:block" style={{ borderColor: 'var(--card-border)', background: 'var(--surface-1)', transform: 'translateZ(-60px)', opacity: 0.6 }} />
+      <div aria-hidden="true" className="absolute inset-x-16 top-20 bottom-[-32px] rounded-[14px] border hidden md:block" style={{ borderColor: 'var(--card-border)', background: 'var(--surface-1)', transform: 'translateZ(-120px)', opacity: 0.35 }} />
+      <motion.div
+        ref={ref}
+        onMouseMove={onMove}
+        onMouseLeave={onLeave}
+        style={reduce || coarse ? undefined : { rotateX, rotateY, transformStyle: 'preserve-3d' }}
+        className="instrument grain relative overflow-hidden"
+      >
+        <div className="gold-beam" aria-hidden="true" />
+        <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: 'var(--card-border)' }}>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#E2607A]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#E8B84B]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#3ECF8E]" />
+            <span className="ml-2 text-xs font-mono text-muted">first_n.py — live proof</span>
+          </div>
+          <span
+            className="text-[11px] font-bold px-2.5 py-1 rounded-full border"
+            style={fixed
+              ? { color: '#3ECF8E', borderColor: 'rgba(62,207,142,.4)', background: 'rgba(62,207,142,.08)' }
+              : { color: '#E8B84B', borderColor: 'rgba(232,184,75,.4)', background: 'rgba(232,184,75,.08)' }}
+          >
+            {fixed ? '✓ Outputs match' : '◌ Analyzing…'}
+          </span>
+        </div>
+        <pre className="p-5 text-[13px] leading-6 font-mono overflow-x-auto min-h-[168px]" style={{ color: 'var(--code-fg)', background: 'var(--code-bg)' }}>
+          {lines.map((l, i) => (
+            <div key={i} className={fixed && i === 2 ? 'text-[#3ECF8E]' : !fixed && i === 2 ? 'text-[#E8B84B]' : undefined}>
+              <span className="inline-block w-6 select-none opacity-40">{i + 1}</span>{l}
+            </div>
+          ))}
+        </pre>
+      </motion.div>
+    </div>
+  );
+}
+
+/** ONE pinned section: scrub-driven buggy→fixed morph (DESIGN.md §7b). */
+function PinnedTransformation() {
+  const reduce = useReducedMotion();
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+  const wash = useTransform(scrollYProgress, [0.15, 0.85], ['0%', '100%']);
+
+  return (
+    <section ref={ref} className="relative" style={{ height: reduce ? 'auto' : '220vh' }}>
+      <div className="md:sticky md:top-0 md:min-h-screen flex items-center py-24">
+        <div className="max-w-3xl mx-auto px-6 w-full">
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-muted mb-3">How it works</p>
+          <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight mb-8" style={{ color: 'var(--fg-strong)' }}>
+            Watch a bug become a proof.
+          </h2>
+          <ScrollMorph progress={scrollYProgress} wash={wash} reduced={reduce} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ScrollMorph({ progress, wash, reduced }) {
+  const [k, setK] = useState(reduced ? STORY_STAGES.length - 1 : 0);
+  useEffect(() => {
+    if (reduced) return;
+    const unsub = progress.on('change', (v) => {
+      setK(Math.min(STORY_STAGES.length - 1, Math.floor(v * STORY_STAGES.length)));
+    });
+    return unsub;
+  }, [progress, reduced]);
+  const stage = STORY_STAGES[k];
+
+  return (
+    <div className="instrument grain relative overflow-hidden">
+      <div className="px-4 py-2.5 border-b text-xs font-mono text-muted" style={{ borderColor: 'var(--card-border)' }}>
+        step {k + 1} / {STORY_STAGES.length} — {stage.done ? 'proven' : 'in progress'}
+      </div>
+      <div className="relative">
+        <pre className="p-5 text-[13px] leading-6 font-mono overflow-x-auto" style={{ color: 'var(--code-fg)', background: 'var(--code-bg)' }}>
+          {stage.lines.map((l, i) => (
+            <div key={i}><span className="inline-block w-6 select-none opacity-40">{i + 1}</span>{l}</div>
+          ))}
+        </pre>
+        {!reduced && (
+          <motion.div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{ width: wash, background: 'linear-gradient(90deg, rgba(62,207,142,.14), transparent)', overflow: 'hidden' }}
+          />
+        )}
+      </div>
+      <div className="px-5 py-3 text-sm text-muted border-t" style={{ borderColor: 'var(--card-border)' }}>
+        {stage.note}
+      </div>
+    </div>
+  );
+}
 
 const WelcomePage = ({ onStart, onExample }) => {
-	const navigate = useNavigate();
+  const navigate = useNavigate();
 
-	return (
-		<div className="min-h-screen theme-hero relative overflow-hidden bg-[var(--bg-color)]">
-			{/* Epic Ambient Orbs */}
-			<div className="pointer-events-none absolute -top-40 right-10 w-[800px] h-[800px] bg-teal-500/10 rounded-full blur-[120px] animate-pulse-glow" />
-			<div className="pointer-events-none absolute bottom-0 left-[-20%] w-[1000px] h-[1000px] bg-blue-600/5 rounded-full blur-[150px] animate-pulse-glow" style={{ animationDelay: '2s' }} />
+  return (
+    <div className="min-h-screen theme-hero relative overflow-hidden">
+      <main className="max-w-[1240px] mx-auto px-6 relative z-10">
+        {/* ═══ HERO: headline + live proof ═══ */}
+        <section className="pt-24 md:pt-32 pb-16 grid lg:grid-cols-2 gap-12 items-center min-h-[82vh]">
+          <div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-8"
+              style={{ background: 'var(--surface-1)', color: 'var(--accent-cyan)', border: '1px solid var(--card-border)' }}
+            >
+              <ShieldCheck size={14} /> Static analysis · AI review · Sandbox proof
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.08 }}
+              className="font-display text-5xl md:text-7xl font-bold tracking-tight leading-[1.04]"
+              style={{ color: 'var(--fg-strong)' }}
+            >
+              Ship faster code,
+              <br />
+              proven correct.
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.18 }}
+              className="mt-6 text-lg md:text-xl text-muted max-w-xl leading-relaxed"
+            >
+              Paste code, get an AI fix, and watch both versions execute in a
+              sandbox. If the outputs match, it ships. If not, you see why.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.28 }}
+              className="mt-10 flex flex-col sm:flex-row sm:items-center gap-4"
+            >
+              <button
+                onClick={() => (onStart ? onStart() : navigate('/optimize'))}
+                className="btn-primary inline-flex items-center justify-center gap-3 px-10 py-4 text-lg"
+              >
+                <Play size={20} className="fill-current" /> Start optimizing — free
+              </button>
+              <a href="#how" className="px-2 py-4 text-base text-muted hover:opacity-100 underline underline-offset-8 decoration-1">
+                Or see how it proves
+              </a>
+            </motion.div>
+          </div>
+          <HeroInstrument />
+        </section>
 
-			<main className="max-w-[1400px] mx-auto px-6 relative z-10">
-				{/* â•â•â• HERO SECTION â•â•â• */}
-				<section className="pt-32 pb-24 text-center relative flex flex-col items-center justify-center min-h-[80vh]">
-					{/* Glowing HUD Badge */}
-					<motion.div
-						initial={{ opacity: 0, scale: 0.8 }}
-						animate={{ opacity: 1, scale: 1 }}
-						transition={{ duration: 0.7, type: "spring", bounce: 0.4 }}
-						className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest mb-10 shadow-[0_0_30px_rgba(0,245,212,0.2)]"
-						style={{ background: 'var(--surface-2)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 245, 212, 0.4)' }}
-					>
-						<span className="relative flex h-2.5 w-2.5 mr-1">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500"></span>
-                        </span>
-						Neural Engine v4 Active
-					</motion.div>
+        {/* ═══ PROOF STRIP (real numbers only) ═══ */}
+        <section className="pb-20">
+          <div className="instrument px-6 py-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+            {PROOF.map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="font-display text-4xl md:text-5xl font-bold tracking-tight" style={{ color: 'var(--fg-strong)' }}>
+                  {s.value}
+                </div>
+                <div className="text-sm uppercase tracking-widest font-semibold text-muted mt-2">{s.label}</div>
+                <div className="text-[11px] font-mono text-muted mt-1 opacity-70">{s.source}</div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-					<motion.h1
-						initial={{ opacity: 0, y: 40, filter: 'blur(10px)' }}
-						animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-						transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-						className="text-6xl md:text-8xl font-black tracking-tighter leading-[1.05]"
-						style={{ color: 'var(--fg-color)' }}
-					>
-						Re-engineer code with
-						<br />
-						<span className="text-gradient-cyber inline-block animate-float" style={{ animationDelay: '0s' }}>absolute intent.</span>
-					</motion.h1>
+        {/* ═══ PINNED TRANSFORMATION ═══ */}
+        <div id="how">
+          <PinnedTransformation />
+        </div>
 
-					<motion.p
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.8, delay: 0.3 }}
-						className="mt-8 text-muted text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed font-light"
-					>
-						Deploy enterprise-grade AI algorithms to optimize vectors, resolve logical anomalies, and architect flawless systems in milliseconds.
-					</motion.p>
+        {/* ═══ INSTRUMENT CARDS ═══ */}
+        <section className="py-24">
+          <div className="text-center mb-14">
+            <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight" style={{ color: 'var(--fg-strong)' }}>
+              Six instruments, one bench
+            </h2>
+            <p className="text-lg text-muted mt-3">Every capability below is live in this build.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FEATURES.map((f, i) => (
+              <motion.button
+                key={f.path}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.35, delay: (i % 3) * 0.07 }}
+                onClick={() => navigate(f.path)}
+                className="instrument grain p-8 text-left group relative overflow-hidden transition-transform duration-300 hover:-translate-y-1"
+              >
+                <div className="w-12 h-12 rounded-xl grid place-items-center mb-6" style={{ background: 'var(--surface-2)', border: '1px solid var(--card-border)', color: 'var(--accent-cyan)' }}>
+                  {f.icon}
+                </div>
+                <h3 className="font-display text-2xl font-bold mb-2" style={{ color: 'var(--fg-strong)' }}>{f.title}</h3>
+                <p className="text-sm text-muted leading-relaxed">{f.desc}</p>
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--accent-cyan)' }}>
+                  Open <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        </section>
 
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.8, delay: 0.5 }}
-						className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5"
-					>
-						<button
-							onClick={() => (onStart ? onStart() : navigate('/optimize'))}
-							className="group relative px-10 py-4 font-bold text-lg rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white overflow-hidden shadow-[0_0_40px_rgba(20,184,166,0.4)] hover:shadow-[0_0_60px_rgba(20,184,166,0.6)] transition-all duration-300 hover:scale-105"
-						>
-							<div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-							<div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
-							<span className="relative z-10 flex items-center justify-center gap-3">
-								<Play className="w-5 h-5 fill-current" /> Initialize Optimizer
-							</span>
-						</button>
-						<a href="#features" className="group px-2 py-4 text-base font-medium text-muted hover:opacity-100 flex items-center gap-2 underline underline-offset-8 decoration-1">
-							Or explore the feature matrix <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-						</a>
-					</motion.div>
-				</section>
-
-				{/* â•â•â• STATS BAR â•â•â• */}
-				<motion.section
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true, margin: "-100px" }}
-                  transition={{ duration: 0.8 }}
-                  className="pb-24 z-20 relative"
-                >
-					<div className="glass-frame p-2 relative overflow-hidden animate-stunning-glow" style={{ borderRadius: '24px' }}>
-                        <div className="absolute inset-0 bg-[#050508]/80 backdrop-blur-3xl z-0" />
-						<div className="relative z-10 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--card-border)]">
-							{stats.map((s, i) => (
-								<div key={s.label} className="text-center py-8 px-6 group hover:bg-[var(--surface-1)] transition-colors duration-500">
-									<div className="text-4xl md:text-5xl font-black font-mono text-gradient-cyber mb-2 tracking-tight group-hover:scale-110 transition-transform duration-500 origin-bottom">{s.value}</div>
-									<div className="text-sm uppercase tracking-widest font-bold text-muted">{s.label}</div>
-								</div>
-							))}
-						</div>
-					</div>
-				</motion.section>
-
-				{/* â•â•â• FEATURE HIGHLIGHTS â•â•â• */}
-				<motion.section
-					variants={staggerContainer}
-					initial="hidden"
-					whileInView="show"
-					viewport={{ once: true, margin: "-100px" }}
-					className="pb-32"
-				>
-					<div className="grid lg:grid-cols-3 gap-8">
-						{features.map((f, i) => (
-							<motion.div
-								key={f.title}
-								variants={fadeUp}
-								className="glass-frame p-8 sm:p-10 relative group overflow-hidden hover:scale-[1.02] transition-transform duration-500"
-							>
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-cyan)] opacity-0 group-hover:opacity-10 rounded-bl-full transition-opacity duration-700 blur-2xl" />
-								<div className="w-14 h-14 rounded-2xl grid place-items-center mb-8 relative" style={{ background: 'var(--surface-2)', border: '1px solid var(--card-border)' }}>
-                                    <div className="absolute inset-0 bg-[var(--accent-cyan)] opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-md rounded-2xl" />
-                                    <span style={{ color: 'var(--accent-cyan)' }} className="relative z-10 group-hover:scale-110 transition-transform duration-300">{f.icon}</span>
-								</div>
-								<h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--fg-color)' }}>{f.title}</h3>
-								<p className="text-base text-gray-400 leading-relaxed font-medium">{f.desc}</p>
-							</motion.div>
-						))}
-					</div>
-				</motion.section>
-
-				{/* â•â•â• EXPLORE FEATURES â•â•â• */}
-				<section id="features" className="pb-32 relative">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] bg-emerald-500/5 blur-[100px] pointer-events-none rounded-full" />
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						className="text-center mb-16 relative z-10"
-					>
-						<h2 className="text-4xl md:text-5xl font-black mb-4 tracking-tight" style={{ color: 'var(--fg-color)' }}>Core Subsystems</h2>
-						<p className="text-xl text-muted font-light">Modular intelligent components for every development phase</p>
-					</motion.div>
-
-					<motion.div
-						variants={staggerContainer}
-						initial="hidden"
-						whileInView="show"
-						viewport={{ once: true, margin: "-50px" }}
-						className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10"
-					>
-						{featurePages.map((f) => (
-							<motion.button
-								key={f.path}
-								variants={fadeUp}
-								onClick={() => navigate(f.path)}
-								className={`glass-frame p-8 text-left group bg-gradient-to-br ${f.gradient} relative overflow-hidden transition-all duration-500 hover:-translate-y-2`}
-                                style={{ border: `1px solid ${f.border}` }}
-							>
-                                <div className="absolute inset-0 bg-[#050508]/40 group-hover:bg-transparent transition-colors duration-500 z-0" />
-								<div className="text-5xl mb-6 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 origin-bottom-left relative z-10 font-emoji drop-shadow-lg">{f.icon}</div>
-								<div className="text-xl font-bold mb-3 relative z-10 tracking-tight" style={{ color: 'var(--fg-color)' }}>{f.title}</div>
-								<div className="text-sm text-gray-300 leading-relaxed font-medium relative z-10">{f.desc}</div>
-								<div className="mt-6 flex items-center gap-2 text-sm font-bold uppercase tracking-widest relative z-10 group-hover:translate-x-2 transition-transform duration-300" style={{ color: f.border.replace('0.3', '1') }}>
-									Initialize <ArrowRight className="w-4 h-4" />
-								</div>
-							</motion.button>
-						))}
-					</motion.div>
-				</section>
-
-				{/* â•â•â• CODE EXAMPLES â•â•â• */}
-				<section className="pb-32">
-					<motion.div
-						initial={{ opacity: 0, x: -30 }}
-						whileInView={{ opacity: 1, x: 0 }}
-						viewport={{ once: true }}
-						className="mb-12 flex items-end justify-between"
-					>
-						<div>
-                            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4" style={{ color: 'var(--fg-color)' }}>Terminal Feed</h2>
-                            <p className="text-xl text-muted font-light">Pre-configured execution vectors ready for analysis</p>
-                        </div>
-					</motion.div>
-
-					<motion.div
-						variants={staggerContainer}
-						initial="hidden"
-						whileInView="show"
-						viewport={{ once: true, margin: "-100px" }}
-						className="grid lg:grid-cols-3 gap-8"
-					>
-						{samples.map((s) => (
-							<motion.div
-								key={s.title}
-								variants={fadeUp}
-								className="glass-frame overflow-hidden group hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-all duration-500"
-							>
-								<div className="p-5 flex items-center justify-between" style={{ background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--card-border)' }}>
-									<div className="flex items-center gap-3">
-										<span className="w-3 h-3 rounded-full shadow-[0_0_10px_currentColor]" style={{ color: s.color, backgroundColor: s.color }} />
-										<div className="font-bold text-sm" style={{ color: 'var(--fg-color)' }}>{s.title}</div>
-									</div>
-									<span className="text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-md font-bold" style={{ border: `1px solid ${s.color}80`, color: s.color, background: `${s.color}15` }}>{s.badge}</span>
-								</div>
-								<div className="relative">
-                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#050508]/80 pointer-events-none z-10 group-hover:opacity-0 transition-opacity duration-300" />
-                                    <pre className="p-6 text-xs leading-loose overflow-hidden h-48 font-mono custom-scrollbar relative z-0" style={{ background: '#0a0a0f', color: 'var(--code-fg)' }}>
-                                        {s.code}
-                                    </pre>
-                                </div>
-								<div className="p-5 border-t border-[var(--card-border)] bg-[var(--surface-1)]">
-									<button
-										onClick={() => onExample ? onExample(s) : navigate('/optimize', { state: { prefill: s } })}
-										className="w-full relative px-6 py-3 font-bold text-sm rounded-xl overflow-hidden group/btn text-white transition-all duration-300 shadow-[0_0_15px_currentColor]"
-                                        style={{ color: s.color }}
-									>
-                                        <div className="absolute inset-0 opacity-20 transition-opacity duration-300 group-hover/btn:opacity-40" style={{ background: s.color }} />
-                                        <div className="absolute inset-0 border border-current rounded-xl opacity-50" />
-										<span className="relative z-10 flex items-center justify-center gap-2">
-											<Play className="w-4 h-4 fill-current" /> Execute Sequence
-										</span>
-									</button>
-								</div>
-							</motion.div>
-						))}
-					</motion.div>
-				</section>
-			</main>
-
-			{/* Footer */}
-			<footer className="px-6 py-12 text-center relative z-10 mt-20" style={{ borderTop: '1px solid var(--card-border)', background: 'var(--surface-1)' }}>
-				<div className="text-sm font-bold uppercase tracking-widest text-[var(--accent-cyan)] mb-2">Neural Code Engine v4</div>
-				<p className="text-muted text-xs font-mono">Synthesizing perfection from entropy.</p>
-			</footer>
-		</div>
-	);
+        {/* ═══ TRY-IT SAMPLES ═══ */}
+        <section className="pb-28">
+          <div className="mb-10 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight" style={{ color: 'var(--fg-strong)' }}>
+                Try it now
+              </h2>
+              <p className="text-lg text-muted mt-2">One click loads a real example into the optimizer.</p>
+            </div>
+            <FlaskConical className="text-muted hidden md:block" size={32} />
+          </div>
+          <div className="grid lg:grid-cols-3 gap-6">
+            {SAMPLES.map((s) => (
+              <div key={s.title} className="instrument overflow-hidden flex flex-col">
+                <div className="px-5 py-3 flex items-center justify-between border-b" style={{ borderColor: 'var(--card-border)' }}>
+                  <span className="font-semibold text-sm" style={{ color: 'var(--fg-strong)' }}>{s.title}</span>
+                  <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded border font-mono" style={{ borderColor: 'var(--card-border)', color: 'var(--accent-cyan)' }}>
+                    {s.language}
+                  </span>
+                </div>
+                <pre className="p-5 text-xs leading-6 font-mono overflow-hidden h-44" style={{ color: 'var(--code-fg)', background: 'var(--code-bg)' }}>
+                  {s.code}
+                </pre>
+                <div className="p-4 border-t" style={{ borderColor: 'var(--card-border)' }}>
+                  <button
+                    onClick={() => (onExample ? onExample(s) : navigate('/optimize', { state: { prefill: s } }))}
+                    className="btn-primary w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm"
+                  >
+                    <Play size={16} className="fill-current" /> Run this example
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
 };
 
 export default WelcomePage;
-

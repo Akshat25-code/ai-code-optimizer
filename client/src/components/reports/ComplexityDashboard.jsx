@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 
 const GRADE_COLORS = {
-  A: { bg: 'rgba(16,185,129,0.15)', text: '#10b981', border: 'rgba(16,185,129,0.4)' },
+  A: { bg: 'rgba(62,207,142,0.15)', text: '#3ECF8E', border: 'rgba(62,207,142,0.4)' },
   B: { bg: 'rgba(59,130,246,0.15)', text: '#3b82f6', border: 'rgba(59,130,246,0.4)' },
   C: { bg: 'rgba(245,158,11,0.15)', text: '#f59e0b', border: 'rgba(245,158,11,0.4)' },
   D: { bg: 'rgba(249,115,22,0.15)', text: '#f97316', border: 'rgba(249,115,22,0.4)' },
@@ -75,10 +75,10 @@ function FunctionRow({ fn, isExpanded, onToggle }) {
           {fn.is_recursive && <span style={{ color: '#f59e0b', fontSize: 10, marginLeft: 6 }}>recursive</span>}
         </td>
         <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 13, color: '#e2e8f0' }}>{fn.loc}</td>
-        <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 13, color: fn.cyclomatic_complexity > 10 ? '#ef4444' : fn.cyclomatic_complexity > 6 ? '#f59e0b' : '#10b981' }}>
+        <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 13, color: fn.cyclomatic_complexity > 10 ? '#ef4444' : fn.cyclomatic_complexity > 6 ? '#f59e0b' : '#3ECF8E' }}>
           {fn.cyclomatic_complexity}
         </td>
-        <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 13, color: fn.cognitive_complexity > 15 ? '#ef4444' : fn.cognitive_complexity > 7 ? '#f59e0b' : '#10b981' }}>
+        <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 13, color: fn.cognitive_complexity > 15 ? '#ef4444' : fn.cognitive_complexity > 7 ? '#f59e0b' : '#3ECF8E' }}>
           {fn.cognitive_complexity}
         </td>
         <td style={{ padding: '8px 6px', textAlign: 'center', fontFamily: 'monospace', fontSize: 12, color: '#818cf8' }}>
@@ -87,7 +87,7 @@ function FunctionRow({ fn, isExpanded, onToggle }) {
         <td style={{ padding: '8px 6px', textAlign: 'center', fontFamily: 'monospace', fontSize: 12, color: '#94a3b8' }}>
           {fn.space_complexity}
         </td>
-        <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 13, color: fn.maintainability_index < 40 ? '#ef4444' : fn.maintainability_index < 65 ? '#f59e0b' : '#10b981' }}>
+        <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 13, color: fn.maintainability_index < 40 ? '#ef4444' : fn.maintainability_index < 65 ? '#f59e0b' : '#3ECF8E' }}>
           {fn.maintainability_index?.toFixed(1)}
         </td>
       </tr>
@@ -97,12 +97,12 @@ function FunctionRow({ fn, isExpanded, onToggle }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, padding: '10px 0', fontSize: 12 }}>
               <div><span style={{ color: '#64748b' }}>Line:</span> <span style={{ color: '#e2e8f0' }}>{fn.line}â€“{fn.end_line}</span></div>
               <div><span style={{ color: '#64748b' }}>Args:</span> <span style={{ color: '#e2e8f0', fontFamily: 'monospace' }}>{fn.args?.join(', ') || 'none'}</span></div>
-              <div><span style={{ color: '#64748b' }}>Docstring:</span> <span style={{ color: fn.has_docstring ? '#10b981' : '#f59e0b' }}>{fn.has_docstring ? 'Yes' : 'Missing'}</span></div>
+              <div><span style={{ color: '#64748b' }}>Docstring:</span> <span style={{ color: fn.has_docstring ? '#3ECF8E' : '#f59e0b' }}>{fn.has_docstring ? 'Yes' : 'Missing'}</span></div>
               {fn.halstead?.volume > 0 && (
                 <>
                   <div><span style={{ color: '#64748b' }}>Halstead Vol:</span> <span style={{ color: '#e2e8f0' }}>{fn.halstead.volume}</span></div>
                   <div><span style={{ color: '#64748b' }}>Difficulty:</span> <span style={{ color: '#e2e8f0' }}>{fn.halstead.difficulty}</span></div>
-                  <div><span style={{ color: '#64748b' }}>Est. Bugs:</span> <span style={{ color: fn.halstead.bugs_estimate > 0.5 ? '#f59e0b' : '#10b981' }}>{fn.halstead.bugs_estimate}</span></div>
+                  <div><span style={{ color: '#64748b' }}>Est. Bugs:</span> <span style={{ color: fn.halstead.bugs_estimate > 0.5 ? '#f59e0b' : '#3ECF8E' }}>{fn.halstead.bugs_estimate}</span></div>
                 </>
               )}
               {fn.calls?.length > 0 && (
@@ -139,7 +139,7 @@ function CallGraph({ graph }) {
             <span style={{ color: '#818cf8', fontFamily: 'monospace' }}>{caller}</span>
             <ArrowRight size={12} color="#64748b" />
             {callees.map((c, i) => (
-              <span key={c} style={{ color: '#10b981', fontFamily: 'monospace' }}>
+              <span key={c} style={{ color: '#3ECF8E', fontFamily: 'monospace' }}>
                 {c}{i < callees.length - 1 ? ', ' : ''}
               </span>
             ))}
@@ -216,11 +216,11 @@ export default function ComplexityDashboard({ data, comparison }) {
         {comparison && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            background: comparison.score_delta > 0 ? 'rgba(16,185,129,0.1)' : comparison.score_delta < 0 ? 'rgba(239,68,68,0.1)' : 'rgba(148,163,184,0.08)',
-            border: `1px solid ${comparison.score_delta > 0 ? 'rgba(16,185,129,0.3)' : comparison.score_delta < 0 ? 'rgba(239,68,68,0.3)' : 'rgba(148,163,184,0.15)'}`,
+            background: comparison.score_delta > 0 ? 'rgba(62,207,142,0.1)' : comparison.score_delta < 0 ? 'rgba(239,68,68,0.1)' : 'rgba(148,163,184,0.08)',
+            border: `1px solid ${comparison.score_delta > 0 ? 'rgba(62,207,142,0.3)' : comparison.score_delta < 0 ? 'rgba(239,68,68,0.3)' : 'rgba(148,163,184,0.15)'}`,
             borderRadius: 8, padding: '6px 12px',
           }}>
-            {comparison.score_delta > 0 ? <TrendingUp size={16} color="#10b981" /> : <TrendingDown size={16} color="#ef4444" />}
+            {comparison.score_delta > 0 ? <TrendingUp size={16} color="#3ECF8E" /> : <TrendingDown size={16} color="#ef4444" />}
             <span style={{ fontSize: 12, color: '#e2e8f0' }}>
               {comparison.grade_before} â†’ {comparison.grade_after}
               {' Â· '}
@@ -234,8 +234,8 @@ export default function ComplexityDashboard({ data, comparison }) {
       <div style={{ padding: '12px 20px', display: 'flex', flexWrap: 'wrap', gap: 10 }}>
         <MetricCard icon={Activity} label="Max Cyclomatic" value={agg.max_cyclomatic} sublabel={`avg: ${agg.avg_cyclomatic}`} color="#3b82f6" />
         <MetricCard icon={Zap} label="Max Cognitive" value={agg.max_cognitive} sublabel={`avg: ${agg.avg_cognitive}`} color="#f59e0b" />
-        <MetricCard icon={BookOpen} label="Maintainability" value={agg.avg_maintainability?.toFixed(1)} sublabel="avg index" color="#10b981" />
-        <MetricCard icon={Trash2} label="Dead Code" value={agg.dead_code_count} sublabel="unused items" color={agg.dead_code_count > 0 ? '#ef4444' : '#10b981'} />
+        <MetricCard icon={BookOpen} label="Maintainability" value={agg.avg_maintainability?.toFixed(1)} sublabel="avg index" color="#3ECF8E" />
+        <MetricCard icon={Trash2} label="Dead Code" value={agg.dead_code_count} sublabel="unused items" color={agg.dead_code_count > 0 ? '#ef4444' : '#3ECF8E'} />
         <MetricCard icon={Code} label="Comments" value={`${(agg.comment_ratio * 100)?.toFixed(0)}%`} sublabel={`${agg.comment_lines} lines`} color="#818cf8" />
       </div>
 
@@ -328,7 +328,7 @@ export default function ComplexityDashboard({ data, comparison }) {
         {activeTab === 'deadcode' && (
           <div style={{ padding: '0 20px' }}>
             {deadCode.length === 0 ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#10b981', fontSize: 13 }}>
+              <div style={{ padding: 20, textAlign: 'center', color: '#3ECF8E', fontSize: 13 }}>
                 No dead code detected â€” clean!
               </div>
             ) : (

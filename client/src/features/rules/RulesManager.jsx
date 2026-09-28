@@ -98,7 +98,7 @@ export default function RulesManager() {
           <p className="text-xs opacity-60">Toggle rule packs to enforce coding standards on your code.</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs px-3 py-1 rounded-full font-mono" style={{ background: 'rgba(20, 184, 166, 0.15)', color: '#14b8a6', border: '1px solid rgba(20, 184, 166, 0.3)' }}>
+          <span className="text-xs px-3 py-1 rounded-full font-mono" style={{ background: 'rgba(232, 184, 75, 0.15)', color: '#E8B84B', border: '1px solid rgba(232, 184, 75, 0.3)' }}>
             {activePacks.length} / {Object.keys(packs).length} Active
           </span>
           <button
@@ -128,8 +128,8 @@ export default function RulesManager() {
             layout
             className="rounded-xl overflow-hidden border transition-all"
             style={{
-              borderColor: isActive ? 'rgba(20, 184, 166, 0.4)' : 'var(--card-border)',
-              background: isActive ? 'rgba(20, 184, 166, 0.05)' : 'var(--card-bg)',
+              borderColor: isActive ? 'rgba(232, 184, 75, 0.4)' : 'var(--card-border)',
+              background: isActive ? 'rgba(232, 184, 75, 0.05)' : 'var(--card-bg)',
             }}
           >
             {/* Pack Header */}
@@ -157,7 +157,7 @@ export default function RulesManager() {
                 <button
                   onClick={(e) => { e.stopPropagation(); togglePack(packName); }}
                   className="relative w-10 h-5 rounded-full transition-colors"
-                  style={{ background: isActive ? '#14b8a6' : 'rgba(100, 116, 139, 0.3)' }}
+                  style={{ background: isActive ? '#E8B84B' : 'rgba(100, 116, 139, 0.3)' }}
                 >
                   <span
                     className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"

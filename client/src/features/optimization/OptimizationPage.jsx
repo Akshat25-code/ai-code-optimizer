@@ -50,7 +50,7 @@ const OptimizationPage = () => {
               onClick={() => optimizer.setOptimizationFocus(prev => ({ ...prev, [opt.key]: !prev[opt.key] }))}
               className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 border flex items-center gap-1.5 ${
                 optimizer.optimizationFocus[opt.key]
-                  ? 'bg-[var(--glow-cyan)] text-[var(--accent-cyan)] border-[var(--accent-cyan)] shadow-[0_0_15px_rgba(0,245,212,0.15)]'
+                  ? 'bg-[var(--glow-cyan)] text-[var(--accent-cyan)] border-[var(--accent-cyan)] shadow-[0_0_15px_rgba(232,184,75,0.15)]'
                   : 'bg-[var(--surface-2)] text-[var(--fg-color)] border-[var(--card-border)] hover:bg-[var(--surface-1)] hover:border-[var(--card-hover-border)]'
               }`}
             >
@@ -129,7 +129,7 @@ const OptimizationPage = () => {
 
           <div className="relative z-10 w-28 h-28 rounded-[2rem] bg-[var(--surface-2)] border-2 border-[var(--card-border)] shadow-[0_20px_40px_rgba(0,0,0,0.1)] flex items-center justify-center mb-8 transition-transform duration-500 group-hover:scale-110 group-hover:border-[var(--accent-cyan)]/50">
             <div className="absolute inset-0 rounded-[2rem] bg-[var(--glow-cyan)] animate-stunning-glow opacity-60" />
-            <span className="text-5xl relative z-10 filter drop-shadow-[0_0_15px_rgba(0,245,212,0.8)] animate-float">âœ¨</span>
+            <span className="text-5xl relative z-10 filter drop-shadow-[0_0_15px_rgba(232,184,75,0.8)] animate-float">âœ¨</span>
           </div>
 
           <h3 className="text-2xl md:text-3xl font-black text-[var(--fg-color)] mb-4 tracking-tight relative z-10 drop-shadow-sm">
@@ -145,7 +145,7 @@ const OptimizationPage = () => {
           <div className="glass-frame flex flex-col shadow-[0_10px_40px_rgba(0,0,0,0.5)] transition-all">
             <div className="glass-frame-header bg-gradient-to-r from-[var(--surface-2)] to-transparent border-b border-[var(--card-border)]">
               <div className="flex items-center gap-3 text-sm font-bold text-[var(--fg-color)]">
-                <span className="text-[var(--accent-emerald)] filter drop-shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse">â—</span> Optimized Code
+                <span className="text-[var(--accent-emerald)] filter drop-shadow-[0_0_8px_rgba(62,207,142,0.8)] animate-pulse">â—</span> Optimized Code
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -165,8 +165,8 @@ const OptimizationPage = () => {
                     optimizer.handleRunCode();
                   }}
                   disabled={optimizer.isRunning}
-                  className="px-4 py-1.5 flex items-center gap-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-[var(--surface-1)] border border-[var(--accent-emerald)]/30 hover:bg-[#10b981]/20 text-[#10b981] hover:border-[#10b981]/60 transition-all disabled:opacity-50"
-                  style={{ textShadow: '0 0 10px rgba(16,185,129,0.4)' }}
+                  className="px-4 py-1.5 flex items-center gap-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-[var(--surface-1)] border border-[var(--accent-emerald)]/30 hover:bg-[#3ECF8E]/20 text-[#3ECF8E] hover:border-[#3ECF8E]/60 transition-all disabled:opacity-50"
+                  style={{ textShadow: '0 0 10px rgba(62,207,142,0.4)' }}
                 >
                   <span className={optimizer.isRunning ? 'animate-spin' : ''}>
                     {optimizer.isRunning ? 'â³' : 'â–¶'}
@@ -264,7 +264,7 @@ const OptimizationPage = () => {
                       <div className="flex items-center justify-between text-base">
                         <div className="font-mono text-orange-400 font-medium">{metric.val1}</div>
                         <div className="text-muted/50 text-sm flex-shrink-0 px-2">â†’</div>
-                        <div className="font-mono font-bold text-[var(--accent-emerald)] filter drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">{metric.val2}</div>
+                        <div className="font-mono font-bold text-[var(--accent-emerald)] filter drop-shadow-[0_0_8px_rgba(62,207,142,0.5)]">{metric.val2}</div>
                       </div>
                       {/* Extra context (Lines/Chars) */}
                       {metric.extra && (

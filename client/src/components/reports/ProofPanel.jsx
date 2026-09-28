@@ -3,7 +3,7 @@ import ExportReportPanel from './ExportReportPanel';
 import GitHubPRPanel from '@/features/github/GitHubPRPanel';
 
 const badgeStyle = (status) => {
-  if (status === 'passed') return { bg: 'rgba(16,185,129,0.15)', color: '#10b981', border: 'rgba(16,185,129,0.35)' };
+  if (status === 'passed') return { bg: 'rgba(62,207,142,0.15)', color: '#3ECF8E', border: 'rgba(62,207,142,0.35)' };
   if (status === 'failed') return { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'rgba(239,68,68,0.35)' };
   if (status === 'warning') return { bg: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: 'rgba(245,158,11,0.35)' };
   return { bg: 'rgba(148,163,184,0.1)', color: '#94a3b8', border: 'rgba(148,163,184,0.25)' };
@@ -46,7 +46,7 @@ export default function ProofPanel({
       {health != null && (
         <div className="rounded-lg p-3 border" style={{ borderColor: 'var(--border-color, #334155)' }}>
           <div className="text-xs uppercase tracking-wide opacity-60 mb-1">Project Health</div>
-          <div className="text-2xl font-bold" style={{ color: health >= 85 ? '#10b981' : health >= 60 ? '#f59e0b' : '#ef4444' }}>
+          <div className="text-2xl font-bold" style={{ color: health >= 85 ? '#3ECF8E' : health >= 60 ? '#f59e0b' : '#ef4444' }}>
             {health}/100
           </div>
         </div>

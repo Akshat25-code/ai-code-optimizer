@@ -1,11 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#00f5d4"/>
-      <stop offset="1" stop-color="#10b981"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="14" fill="#050508"/>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="13" fill="none" stroke="url(#g)" stroke-width="3"/>
-  <path d="M35 8 L18 36 h11 l-2 20 17 -28 h-11 l2 -20 z" fill="url(#g)"/>
+  <!-- Favicon: gold ray + prism only (legible under 24px per DESIGN.md) -->
+  <rect width="64" height="64" rx="14" fill="#04101F"/>
+  <polygon points="20,16 20,48 42,32" fill="none" stroke="#C7D2E0" stroke-width="4" stroke-linejoin="round"/>
+  <line x1="42" y1="32" x2="60" y2="20" stroke="#E8B84B" stroke-width="4" stroke-linecap="round"/>
 </svg>

@@ -22,7 +22,8 @@ export default function Footer() {
     <footer className="relative z-10 mt-24" style={{ borderTop: '1px solid var(--card-border)' }}>
       <div className="max-w-[1400px] mx-auto px-6 py-12 grid gap-10 md:grid-cols-3">
         <div>
-          <p className="font-bold text-sm tracking-tight" style={{ color: 'var(--fg-color)' }}>
+          <p className="font-display font-bold text-base tracking-tight flex items-center gap-2" style={{ color: 'var(--fg-strong)' }}>
+            <img src="/logo-prism.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" />
             AI Code Optimizer
           </p>
           <p className="text-sm text-muted mt-2 max-w-xs leading-relaxed">

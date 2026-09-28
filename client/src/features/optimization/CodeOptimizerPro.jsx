@@ -123,14 +123,14 @@ const CodeOptimizer = () => {
   };
 
   const proofTone = (status) => {
-    if (status === 'passed') return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.35)' };
+    if (status === 'passed') return { color: '#3ECF8E', bg: 'rgba(62, 207, 142, 0.12)', border: 'rgba(62, 207, 142, 0.35)' };
     if (status === 'failed') return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)', border: 'rgba(239, 68, 68, 0.35)' };
     if (status === 'warning') return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.35)' };
     return { color: 'var(--muted-color)', bg: 'rgba(148, 163, 184, 0.1)', border: 'rgba(148, 163, 184, 0.25)' };
   };
 
   const scoreColor = (score = 0) => {
-    if (score >= 85) return '#10b981';
+    if (score >= 85) return '#3ECF8E';
     if (score >= 60) return '#f59e0b';
     return '#ef4444';
   };
@@ -667,7 +667,7 @@ const CodeOptimizer = () => {
                     {task === 'analysis' && (
                       <div className="space-y-6 mb-6">
                         {/* Professional Report Card Header */}
-                        <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%)', border: `1px solid var(--card-border)` }}>
+                        <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(232, 184, 75, 0.15) 0%, rgba(62, 207, 142, 0.1) 100%)', border: `1px solid var(--card-border)` }}>
                           <div className="p-6">
                             <div className="flex items-center justify-between mb-4">
                               <div>
@@ -676,7 +676,7 @@ const CodeOptimizer = () => {
                               </div>
                               <div className="text-right">
                                 <div className="text-4xl font-bold" style={{
-                                  color: (analysisReport?.overall_score ?? 0) >= 8 ? '#10b981' :
+                                  color: (analysisReport?.overall_score ?? 0) >= 8 ? '#3ECF8E' :
                                          (analysisReport?.overall_score ?? 0) >= 6 ? '#f59e0b' :
                                          (analysisReport?.overall_score ?? 0) >= 4 ? '#f97316' : '#ef4444'
                                 }}>
@@ -695,7 +695,7 @@ const CodeOptimizer = () => {
                                 transition={{ duration: 0.8, ease: 'easeOut' }}
                                 className="h-full rounded-full"
                                 style={{
-                                  background: (analysisReport?.overall_score ?? 0) >= 8 ? 'linear-gradient(90deg, #10b981, #14b8a6)' :
+                                  background: (analysisReport?.overall_score ?? 0) >= 8 ? 'linear-gradient(90deg, #3ECF8E, #E8B84B)' :
                                              (analysisReport?.overall_score ?? 0) >= 6 ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' :
                                              (analysisReport?.overall_score ?? 0) >= 4 ? 'linear-gradient(90deg, #f97316, #fb923c)' : 'linear-gradient(90deg, #ef4444, #f87171)'
                                 }}
@@ -720,8 +720,8 @@ const CodeOptimizer = () => {
                                 const item = analysisReport.detailed_scores?.[key];
                                 if (!item) return null;
                                 const score = item.score ?? 0;
-                                const getScoreColor = (s) => s >= 8 ? '#10b981' : s >= 6 ? '#f59e0b' : s >= 4 ? '#f97316' : '#ef4444';
-                                const getScoreBg = (s) => s >= 8 ? 'rgba(16, 185, 129, 0.15)' : s >= 6 ? 'rgba(245, 158, 11, 0.15)' : s >= 4 ? 'rgba(249, 115, 22, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+                                const getScoreColor = (s) => s >= 8 ? '#3ECF8E' : s >= 6 ? '#f59e0b' : s >= 4 ? '#f97316' : '#ef4444';
+                                const getScoreBg = (s) => s >= 8 ? 'rgba(62, 207, 142, 0.15)' : s >= 6 ? 'rgba(245, 158, 11, 0.15)' : s >= 4 ? 'rgba(249, 115, 22, 0.15)' : 'rgba(239, 68, 68, 0.15)';
                                 return (
                                   <motion.div
                                     key={key}
@@ -807,7 +807,7 @@ const CodeOptimizer = () => {
                               {/* Strengths */}
                               {Array.isArray(analysisReport.strengths) && analysisReport.strengths.length > 0 && (
                                 <div className="rounded-xl overflow-hidden" style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)` }}>
-                                  <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid var(--card-border)`, background: 'rgba(16, 185, 129, 0.1)' }}>
+                                  <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid var(--card-border)`, background: 'rgba(62, 207, 142, 0.1)' }}>
                                     <span>ðŸ’ª</span>
                                     <h3 className="font-semibold text-emerald-400">Strengths</h3>
                                   </div>
@@ -827,7 +827,7 @@ const CodeOptimizer = () => {
                               {/* Action Plan */}
                               {Array.isArray(analysisReport.action_plan) && analysisReport.action_plan.length > 0 && (
                                 <div className="rounded-xl overflow-hidden" style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)` }}>
-                                  <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid var(--card-border)`, background: 'rgba(20, 184, 166, 0.1)' }}>
+                                  <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid var(--card-border)`, background: 'rgba(232, 184, 75, 0.1)' }}>
                                     <span>ðŸŽ¯</span>
                                     <h3 className="font-semibold text-teal-400">Action Plan</h3>
                                   </div>
@@ -835,7 +835,7 @@ const CodeOptimizer = () => {
                                     <ol className="space-y-2">
                                       {analysisReport.action_plan.slice(0, 5).map((action, i) => (
                                         <li key={i} className="flex items-start gap-2 text-sm">
-                                          <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(20, 184, 166, 0.2)', color: '#14b8a6' }}>{i + 1}</span>
+                                          <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(232, 184, 75, 0.2)', color: '#E8B84B' }}>{i + 1}</span>
                                           <span style={{ color: 'var(--fg-color)' }}>{action}</span>
                                         </li>
                                       ))}
@@ -902,7 +902,7 @@ const CodeOptimizer = () => {
                               </div>
                               <div className="text-right">
                                 <div className="text-4xl font-bold" style={{
-                                  color: totalCount === 0 ? '#10b981' :
+                                  color: totalCount === 0 ? '#3ECF8E' :
                                          getCount('Critical') > 0 ? '#ef4444' :
                                          getCount('High') > 0 ? '#f97316' : '#f59e0b'
                                 }}>
@@ -919,7 +919,7 @@ const CodeOptimizer = () => {
                                   { key: 'Critical', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.2)', icon: 'ðŸ”´' },
                                   { key: 'High', color: '#f97316', bg: 'rgba(249, 115, 22, 0.2)', icon: 'ðŸŸ ' },
                                   { key: 'Medium', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.2)', icon: 'ðŸŸ¡' },
-                                  { key: 'Low', color: '#10b981', bg: 'rgba(16, 185, 129, 0.2)', icon: 'ðŸŸ¢' },
+                                  { key: 'Low', color: '#3ECF8E', bg: 'rgba(62, 207, 142, 0.2)', icon: 'ðŸŸ¢' },
                                 ].map(({ key, color, bg, icon }) => (
                                   <motion.div
                                     key={key}
@@ -959,7 +959,7 @@ const CodeOptimizer = () => {
                                 if (s === 'critical') return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)' };
                                 if (s === 'high') return { color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)', border: 'rgba(249, 115, 22, 0.4)' };
                                 if (s === 'medium') return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)' };
-                                return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.4)' };
+                                return { color: '#3ECF8E', bg: 'rgba(62, 207, 142, 0.15)', border: 'rgba(62, 207, 142, 0.4)' };
                               };
 
                               return (
@@ -1028,7 +1028,7 @@ const CodeOptimizer = () => {
 
                                           {/* Suggested Fix */}
                                           {it.suggested_fix && (
-                                            <div className="p-3 rounded-lg" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                                            <div className="p-3 rounded-lg" style={{ background: 'rgba(62, 207, 142, 0.1)', border: '1px solid rgba(62, 207, 142, 0.3)' }}>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <span className="text-emerald-400">ðŸ’¡</span>
                                                 <span className="text-xs font-medium text-emerald-400">Suggested Fix:</span>
@@ -1075,7 +1075,7 @@ const CodeOptimizer = () => {
 
                             {/* No Issues Found */}
                             {totalCount === 0 && (
-                              <div className="rounded-xl p-8 text-center" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(20, 184, 166, 0.08) 100%)', border: `1px solid rgba(16, 185, 129, 0.3)` }}>
+                              <div className="rounded-xl p-8 text-center" style={{ background: 'linear-gradient(135deg, rgba(62, 207, 142, 0.1) 0%, rgba(232, 184, 75, 0.08) 100%)', border: `1px solid rgba(62, 207, 142, 0.3)` }}>
                                 <div className="text-5xl mb-4">ðŸŽ‰</div>
                                 <h3 className="text-xl font-bold text-emerald-400 mb-2">No Issues Found!</h3>
                                 <p className="text-sm text-muted">Your code passed all static analysis checks. Great job!</p>

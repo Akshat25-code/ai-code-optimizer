@@ -36,21 +36,21 @@ const AnalysisPage = () => {
   };
 
   const getScoreColor = (score) => {
-    if (score >= 8) return '#10b981'; // Emerald
+    if (score >= 8) return '#3ECF8E'; // Emerald
     if (score >= 6) return '#f59e0b'; // Amber
     if (score >= 4) return '#f97316'; // Orange
     return '#ef4444'; // Red
   };
 
   const getScoreGradient = (score) => {
-    if (score >= 8) return 'linear-gradient(90deg, #10b981, #34d399)';
+    if (score >= 8) return 'linear-gradient(90deg, #3ECF8E, #3ECF8E)';
     if (score >= 6) return 'linear-gradient(90deg, #f59e0b, #fbbf24)';
     if (score >= 4) return 'linear-gradient(90deg, #f97316, #fb923c)';
     return 'linear-gradient(90deg, #ef4444, #f87171)';
   };
 
   const getScoreBg = (score) => {
-    if (score >= 8) return 'rgba(16, 185, 129, 0.15)';
+    if (score >= 8) return 'rgba(62, 207, 142, 0.15)';
     if (score >= 6) return 'rgba(245, 158, 11, 0.15)';
     if (score >= 4) return 'rgba(249, 115, 22, 0.15)';
     return 'rgba(239, 68, 68, 0.15)';
@@ -242,7 +242,7 @@ const AnalysisPage = () => {
                          {/* Subtle bg hover */}
                          <div className="absolute inset-0 bg-gradient-to-r from-[var(--glow-cyan)] to-transparent opacity-0 group-hover:opacity-10 transition-opacity" />
 
-                        <div className="flex-shrink-0 w-7 h-7 rounded bg-[var(--surface-2)] border border-[var(--accent-cyan)]/30 text-[var(--accent-cyan)] flex items-center justify-center text-xs font-black shadow-[0_0_10px_rgba(0,245,212,0.1)]">
+                        <div className="flex-shrink-0 w-7 h-7 rounded bg-[var(--surface-2)] border border-[var(--accent-cyan)]/30 text-[var(--accent-cyan)] flex items-center justify-center text-xs font-black shadow-[0_0_10px_rgba(232,184,75,0.1)]">
                           {i + 1}
                         </div>
                         <span className="text-sm text-gray-300 font-medium leading-relaxed relative z-10">{toDisplayText(action)}</span>

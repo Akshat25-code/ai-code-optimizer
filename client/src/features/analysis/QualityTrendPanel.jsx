@@ -12,7 +12,7 @@ const DEBT_COLORS = {
   complexity: '#6366f1',
   security: '#ef4444',
   rules: '#f59e0b',
-  testing: '#10b981',
+  testing: '#3ECF8E',
 };
 
 const DEBT_LABELS = {
@@ -64,7 +64,7 @@ export default function QualityTrendPanel() {
   };
 
   const directionColor = {
-    improving: '#10b981',
+    improving: '#3ECF8E',
     degrading: '#ef4444',
     stable: '#94a3b8',
   };
@@ -138,7 +138,7 @@ export default function QualityTrendPanel() {
                   contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)' }}
                   itemStyle={{ color: '#f8fafc' }}
                 />
-                <Line type="monotone" dataKey="score" stroke="#14b8a6" strokeWidth={2} dot={{ fill: '#14b8a6', r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="score" stroke="#E8B84B" strokeWidth={2} dot={{ fill: '#E8B84B', r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

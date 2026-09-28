@@ -40,7 +40,7 @@ function RepoScanDetails({ repoScan }) {
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded border p-2" style={{ borderColor: 'var(--border-color)' }}>
           <div className="opacity-60">Health</div>
-          <div className="text-xl font-bold" style={{ color: repoScan.health_score >= 85 ? '#10b981' : repoScan.health_score >= 60 ? '#f59e0b' : '#ef4444' }}>
+          <div className="text-xl font-bold" style={{ color: repoScan.health_score >= 85 ? '#3ECF8E' : repoScan.health_score >= 60 ? '#f59e0b' : '#ef4444' }}>
             {repoScan.health_score}/100
           </div>
         </div>
@@ -381,7 +381,7 @@ export default function WorkspacePage() {
       <header className="h-12 flex items-center justify-between px-4 border-b shrink-0" style={{ borderColor: 'var(--border-color, #334155)', background: 'var(--panel-bg, #1e293b)' }}>
         <div className="flex items-center gap-3">
           <span className="font-semibold text-sm">{projectName}</span>
-          <span className="text-xs px-2 py-0.5 rounded" style={{ background: opt.backendHealthy ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: opt.backendHealthy ? '#10b981' : '#ef4444' }}>
+          <span className="text-xs px-2 py-0.5 rounded" style={{ background: opt.backendHealthy ? 'rgba(62,207,142,0.2)' : 'rgba(239,68,68,0.2)', color: opt.backendHealthy ? '#3ECF8E' : '#ef4444' }}>
             API {opt.backendHealthy ? 'Online' : 'Offline'}
           </span>
           {providerStatus && (

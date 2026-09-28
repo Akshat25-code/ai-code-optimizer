@@ -55,7 +55,7 @@ export default function TeamPanel({ user }) {
             setCode={handleCode}
             language="python"
             readOnly={!live}
-            users={peers.map((p, i) => ({ ...p, color: ['#6366f1', '#10b981', '#f59e0b', '#ec4899'][i % 4] }))}
+            users={peers.map((p, i) => ({ ...p, color: ['#6366f1', '#3ECF8E', '#f59e0b', '#ec4899'][i % 4] }))}
           />
         </div>
         {!live && (

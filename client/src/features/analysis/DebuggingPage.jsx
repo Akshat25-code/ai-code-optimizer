@@ -58,7 +58,7 @@ const DebuggingPage = () => {
       ) : (
         <div className="space-y-4">
           {/* Debugging Header */}
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(20, 184, 166, 0.1) 100%)', border: `1px solid var(--card-border)` }}>
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(62, 207, 142, 0.15) 0%, rgba(232, 184, 75, 0.1) 100%)', border: `1px solid var(--card-border)` }}>
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -130,7 +130,7 @@ const DebuggingPage = () => {
                 {optimizer.runResult.stdout && (
                   <div>
                     <div className="text-xs text-muted mb-1">Output:</div>
-                    <pre className="text-sm font-mono p-3 rounded-lg overflow-auto max-h-32" style={{ background: 'rgba(0,0,0,0.3)', color: '#10b981' }}>
+                    <pre className="text-sm font-mono p-3 rounded-lg overflow-auto max-h-32" style={{ background: 'rgba(0,0,0,0.3)', color: '#3ECF8E' }}>
                       {optimizer.runResult.stdout}
                     </pre>
                   </div>
@@ -220,7 +220,7 @@ const DebuggingPage = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="rounded-xl overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(16, 185, 129, 0.08) 100%)', border: `1px solid var(--card-border)` }}
+            style={{ background: 'linear-gradient(135deg, rgba(232, 184, 75, 0.1) 0%, rgba(62, 207, 142, 0.08) 100%)', border: `1px solid var(--card-border)` }}
           >
             <div className="px-4 py-3 flex items-center gap-2">
               <span>ðŸ’¡</span>

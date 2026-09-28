@@ -34,9 +34,10 @@ export default function PipelineView({ isRunning = false, stageStatuses = {}, on
           <button
             onClick={onStartDeep}
             disabled={isRunning}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm text-white shadow-lg shadow-teal-500/20 transition-all hover:scale-[1.02]"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-all hover:scale-[1.02]"
             style={{
-              background: 'linear-gradient(135deg, #0f766e, #14b8a6)',
+              background: 'var(--accent-cyan)',
+              color: 'var(--gold-ink)',
               opacity: isRunning ? 0.5 : 1
             }}
           >

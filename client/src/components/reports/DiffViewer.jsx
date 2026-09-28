@@ -24,7 +24,7 @@ function computeDiff(original = '', modified = '') {
 
 const rowStyle = {
   same: { bg: 'transparent', color: 'var(--fg-color, #e2e8f0)' },
-  add: { bg: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7' },
+  add: { bg: 'rgba(62, 207, 142, 0.15)', color: '#6FD3A7' },
   remove: { bg: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5' },
   change: { bg: 'rgba(245, 158, 11, 0.12)', color: '#fcd34d' },
 };
