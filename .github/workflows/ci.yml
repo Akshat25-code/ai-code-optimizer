@@ -9,16 +9,16 @@ on:
 jobs:
   # Backend tests
   backend-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: server
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -30,15 +30,20 @@ jobs:
         run: pip install ruff && ruff check . || true
 
       - name: Type check (mypy ratchet)
+        # mypy is pinned so CI counts match mypy_baseline.txt (a newer mypy
+        # could report a different error count and false-fail the ratchet).
         run: |
-          pip install mypy
+          pip install "mypy==2.3.0"
           ACTUAL=$(python -m mypy . --config-file mypy.ini --no-error-summary 2>/dev/null | grep -c ": error:" || true)
           BASELINE=$(cat mypy_baseline.txt)
           echo "mypy errors: $ACTUAL (baseline $BASELINE)"
           if [ "$ACTUAL" -gt "$BASELINE" ]; then echo "mypy error count increased above baseline"; exit 1; fi
 
       - name: Security scan (bandit)
-        run: pip install bandit && bandit -r . -ll -x ./tests,./venv,./.venv --exclude ./venv,./.venv
+        # NOTE: use --exclude (long form). The -x short form does not exclude
+        # here and lets tests/ findings fail the gate (see test_sandbox_escape).
+        # bandit is pinned so new checks can't false-fail the gate.
+        run: pip install "bandit==1.9.4" && bandit -r . -ll --exclude ./tests,./venv,./.venv
 
       - name: Complexity check (radon)
         run: pip install radon && radon cc . -s -n B -x venv,.venv || true
@@ -55,9 +60,9 @@ jobs:
         run: pip install pip-audit && pip-audit || true
 
   docker-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build Docker image
         run: docker build -t aco-test:ci .
       - name: Smoke test boots
@@ -65,13 +70,13 @@ jobs:
 
   # Frontend build check
   frontend-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: client
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

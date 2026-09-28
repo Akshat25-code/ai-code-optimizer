@@ -1,182 +1,243 @@
-# DESIGN.md — AI Code Optimizer redesign ("Midnight Laboratory")
+# DESIGN.md — AI Code Optimizer redesign v2 ("Abyssal Gold")
 
-> Status: PROPOSAL — review before any code changes. Generated with the
-> `ui-ux-pro-max` skill (`--design-system`, variance 7 / motion 8 / density 5;
-> style/colors/typography/motion adopted, landing pattern overridden — see §10).
-> Implementation order and gap list live in `APPFLOW.md`.
+> Status: PROPOSAL v2 — review before any code changes. No code touched.
+> Built with the `ui-ux-pro-max` skill (3D & Hyperrealism style guidance:
+> deep navy / gold / burgundy, WebGL-or-CSS-3D, parallax 3–5 layers,
+> perspective 1000px; scroll-choreography presets; chart guidance) plus
+> **framer-motion** (already a project dependency) using motion.dev patterns.
+> Note: there is no "motionsite" skill installed — v2 motion is specified
+> against framer-motion + CSS 3D. v1 ("Midnight Laboratory") is SUPERSEDED
+> below (§12) — do not mix the two systems.
+> Implementation order and gap list live in `APPFLOW.md` (unchanged this round).
 
-## 0. Why redesign
+## 0. Why v2 (and why v1 died)
 
-Current UI ("Cyber-premium obsidian") reads AI-generated: teal-on-black
-everywhere, emoji-as-icons on feature cards, marketing-superlative copy
-("Hyper-Speed Execution", "Neural Engine v4 Active"), six competing CTAs on
-the landing hero path, and 16 finished components (team, review, rules,
-visualizer, command palette, onboarding) that are built but never mounted —
-so the product looks bigger in code than it feels in hand.
+v1 was a palette swap of the same site: same hero, same cards, same teal soul
+with green paint. It still read AI-generated because the *structure* never
+changed. v2 changes structure first: a 3D instrument you tilt and drag, one
+scroll-pinned transformation story, editorial typography, and a palette with
+no neon in it — deep abyss navy, minted gold, forest success, burgundy
+danger. If v1 was a laboratory, v2 is a **cathedral vault full of instruments**.
+
+3-second rule (non-negotiable): a first-time visitor must be able to say
+"this optimizes my code" within 3 seconds. The mechanism is structural, not
+copy: the hero IS the proof — a live buggy→fixed instrument with a match
+badge sits beside the headline, so the transformation is seen before a single
+word is read. The scroll-pinned section below is the deep-dive, not the
+introduction.
 
 ## 1. Concept
 
-**Midnight Laboratory** — a precision instrument for code, not a marketing
-site that happens to contain an editor. Dark-first OLED lab bench (deep
-slate, near-zero light emission), one confident accent (run-green: the color
-of passing tests), amber reserved for warnings, violet reserved for AI. Light
-mode is a supported second citizen ("Day Lab"), never an afterthought.
-Principles: (1) content over chrome — the code is the hero; (2) one accent,
-one job; (3) motion explains state changes, never decorates; (4) every number
-earns its pixels (proof badges, not adjectives).
+**Abyssal Gold** — descend into depth, strike gold. The landing is a dark
+ocean trench (`#04101F` abyss) where code panels float as physical instruments
+at different depths (3–5 parallax layers, perspective 1000px). The hero pairs
+one declarative headline ("Ship faster code, proven correct") with a LIVE
+mini-instrument already mid-transformation — buggy lines washing into fixed
+lines beside a match badge. No mood-setting, no manifesto paragraph: proof
+first, story second. A single gold beam — the "refactor light" — sweeps once
+on load, then parks as an underline beneath the proof metric.
 
-## 2. Color system
+Brand risk, stated plainly: gold-on-navy reads fintech/crypto to some
+developer eyes, which can feel off-brand for a dev tool. Mitigation is
+process, not hope: usability-test the hero with 3–5 real developers before
+committing (§11.7), with a pre-approved fallback — forest-primary,
+gold-secondary — if a majority misreads the brand. Light mode ("Shallows")
+exists as a soft-grey product-preview surface for the app, but the **landing
+is dark-only by design** (3D lighting needs the dark).
 
-Dark-first. Light values in parentheses. All text pairs ≥ 4.5:1.
+## 2. Color system (entirely new — zero teal)
 
-| Token | Dark | Light | Job |
+Dark landing + app (primary surface). Light "Shallows" values in parentheses.
+
+| Token | Dark | Light | Verified text contrast |
 |---|---|---|---|
-| `--bg` | `#0B0F19` | `#F6F8FB` | app background |
-| `--bg-deep` | `#070B13` | `#EAF0F6` | hero/editor wells |
-| `--surface` | `#131A2A` | `#FFFFFF` | cards, panels |
-| `--surface-2` | `#1B2336` | `#EFF4FA` | raised / hover |
-| `--border` | `#2A3550` (1px) | `#DCE5F0` | hairlines, never pure black/white |
-| `--fg` | `#F1F5F9` | `#0F172A` | primary text |
-| `--muted` | `#9AA7BD` | `#4B5B74` | secondary text (both ≥4.5:1) |
-| `--accent` (run-green) | `#34D399` | `#059669` | primary CTA, success, active states |
-| `--accent-ink` | `#052E22` | `#FFFFFF` | text on accent |
-| `--warn` | `#FBBF24` | `#B45309` | warnings, quotas, timeouts |
-| `--danger` | `#F87171` | `#DC2626` | destructive, errors |
-| `--ai` (violet) | `#A78BFA` | `#7C3AED` | AI-originated content ONLY (stream badges, AI diffs) |
-| `--info` | `#7DD3FC` | `#0284C9` | links, neutral highlights |
+| `--abyss` | `#04101F` | `#EDF1F5` | n/a (backgrounds) |
+| `--trench` | `#081627` | `#E2E8F0` | n/a (backgrounds) |
+| `--panel` | `#0C1B30` | `#FFFFFF` | n/a (backgrounds) |
+| `--panel-2` | `#12233C` | `#EFF4FA` | n/a (backgrounds) |
+| `--ridge` | `#24344D` (1px) | `#CBD5E1` | n/a (non-text) |
+| `--silver` | `#C7D2E0` | `#0F1E33` | 12.49 / 16.78 ✓ |
+| `--silver-dim` | `#8FA1B8` | `#4A5B74` | 7.24 / 6.48 ✓ |
+| `--gold` | `#E8B84B` | `#7A5C00` | 10.36 / 5.51 ✓ |
+| `--gold-ink` | `#241A05` | `#FFFFFF` | on-gold pairing |
+| `--forest` | `#3ECF8E` | `#047857` | 9.57 / 5.15 ✓ |
+| `--claret` | `#E2607A` | `#B4234A` | 5.63 / 6.02 ✓ |
+| `--info` | `#7DD3FC` | `#0369A1` | 11.46 / 5.58 ✓ |
+| `--brass` | `#8A6D1F` | `#8A6D1F` | n/a (non-text) |
 
-Rules: accent is the only green on screen; AI violet never touches CTAs or
-success states; amber never used decoratively; no gradients on text except the
-single hero display line; glow = `0 0 24px` max, reserved for the primary CTA
-and live-stream indicator.
+Ratios computed (WCAG relative luminance, script-verified — an earlier draft
+claimed blanket ≥ 4.5:1 and was wrong on three light pairs; corrected here:
+gold `#9A6B0F`→`#7A5C00`, forest `#0E7A4F`→`#047857`, info `#0284C9`→`#0369A1`).
 
-## 3. Typography
+Single-meaning rules (resolve v1 contradictions — read strictly):
+- **Gold = action + brand mark only** (primary CTA, logo rays under 24px are
+  brand furniture, the one-time load beam). Proof numerals are SILVER with
+  forest delta badges — gold never reports data.
+- **≤3 gold foci per viewport**, where a focus = CTA button, beam sweep, or
+  logo lockup at hero scale. The hero ships exactly two: CTA + beam.
+- **Forest = status, with one stated exception**: the prism's forest ray
+  encodes verify/passing — semantic, not decorative. Forest appears nowhere
+  else except pass/fail reporting.
+- **AI-originated content** gets a silver left tick + "AI" text tag (NOT gold —
+  v1 gave gold two meanings; fixed here).
+- No gradients on body text — ever. Multi-stop gradients (8–12 stops) live
+  ONLY inside 3D instrument faces and the beam, never on UI chrome.
 
-- **Display:** IBM Plex Sans 600/700, tracking `-0.02em` — headlines, hero,
-  stat numerals. (Skill-recommended for developer tools.)
-- **Body/UI:** IBM Plex Sans 400/500, base 16px, line-height 1.5.
-- **Code:** JetBrains Mono 400/500/600 — editor, diffs, tokens, hashes.
-- Fallback stack: `Inter, system-ui, sans-serif` if Plex fails to load.
-- Scale (px): 12 caption / 14 body-sm / 16 body / 20 h4 / 24 h3 / 32 h2 / 48–72
-  hero (clamped). Body never below 12px. Tabular numerals for all metrics.
+## 3. Typography (entirely new)
 
-## 4. Logo
+- **Display:** Fraunces 600/700 (72pt optical feel, tight `-0.02em`) —
+  headlines and hero. Expressive serif against technical content is the
+  anti-AI-slop signature; award sites live here.
+- **UI/body:** Space Grotesk 400/500/600, base 16px, line-height 1.55 —
+  geometric character without Inter-ubiquity.
+- **Code/data:** JetBrains Mono 400/600 (kept — it was never the problem).
+- Google Fonts single request: Fraunces + Space Grotesk + JetBrains Mono.
+- Load ONLY used weights (Fraunces 600/700, Grotesk 400/500/600, Mono
+  400/600), `font-display: swap`, preconnect to fonts.gstatic.com. No
+  italic/extra axes unless a design review demands them.
+- Scale: 12 caption / 14 body-sm / 16 body / 20 h4 / 28 h3 / 40 h2 /
+  64–96 hero (fluid clamp). Tabular numerals for metrics.
 
-New mark: **hexagonal bolt in a rounded square** — the bolt = execution speed,
-the hexagon = structured analysis. Construction: 64px grid, 14px radius,
-2.5px run-green stroke bolt on `--bg-deep`, hairline green ring. Variants:
-`logo.svg` (color on dark), `logo-mono.svg` (single-color for light/footer),
-`logo-mark.svg` (bolt only, avatars/favicons). Replaces: header bolt (keep
-placement), favicon set, OG image, manifest icons. Old teal bolt retired with
-the old palette.
+## 4. Logo v2 (new mark)
 
-## 5. Iconography
+**The Prism**: a triangular prism splitting one silver beam into three rays —
+gold (optimize = the action), forest (verify = the passing state), silver
+(analyze = the neutral read). Meaning: analysis splits code into insight.
+The forest ray is the single sanctioned exception to "forest = status only"
+(§2) — it *is* a status, encoded in the mark. Construction: 64px grid; prism
+= stroked triangle, 3px weight, silver; incoming beam horizontal left; three
+outgoing rays at −18°/0°/+18° in gold/forest/silver. At under 24px only the
+gold ray + prism render (favicon legibility). Variants: `logo-prism.svg`
+(full color on abyss), `logo-prism-mono.svg` (single silver for
+footer/light), `prism-mark` (rays only, favicon/avatar). Old lightning bolt
+retired with the teal era.
 
-Lucide only, 1.75px stroke, 20px default (16px dense). Emoji-as-icons removed
-everywhere (current offenders: the six `featurePages` cards on the landing).
-File-type and severity icons get fixed hues: security = amber, error = red,
-quality = green, AI = violet — consistent across panels, toasts, and tables.
+## 5. Iconography & 3D material language
+
+- Lucide, 1.75px stroke, 20px standard — unchanged rule, new hues (§2).
+- Instruments (editor, diff, proof) render as **physical objects**: 2–4px
+  layered drop shadows (20–40% depth per skill), 1px brass/silver rims,
+  subtle top highlight (inset `0 1px 0 rgba(255,255,255,.08)`), film grain
+  overlay (SVG noise, 3–4% opacity) for tactile warmth.
+- Press states are tactile: `scale(.98)` + shadow collapse over 300ms.
+- Emoji-as-icons: zero tolerance (carry-over rule, still violated on landing).
 
 ## 6. Shape, spacing, depth
 
-- Radius: 10px cards, 14px modals, 8px inputs, full pills for badges only.
-- Spacing scale 4px; page gutter 24px (16px mobile); content max 1200px
-  (editor workspace full-bleed).
-- Depth: borders carry structure, not shadows. One shadow token for floating
-  layers (modals, menus, toasts): `0 16px 48px rgba(2,6,17,.5)`. No glassmorphism
-  on content panels (frosted surfaces stay for overlays only) — readability win.
+- Radius: 14px instruments, 18px modals, 10px inputs, pills for badges.
+- Perspective system: `--perspective: 1000px` on 3D stages;
+  `--parallax-layers: 5` max; layer separation via translateZ, never blur
+  abuse (blur is GPU-expensive on mobile).
+- Content max 1240px; app workspace full-bleed; gutters 24px (16 mobile).
 
-## 7. Motion (butter-flow spec)
+## 7. Motion — framer-motion choreography (the butter-flow spec)
 
-Tokens: `--dur-instant 120ms / --dur-fast 200ms / --dur-base 320ms /
---dur-slow 520ms`; easing `cubic-bezier(.22,1,.36,1)` (easeOutExpo-ish) for
-entrances, `ease-in-out` for loops. Rules:
-- Route changes: 240ms fade+8px rise on page container (no full-page wipes).
-- Editor → results: shared-element slide of the "Run" button into the proof
-  badge; streaming text renders progressively, code block flips in on `done`.
-- Micro: buttons scale 1.0→0.97 on press (120ms); hovers 150–200ms; skeletons
-  (never spinners) for panel loads; progress steps animate width, not opacity.
-- `prefers-reduced-motion`: all durations → 0, final states render instantly.
-- Forbidden: animating width/height (use transform), one duration for
-  everything, hover-only affordances, layout-shifting badges (reserve space).
+Library: framer-motion (already depended). No GSAP needed; skill scroll
+presets translated to motion equivalents below. Global rules first:
 
-## 8. Components (single source of truth)
+- Durations: micro 150ms / UI 300–400ms / scene 500–800ms. One easing family:
+  `easeOut` (`[0.22, 1, 0.36, 1]`) for entrances, spring (`stiffness 260,
+  damping 30`) for draggable/tilting 3D.
+- `prefers-reduced-motion`: EVERYTHING below collapses to final state, zero
+  animation — non-negotiable, per skill a11y requirements.
+- Never animate width/height; never parallax body copy; reserve space for all
+  badges/numbers (CLS < 0.1).
 
-- **Button:** primary (accent fill, ink text, 44px min-height), secondary
-  (1px border, surface bg), ghost (text only), danger. Loading = disabled +
-  inline 16px spinner + preserved label ("Optimizing…", never "Loading").
-- **Input:** label above (always visible, never placeholder-only), 12px radius
-  8px, focus ring 2px accent at 40% + `aria-invalid` + inline error below in
-  danger color. Keep existing validation/honeypot behavior.
-- **Card/panel:** surface bg, 1px border, 10px radius, header row (title left,
-  actions right), skeleton state defined per panel.
-- **Nav:** top bar (logo, Product links, Workspace, user) + mobile hamburger
-  (already added); footer (already added) restyled to new tokens.
-- **Editor shell:** full-height Monaco, language + model pickers in a slim
-  toolbar, sticky Run bar on mobile, line-number gutter never overlapped.
-- **Diff viewer:** split on ≥1024px, unified below; added = green wash,
-  removed = red wash, AI-touched hunks get a violet left tick + "AI" tag.
-- **Proof panel:** the signature component — big status badge (Outputs match /
-  differ), metric trio (time, memory, correctness), expandable raw outputs.
-- **Progress:** 4-step stepper (Analyze → Optimize → Execute → Verify), never
-  more; failures land on the failed step with retry inline.
-- **Banner/consent/toast:** keep current cookie-consent behavior, restyle to
-  tokens; toasts bottom-right, auto-dismiss 5s, action slot for Undo/Retry.
-- **Empty states:** every list (sessions, projects, teams, findings) gets an
-  illustrated empty state with exactly one CTA — no dead blank panels.
+**7a. Hero 3D instrument (landing, above fold).** A code-editor card floating
+in a `perspective: 1000px` stage, mouse-tracked with springs:
+`useMotionValue(mx,my)` → `useTransform` → `rotateX/rotateY` (±8° max) +
+`useSpring` smoothing; behind it 2 defocused ghost panels at translateZ
+−60/−120px drifting on scroll (parallax layers 2–3 of 5). Gold beam: a skewed
+gradient bar sweeping across on load (800ms, once). Mobile/touch: static tilt
+(−4°) — no mouse tracking, no perf cliff.
 
-## 9. Page-by-page redesign notes
+**7b. The pinned transformation (landing, ONE pinned section only).**
+Scroll-scrubbed (`useScroll({ target })` + `useTransform`, scrub ≈ 1):
+as the user scrolls 150vh, the instrument's code morphs buggy → fixed line by
+line while the proof badge counts 0 → 94/100 and the diff wash wipes across.
+Pin exactly one section per page (skill rule — pinning fights native scroll
+and mobile). All other reveals: viewport-enter fades, y-offset 8–16px,
+300–400ms, `power1.out` equivalent.
 
-- **Landing `/`:** single hero (display line + one proof metric + ONE primary
-  CTA "Start optimizing — free"), live mini-demo (type → fake optimize inline,
-  no auth), proof strip (real numbers from RESEARCH.md, no adjectives),
-  feature grid (6 SVG-icon cards → the six revived feature areas), footer.
-  Kill: ambient orb overload (keep one), emoji icons, superlative copy.
-- **Auth `/auth`, forgot, reset, profile, settings:** keep flows, reskin to
-  tokens; settings gains theme (Midnight/Day), motion-reduce toggle honoring
-  OS setting, and API-key panel already there.
-- **Workspace `/workspace` + Optimizer `/optimize`:** merge visually into one
-  "Lab bench" shell (tabs, not two pages that feel different); command palette
-  (`Cmd+K`) global — mounts the dead `CommandPalette`.
-- **Analysis `/analysis`, bug `/bug-detection`, docs `/documentation`,
-  refactor `/refactoring`, debug `/debugging`:** unify on `FeaturePageLayout`
-  v2: input → findings table (severity hues §5) → export. Mount dead
-  `FindingsPanel`/`ViolationsPanel` here.
-- **Review (NEW route `/review`):** mount dead `PipelineView` — stage stepper,
-  ranked findings, approve/dismiss per finding.
-- **Rules (NEW route `/rules`):** mount dead `RulesManager` — pack toggles,
-  custom YAML editor with validation, per-rule test button.
-- **Team (NEW route `/team`):** mount dead `TeamDashboard` + `ShareModal` +
-  `CollaborativeEditor` (already socket-ready per `core/websocket.py`).
-- **Visualize (NEW route `/visualize`):** mount dead `TraceRunner` +
-  `AlgorithmVisualizer` + `ComparisonVisualizer`; bullet-chart KPI grids per
-  skill chart guidance (labeled ranges, text-first, not color-only).
-- **GitHub (workspace tab, not a route):** mount dead `GitHubRepoModal` +
-  `GitHubPRPanel`.
-- **Reports (inline):** mount dead `ExportOptions` in report panels (PDF/JSON).
-- **Sessions:** empty `features/sessions/` becomes the session-history drawer
-  (backend `/opt-sessions` already exists).
-- **Onboarding:** first-run tour mounts dead `OnboardingTour` (3 steps:
-  paste code → run → read proof), skippable, never reshown.
-- **Legal/404:** keep, reskin.
+**7c. Route & UI motion.** Page enter: 240ms fade + 8px rise. Editor → proof:
+shared-element morph of Run button into the proof badge (`layoutId`).
+Streaming: progressive text, code block flips in on done. Stepper progress
+animates width. Toasts bottom-right, 5s. Skeletons, never spinners.
+
+**7d. Performance budgets (gates, not wishes).** Three families + grain +
+layered shadows + parallax will sink mid-range phones if unchecked:
+- Fonts: subset weights only (§3), `display: swap`, preconnect. No axis creep.
+- 3D: CSS-3D only (no WebGL/Three.js — perf cost:high per skill; revisit
+  only with a measured budget AND a static fallback). Tilt disabled on
+  touch/coarse pointers; parallax layers drop to 2 under 768px.
+- Grain: single tiled SVG noise at 3–4% (no canvas, no animation).
+- Gate before the landing ships: Lighthouse, throttled Moto G4 profile —
+  LCP < 2.5s, CLS < 0.1, TBT < 300ms. If it misses, cut a parallax layer
+  first, then the beam, then grain — in that order.
+- What we explicitly do NOT ship: WebGL hero, more than one pinned section,
+  scroll-jacked horizontal galleries, cursor-following spotlights.
+
+## 8. Components (delta vs current)
+
+Button (gold fill, ink text, 46px, tactile press), input (label-above +
+inline errors — keep current validation logic), card→**instrument** (layered
+shadow + rim + grain), nav (same IA, new tokens + Fraunces wordmark + prism
+mark), editor shell (trench bed, brass line-number gutter), diff (split ≥1024:
+forest/claret washes; AI hunks get a silver left tick + "AI" text tag — gold
+is action-only per §2), proof panel (oversized silver Fraunces numerals with
+forest/claret delta badges, all values bound to measured data — invented
+metrics are a ship-blocker), stepper (4 steps),
+banner/consent/toast (restyle), empty states (one CTA each, prism watermark).
+
+## 9. Page notes (v2 look, same IA — no flow changes)
+
+- **Landing `/`:** abyss stage → hero = declarative headline + LIVE
+  mini-instrument mid-transformation (buggy→fixed wash + match badge + ONE
+  gold CTA "Start optimizing — free") → pinned deep-dive transformation
+  story (the one pin) → proof strip (silver Fraunces numerals, forest deltas,
+  RESEARCH.md-sourced, never invented) → six SVG-icon instrument cards →
+  footer. Kill: orbs, emoji, superlatives, competing CTAs, manifestos.
+- **App pages** (`/workspace`, `/optimize`, analysis family, settings, auth,
+  legal, 404): same flows as APPFLOW.md, reskinned to §2–§8 (trench beds,
+  instrument cards, Fraunces headings, Space Grotesk UI, Mono code).
+- **Dead-area revivals** (review/rules/team/visualize/sessions/palette — now
+  MOUNTED this round, see git log `bc913f3`): reskin in place, no restyle of
+  their flows until v2 implementation.
 
 ## 10. Method notes (skill compliance)
 
-- Generator recommended: Dark OLED style, slate+green palette, Plex/Mono type,
-  minimal glow, expo route transitions — all adopted.
-- Generator suggested an FAQ/docs landing pattern — REJECTED with reason: the
-  product is an interactive tool, not a support site; conversion pattern is
-  hero + live demo + proof. Recorded here so the deviation is deliberate.
-- Chart guidance adopted: bullet grids for KPI multiples, labeled ranges +
-  text fallbacks, keyboard-reachable details.
-- Pre-delivery checklist enforced at implementation: no emoji icons,
-  pointer cursors on clickables, 150–300ms hovers, 4.5:1 text, visible focus,
-  reduced-motion, 375/768/1024/1440px passes.
+- Adopted: 3D & Hyperrealism guidance (deep navy/gold/burgundy palette,
+  1000px perspective, 3–5 parallax layers, layered shadows, grain, tactile
+  300–500ms press), scroll presets (one pin max, scrub 0.5–1.5, small reveals,
+  decor-only parallax, reduced-motion fallbacks), chart guidance (unchanged).
+- Rejected with reason: skeuomorphic literalism (wood/leather metaphors —
+  wrong for a code tool; kept its *techniques*: layered shadow, grain,
+  tactile press); WebGL hero (cost); FAQ-landing pattern (still wrong).
+- Pre-delivery checklist enforced at implementation: no emoji icons, pointer
+  cursors, 150–300ms hovers (micro tier), verified contrast pairs (§2 table
+  only — no blanket claims), visible focus, reduced-motion, 375/768/1024/1440px
+  passes, content visible without JS (SEO/crawler fallback), Lighthouse mobile
+  gate (§7d) before landing ships.
 
 ## 11. Open decisions (finalize with owner before code)
 
 1. Product name lock: keep "AI Code Optimizer"?
 2. Dark-first with Day Lab secondary — or dark-only?
 3. Merge `/workspace` + `/optimize` into one Lab shell (recommended) or keep separate?
-4. Which dead areas ship in v1 redesign: review + rules + visualize + team (recommended) vs. phased?
-5. Voice/tone: keep "lab instrument" diction (precise, terse) in all copy?
+4. v1-mounted areas (review/rules/team/visualize/sessions/palette) ship in the
+   v2 reskin as-is, or phased?
+5. Voice/tone: precise, terse "instrument" diction in all copy?
+6. Three.js hero vs CSS-3D (default: CSS-3D)?
+7. BRAND-RISK GATE (from review): test the gold-on-navy hero with 3–5 real
+   developers before committing. Majority misreads as fintech/crypto →
+   fallback: forest-primary CTA + numerals, gold demoted to logo/beam only.
+   Do not ship the v2 landing without this check.
+8. Font loading contract (§3 subset + `display: swap`): locked in?
+   (Yes recommended — removes a Lighthouse failure mode up front.)
+
+## 12. v1 ("Midnight Laboratory") — SUPERSEDED
+
+v1's slate + run-green system is retired: it kept the old structure and its
+contrast table contained three unverified pairs. Nothing from v1 carries into
+v2 except reusable mechanics (skeletons-not-spinners, 4-step stepper,
+one-CTA empty states). Do not mix tokens across versions.

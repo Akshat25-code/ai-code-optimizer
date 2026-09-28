@@ -106,7 +106,7 @@ def test_docker_hardening_flags(monkeypatch):
         return CP()
 
     monkeypatch.setattr(dr, "_safe_subprocess_run", fake_run)
-    dr.run_in_docker("python:3.12-alpine", ["python", "--version"], "/tmp", 5.0)
+    dr.run_in_docker("python:3.12-alpine", ["python", "--version"], "/tmp", 5.0)  # nosec B108 -- fixture path, not a real tempdir
     cmd = captured["cmd"]
     for flag in ("--read-only", "--cap-drop=ALL", "--pids-limit=64",
                  "--network", "none", "--memory=128m", "--memory-swap=128m",
