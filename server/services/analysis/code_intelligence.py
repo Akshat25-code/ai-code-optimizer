@@ -64,7 +64,11 @@ def _finding(
     line: int | None = None,
     code_snippet: str | None = None,
 ) -> dict[str, Any]:
-    digest = hashlib.sha1(f"{category}:{severity}:{title}:{line}".encode("utf-8")).hexdigest()[:10]
+    # Non-security stable ID only (not a password/hash boundary).
+    digest = hashlib.sha1(  # nosec B324
+        f"{category}:{severity}:{title}:{line}".encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()[:10]
     return {
         "id": f"{category}:{severity}:{line or 'global'}:{digest}",
         "category": category,

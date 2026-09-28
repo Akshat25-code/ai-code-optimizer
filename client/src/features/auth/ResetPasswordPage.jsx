@@ -1,6 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import authService from '@/services/authService';
+import HoneypotField from '@/components/forms/HoneypotField';
+import { validatePassword } from '@/lib/validation';
+import { isHoneypotFilled, isTooFast, createSubmitThrottle, HONEYPOT_FIELD } from '@/lib/spamGuard';
 
 const ResetPasswordPage = () => {
   const [params] = useSearchParams();
@@ -10,6 +13,10 @@ const ResetPasswordPage = () => {
   const [confirm, setConfirm] = useState('');
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
+  const [fieldError, setFieldError] = useState('');
+  const mountedAt = useRef(Date.now());
+  const throttle = useRef(createSubmitThrottle());
 
   useEffect(()=>{
     const t = params.get('token');
@@ -18,14 +25,20 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isHoneypotFilled({ [HONEYPOT_FIELD]: honeypot }) || isTooFast(mountedAt.current) || !throttle.current()) {
+      setStatus({ type: 'error', message: 'Something looked automated. Please wait a moment and try again.' });
+      return;
+    }
     if (password !== confirm) {
       setStatus({ type: 'error', message: 'Passwords do not match' });
       return;
     }
-    if (password.length < 8) {
-      setStatus({ type: 'error', message: 'Password must be at least 8 characters' });
+    const problem = validatePassword(password);
+    if (problem) {
+      setFieldError(problem);
       return;
     }
+    setFieldError('');
     setLoading(true);
     setStatus(null);
     const res = await authService.resetPassword(token, password);
@@ -46,20 +59,23 @@ const ResetPasswordPage = () => {
         {status && (
           <div className={`mb-4 text-sm px-3 py-2 rounded border ${status.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>{status.message}</div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <HoneypotField value={honeypot} onChange={(e)=>setHoneypot(e.target.value)} />
           {!token && (
             <div>
-              <label className="block text-gray-300 text-sm mb-2">Reset Token</label>
-              <input value={token} onChange={(e)=>setToken(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Paste the token you received" />
+              <label htmlFor="reset-token" className="block text-gray-300 text-sm mb-2">Reset Token</label>
+              <input id="reset-token" value={token} onChange={(e)=>setToken(e.target.value)} required autoComplete="off" className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Paste the token you received" />
             </div>
           )}
           <div>
-            <label className="block text-gray-300 text-sm mb-2">New Password</label>
-            <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            <label htmlFor="reset-password" className="block text-gray-300 text-sm mb-2">New Password</label>
+            <input id="reset-password" type="password" value={password} onChange={(e)=>{setPassword(e.target.value); setFieldError('');}} required autoComplete="new-password" aria-invalid={!!fieldError} className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            {fieldError && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{fieldError}</p>}
+            {!fieldError && <p className="text-xs text-gray-500 mt-1">At least 8 characters with letters and numbers</p>}
           </div>
           <div>
-            <label className="block text-gray-300 text-sm mb-2">Confirm Password</label>
-            <input type="password" value={confirm} onChange={(e)=>setConfirm(e.target.value)} required className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            <label htmlFor="reset-confirm" className="block text-gray-300 text-sm mb-2">Confirm Password</label>
+            <input id="reset-confirm" type="password" value={confirm} onChange={(e)=>setConfirm(e.target.value)} required autoComplete="new-password" className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
           </div>
           <button disabled={loading} className="w-full py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white disabled:opacity-50">{loading ? 'Resetting...' : 'Reset Password'}</button>
         </form>

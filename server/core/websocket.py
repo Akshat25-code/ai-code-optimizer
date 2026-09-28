@@ -57,7 +57,7 @@ class CollaborationManager:
         # session_id -> current revision counter
         self._revision: Dict[str, int] = {}
 
-    async def connect(self, session_id: str, websocket: WebSocket, user_info: dict = None):
+    async def connect(self, session_id: str, websocket: WebSocket, user_info: Optional[dict] = None):
         await websocket.accept()
         if session_id not in self.rooms:
             self.rooms[session_id] = {}
@@ -164,7 +164,7 @@ class CollaborationManager:
         await self.broadcast_to_room(session_id, message)
 
     async def broadcast_to_room(
-        self, session_id: str, message: dict, exclude: WebSocket = None
+        self, session_id: str, message: dict, exclude: Optional[WebSocket] = None
     ):
         if session_id in self.rooms:
             for connection in list(self.rooms[session_id].keys()):
@@ -192,7 +192,7 @@ class CollaborationManager:
         session_id: str,
         websocket: WebSocket,
         cursor: dict,
-        selection: dict = None,
+        selection: Optional[dict] = None,
     ):
         if session_id in self.rooms and websocket in self.rooms[session_id]:
             self.rooms[session_id][websocket]["cursor"] = cursor

@@ -46,34 +46,38 @@ class StaticAnalysisStage(Stage):
     name = "Static Analysis"
 
     async def execute(self, code: str, language: str) -> List[Finding]:
-        findings = []
+        findings: List[Finding] = []
         if language.lower() != "python":
             return findings
 
         try:
-            report = analyze_complexity(code)
+            # analyze_complexity returns a serialized dict (or {"error": ...}).
+            report = analyze_complexity(code, language)
+            if report.get("error"):
+                return findings
 
             # Convert dead code to findings
-            for item in report.dead_code:
+            for item in report.get("dead_code", []):
                 findings.append(Finding(
                     stage=self.name,
                     category="dead_code",
                     severity="Low",
                     confidence=0.95,
-                    line=item.line,
-                    message=f"Dead {item.kind}: {item.name} - {item.reason}"
+                    line=item.get("line"),
+                    message=f"Dead {item.get('kind')}: {item.get('name')} - {item.get('reason')}"
                 ))
 
             # Convert high complexity to findings
-            for func in report.functions:
-                if func.cyclomatic_complexity > 10:
+            for func in report.get("functions", []):
+                cc = func.get("cyclomatic_complexity", 1)
+                if cc > 10:
                     findings.append(Finding(
                         stage=self.name,
                         category="complexity",
-                        severity="Medium" if func.cyclomatic_complexity < 20 else "High",
+                        severity="Medium" if cc < 20 else "High",
                         confidence=0.95,
-                        line=func.line,
-                        message=f"Function '{func.name}' has high cyclomatic complexity ({func.cyclomatic_complexity})."
+                        line=func.get("line"),
+                        message=f"Function '{func.get('name')}' has high cyclomatic complexity ({cc})."
                     ))
         except Exception:
             pass
@@ -85,11 +89,16 @@ class SecurityScanStage(Stage):
     name = "Security Scan"
 
     async def execute(self, code: str, language: str) -> List[Finding]:
-        findings = []
+        findings: List[Finding] = []
         try:
-            # Re-use our bug_scanner
+            # bug_scanner returns {summary, compile_time_errors, runtime_errors,
+            # logic_errors, top_priorities, notes} — no flat "issues" key.
             report = scan_python(code) if language.lower() == "python" else scan_javascript(code)
-            issues = report.get("issues", [])
+            issues = (
+                report.get("compile_time_errors", [])
+                + report.get("runtime_errors", [])
+                + report.get("logic_errors", [])
+            )
             for issue in issues:
                 findings.append(Finding(
                     stage=self.name,
@@ -110,12 +119,13 @@ class PerformanceStage(Stage):
     name = "Performance & Big-O"
 
     async def execute(self, code: str, language: str) -> List[Finding]:
-        findings = []
+        findings: List[Finding] = []
         try:
-            # We can re-use the simple estimate_complexity util which returns time/space estimates
-            time_c, space_c = estimate_complexity(code, language)
+            # estimate_complexity returns a dict, not a tuple.
+            estimates = estimate_complexity(code, language)
+            time_c = estimates.get("time_complexity", "Unknown")
 
-            if time_c not in ("O(1)", "O(log N)", "O(N)"):
+            if time_c not in ("O(1)", "O(log N)", "O(N)", "Unknown"):
                 findings.append(Finding(
                     stage=self.name,
                     category="performance",
@@ -134,8 +144,8 @@ class PerformanceStage(Stage):
 class AIReviewStage(Stage):
     name = "AI Review"
 
-    async def execute(self, code: str, language: str, prior_findings: List[Finding] = None) -> List[Finding]:
-        findings = []
+    async def execute(self, code: str, language: str, prior_findings: Optional[List[Finding]] = None) -> List[Finding]:
+        findings: List[Finding] = []
         prior_findings = prior_findings or []
 
         # Build prompt with prior context
@@ -151,22 +161,22 @@ class AIReviewStage(Stage):
         )
 
         try:
-            # Using ask_ai (which already parses JSON if we ask it to)
-            result_json = await ask_ai(prompt, task="bug-detection")
+            # ask_ai(task, language, code, provider, ...) -> (provider, text, tok_in, tok_out)
+            _, result_json, _, _ = await ask_ai(
+                "bug-detection", language, code, None, user_instructions=prompt
+            )
 
             # If the response isn't a list directly (maybe it's wrapped), try to extract
             import json
             import re
 
-            # Simple extraction if ask_ai returned markdown block
-            if isinstance(result_json, str):
-                match = re.search(r'\[\s*\{.*?\}\s*\]', result_json, re.DOTALL)
-                if match:
-                    parsed = json.loads(match.group(0))
-                else:
-                    parsed = []
+            # ask_ai returns text (often a markdown-fenced JSON array).
+            match = re.search(r'\[\s*\{.*?\}\s*\]', result_json, re.DOTALL)
+            if match:
+                loaded: Any = json.loads(match.group(0))
+                parsed: List[Dict[str, Any]] = loaded if isinstance(loaded, list) else []
             else:
-                parsed = result_json if isinstance(result_json, list) else result_json.get("issues", [])
+                parsed = []
 
             for item in parsed:
                 findings.append(Finding(
@@ -226,7 +236,7 @@ class AggregationStage:
 
 
 class ReviewPipeline:
-    def __init__(self, session_id: str = None):
+    def __init__(self, session_id: Optional[str] = None):
         self.session_id = session_id
 
         self.stages = [
@@ -257,8 +267,9 @@ class ReviewPipeline:
         results = await asyncio.gather(*[s.execute(code, language) for s in self.stages], return_exceptions=True)
 
         for i, s in enumerate(self.stages):
-            if isinstance(results[i], list):
-                all_findings.extend(results[i])
+            res = results[i]
+            if isinstance(res, list):
+                all_findings.extend([f for f in res if isinstance(f, Finding)])
             await self._emit_progress(s.name, "complete")
 
         # 2. Run AI Stage sequentially (needs prior findings context)
@@ -276,7 +287,7 @@ class ReviewPipeline:
         await self._emit_progress(self.agg_stage.name, "complete")
 
         # Group by category for UI convenience
-        grouped = {}
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
         for f in final_findings:
             cat = f.category
             if cat not in grouped:

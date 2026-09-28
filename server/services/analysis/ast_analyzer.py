@@ -1,5 +1,6 @@
 ﻿import ast
 import json
+from typing import Any
 
 def calculate_complexity(node):
     """Simple cyclomatic complexity: 1 + number of branching points."""
@@ -12,11 +13,11 @@ def calculate_complexity(node):
 def analyze_python_ast(code: str) -> str:
     """Parses Python code and extracts structural metadata as JSON string."""
     try:
-        tree = ast.parse(code)
+        tree = ast.parse((code or "").lstrip("\ufeff"))
     except Exception:
         return ""
 
-    metadata = {
+    metadata: dict[str, Any] = {
         "classes": [],
         "functions": [],
         "imports": [],

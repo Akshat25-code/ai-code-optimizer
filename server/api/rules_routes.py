@@ -32,7 +32,10 @@ async def get_rule_packs():
                 "languages": r.languages,
                 "message": r.message,
                 "autofix": r.autofix,
-                "enabled_by_default": r.enabled_by_default
+                "enabled_by_default": r.enabled_by_default,
+                # Full pattern included so clients can round-trip rules
+                # through POST /rules/evaluate (see _parse_rules).
+                "pattern": {"type": r.pattern.type, "value": r.pattern.value},
             } for r in rules
         ]
     return res

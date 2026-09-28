@@ -419,6 +419,8 @@ async def ask_gemini(prompt: str, *, api_key_override: str | None = None) -> str
     payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.2}}
     candidate_models = [
         settings.gemini_model,
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
         "gemini-1.5-flash-latest",
         "gemini-1.5-pro-latest",
         "gemini-2.0-flash",

@@ -26,7 +26,7 @@ _twilio_client = None
 
 if USE_TWILIO_CORE:
     try:
-        from twilio.rest import Client  # type: ignore
+        from twilio.rest import Client
         _twilio_client = Client(_SID, _TOKEN)
     except Exception as e:
         print(f"âš ï¸  Failed to initialize Twilio client, falling back to mock: {e}")

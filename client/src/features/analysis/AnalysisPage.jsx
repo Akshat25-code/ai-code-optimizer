@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion';
 import FeaturePageLayout from '@/components/layout/FeaturePageLayout';
 import useOptimizer from '@/features/optimization/useOptimizer';
+import ReviewPanel from '@/features/review/ReviewPanel';
 
 const AnalysisPage = () => {
   const optimizer = useOptimizer({ defaultTask: 'analysis', enableFileManager: true });
@@ -328,6 +329,15 @@ const AnalysisPage = () => {
           <pre className="text-sm whitespace-pre-wrap overflow-auto max-h-96 font-mono text-gray-300 custom-scrollbar p-4 bg-[#050508] rounded-xl border border-[var(--card-border)]">
             {optimizer.outExplanation || optimizer.optimizedCode}
           </pre>
+        </div>
+      )}
+
+      {optimizer.code?.trim() && (
+        <div className="mt-5">
+          <ReviewPanel
+            code={optimizer.code}
+            language={optimizer.resolvedEditorLanguage || optimizer.language || 'python'}
+          />
         </div>
       )}
     </div>

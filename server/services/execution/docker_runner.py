@@ -5,19 +5,22 @@ import locale
 import os
 import shutil
 import subprocess
-from typing import Optional
+from typing import Any, Optional
 
 
 def _safe_subprocess_run(
-    cmd, timeout_s: float, cwd: str | None = None, stdin_text: str | None = None
-):
+    cmd: list[str],
+    timeout_s: float,
+    cwd: str | None = None,
+    stdin_text: str | None = None,
+) -> subprocess.CompletedProcess[str]:
     """Run subprocess with robust, platform-friendly decoding."""
     preferred_encoding = (
         os.getenv("RUNNER_OUTPUT_ENCODING")
         or locale.getpreferredencoding(False)
         or "utf-8"
     )
-    kwargs = {
+    kwargs: dict[str, Any] = {
         "capture_output": True,
         "text": True,
         "encoding": preferred_encoding,
@@ -36,6 +39,11 @@ def should_use_docker() -> bool:
     return os.getenv("USE_DOCKER_SANDBOX", "0") == "1" and bool(shutil.which("docker"))
 
 
+def is_production() -> bool:
+    """True when running in production (APP_ENV=production)."""
+    return os.getenv("APP_ENV", "development").lower() == "production"
+
+
 def run_in_docker(
     image: str,
     cmd: list[str],
@@ -45,15 +53,21 @@ def run_in_docker(
 ) -> subprocess.CompletedProcess:
     """Run code in a heavily restricted Docker container.
 
-    Limits: 128MB RAM, 0.5 CPU, 64 PIDs, no network, all capabilities dropped.
+    Limits: 128MB RAM (+no swap), 0.5 CPU, 64 PIDs, no network,
+    read-only rootfs, no-new-privileges, non-root user, all caps dropped.
     """
     docker_cmd = [
         "docker", "run", "--rm",
         "--network", "none",
         "--memory=128m",
+        "--memory-swap=128m",
         "--cpus=0.5",
         "--pids-limit=64",
         "--cap-drop=ALL",
+        "--security-opt", "no-new-privileges:true",
+        "--read-only",
+        "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",  # nosec B108 -- container tmpfs mount spec, not host tempfile
+        "--user", "nobody",
         "-v", f"{os.path.abspath(td)}:/sandbox",
         "-w", "/sandbox",
         "-i",

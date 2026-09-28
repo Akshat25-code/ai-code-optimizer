@@ -1,26 +1,18 @@
-﻿import React, { useRef, useEffect } from 'react';
+﻿import React from 'react';
 import CodeEditor from '@/components/editor/CodeEditor';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function CollaborativeEditor({
-  code, setCode, language, readOnly, users = [], onCursorUpdate
+  code, setCode, language, readOnly, users = [],
 }) {
   const { user: currentUser } = useAuth();
 
-  // A simple implementation of remote cursors.
-  // In a real Monaco environment, this would hook into editor.createDecorationsCollection()
-  // Since we are mocking the visual, we will just pass down the props to the underlying CodeEditor
-  // and render absolute positioned fake cursors over the container.
+  // Remote cursors render as line badges (CodeEditor does not expose the
+  // Monaco instance, so true inline decorations are not possible here).
 
   const handleEditorChange = (val) => {
     if (!readOnly) {
       setCode(val);
-    }
-  };
-
-  const handleCursorChange = (position) => {
-    if (onCursorUpdate && !readOnly) {
-      onCursorUpdate(position);
     }
   };
 
@@ -41,11 +33,10 @@ export default function CollaborativeEditor({
       </div>
 
       <CodeEditor
-        code={code}
+        value={code}
         language={language}
         onChange={handleEditorChange}
         readOnly={readOnly}
-        theme="vs-dark"
       />
 
       {/* Remote Cursors Overlay (Mock UI) */}

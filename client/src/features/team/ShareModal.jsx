@@ -8,29 +8,32 @@ export default function ShareModal({ isOpen, onClose, sessionId, snapshotData })
   const [shareLink, setShareLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [expiresIn, setExpiresIn] = useState('24');
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
   const handleGenerate = async () => {
     setLoading(true);
+    setError('');
     try {
+      if (!sessionId) throw new Error('Nothing to share yet — run code first.');
       const res = await fetch(`${API_BASE}/share/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           session_id: sessionId,
-          expires_in_hours: parseInt(expiresIn, 10),
+          expires_in_hours: parseInt(expiresIn, 10) || 24,
           read_only: true,
-          snapshot_data: snapshotData
+          snapshot_data: snapshotData || {}
         })
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        setShareLink(`${window.location.origin}/share/${data.token}`);
-      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Share failed (HTTP ${res.status})`);
+      if (!data.token) throw new Error('Share failed: no token returned');
+      setShareLink(`${window.location.origin}/share/${data.token}`);
     } catch (err) {
-      console.error("Share error:", err);
+      setError(err.message || 'Share failed');
     } finally {
       setLoading(false);
     }
@@ -98,6 +101,11 @@ export default function ShareModal({ isOpen, onClose, sessionId, snapshotData })
             >
               {loading ? 'Generating...' : 'Generate Secure Link'}
             </button>
+            {error && (
+              <div role="alert" className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+                {error}
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-5">

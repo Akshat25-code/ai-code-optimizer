@@ -62,8 +62,14 @@ async def create_project(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a new project, run initial analysis, and store in MongoDB."""
+    from services.analysis.secret_scanner import redact_for_storage
     db = get_database()
-    files_raw = [{"path": f.path, "content": f.content} for f in req.files]
+    files_raw = []
+    secrets_redacted = 0
+    for f in req.files:
+        content, n = redact_for_storage(f.content)
+        secrets_redacted += n
+        files_raw.append({"path": f.path, "content": content})
 
     # Index files (tree + metadata)
     index = index_files(files_raw)
@@ -84,6 +90,7 @@ async def create_project(
         "total_lines": index["total_lines"],
         "total_files": index["total_files"],
         "language_breakdown": lang_breakdown,
+        "secrets_redacted": secrets_redacted,
         "created_at": now,
         "updated_at": now,
     }

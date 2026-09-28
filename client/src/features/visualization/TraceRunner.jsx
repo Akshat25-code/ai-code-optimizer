@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import AlgorithmVisualizer from './AlgorithmVisualizer';
+import { apiClient } from '@/services/apiClient';
 
 export default function TraceRunner({ code, language }) {
   const [traceData, setTraceData] = useState(null);
@@ -15,14 +16,9 @@ export default function TraceRunner({ code, language }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8001'}/sandbox/trace`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, timeout_ms: 8000 })
-      });
-      const data = await res.json();
+      const data = await apiClient.traceCode(code, 8000);
 
-      if (!res.ok || !data.ok) {
+      if (!data.ok) {
         throw new Error(data.detail || data.error || 'Trace failed');
       }
 

@@ -38,7 +38,7 @@ export default function ComparisonVisualizer({ originalData, optimizedData }) {
             <div>Swaps: <span className="text-teal-300">{origOps.swaps}</span></div>
           </div>
         </div>
-        <div className="rounded-lg border p-3 bg-slate-900/50 flex flex-col gap-2" style={{ borderColor: 'var(--border-color, #334155)' }}>
+        <div className="relative rounded-lg border p-3 bg-slate-900/50 flex flex-col gap-2" style={{ borderColor: 'var(--border-color, #334155)' }}>
           <h3 className="font-semibold text-sm opacity-80 uppercase tracking-wide">Optimized Performance</h3>
           <div className="flex gap-4 text-xs font-mono">
             <div>Steps: <span className="text-teal-300">{optOps.total}</span></div>

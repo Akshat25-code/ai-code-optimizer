@@ -1,0 +1,9 @@
+{
+  "_note": "Indicative public list prices per 1M tokens (input/output USD). Verify against provider pages before any real run; update 'as_of'. The harness multiplies measured tokens by these rates.",
+  "as_of": "2026-09-28",
+  "openai": {"model": "gpt-4o-mini", "input_per_1m": 0.15, "output_per_1m": 0.6},
+  "anthropic": {"model": "claude-3-5-sonnet-latest", "input_per_1m": 3.0, "output_per_1m": 15.0},
+  "gemini": {"model": "gemini-2.5-flash (fallback chain; 1.5 models 404 as of 2026-09-28)", "input_per_1m": 0.075, "output_per_1m": 0.3},
+  "deepseek": {"model": "deepseek-chat", "input_per_1m": 0.14, "output_per_1m": 0.28},
+  "grok": {"model": "grok-2-latest", "input_per_1m": 2.0, "output_per_1m": 10.0}
+}

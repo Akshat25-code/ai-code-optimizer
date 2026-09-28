@@ -134,8 +134,8 @@ const WelcomePage = ({ onStart, onExample }) => {
 								<Play className="w-5 h-5 fill-current" /> Initialize Optimizer
 							</span>
 						</button>
-						<a href="#features" className="group px-8 py-4 font-bold text-lg rounded-2xl border-2 border-[var(--card-border)] hover:border-[var(--card-hover-border)] bg-[var(--surface-1)] text-[var(--fg-color)] transition-all duration-300 hover:bg-[var(--surface-2)] flex items-center gap-2">
-							Explore Matrix <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+						<a href="#features" className="group px-2 py-4 text-base font-medium text-muted hover:opacity-100 flex items-center gap-2 underline underline-offset-8 decoration-1">
+							Or explore the feature matrix <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
 						</a>
 					</motion.div>
 				</section>

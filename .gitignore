@@ -46,6 +46,8 @@ dist/
 # Secrets
 server/.env
 server/.env.*
+# Raw per-run LLM outputs (regenerable via research/run_real.py)
+research/runs/
 client/.env
 client/.env.*
 

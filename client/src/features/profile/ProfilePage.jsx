@@ -139,7 +139,7 @@ const OverviewTab = ({ profile, onAvatarChange, onSaved }) => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
-            <img src={profile?.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${profile?.email || 'user'}`} alt="avatar" className="w-24 h-24 rounded-full border-2 border-[var(--accent-cyan)] relative z-10 object-cover bg-[#050508]" />
+            <img src={profile?.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${profile?.email || 'user'}`} alt={profile?.name ? `${profile.name}'s profile photo` : 'User profile photo'} className="w-24 h-24 rounded-full border-2 border-[var(--accent-cyan)] relative z-10 object-cover bg-[#050508]" />
             <label className="absolute -bottom-2 -right-2 bg-[var(--surface-3)] border border-[var(--card-border)] text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:bg-[var(--accent-cyan)] transition-colors z-20 shadow-lg">
               <span className="text-sm">ðŸ“·</span>
               <input type="file" accept="image/*" onChange={onFile} className="hidden" />
@@ -685,7 +685,7 @@ const ProfilePage = () => {
             <div className="flex items-center gap-4 relative z-10">
               <div className="relative">
                 <div className="absolute inset-0 bg-[var(--accent-cyan)] rounded-full blur-sm opacity-50 group-hover:opacity-100 transition-opacity" />
-                <img src={user?.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${user?.email || 'user'}`} alt="avatar" className="w-16 h-16 rounded-full border-2 border-[#15151a] relative z-10 object-cover bg-black" />
+                <img src={user?.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${user?.email || 'user'}`} alt={user?.name ? `${user.name}'s profile photo` : 'User profile photo'} className="w-16 h-16 rounded-full border-2 border-[#15151a] relative z-10 object-cover bg-black" />
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="text-lg font-bold text-[var(--fg-color)] truncate tracking-tight">{user?.name || 'Authorized User'}</h1>

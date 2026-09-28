@@ -3,10 +3,40 @@ import { motion } from 'framer-motion';
 import FeaturePageLayout from '@/components/layout/FeaturePageLayout';
 import useOptimizer from '@/features/optimization/useOptimizer';
 import CodeEditor from '@/components/editor/CodeEditor';
+import TraceRunner from '@/features/visualization/TraceRunner';
+import ComparisonVisualizer from '@/features/visualization/ComparisonVisualizer';
+import { apiClient } from '@/services/apiClient';
 
 const DebuggingPage = () => {
   const optimizer = useOptimizer({ defaultTask: 'debugging', enableFileManager: true });
   const [copied, setCopied] = React.useState(false);
+  const [compareData, setCompareData] = React.useState(null);
+  const [comparing, setComparing] = React.useState(false);
+  const [compareError, setCompareError] = React.useState('');
+
+  const debugLanguage = optimizer.resolvedEditorLanguage || optimizer.language || 'python';
+
+  const handleCompareTraces = async () => {
+    if (!optimizer.code?.trim() || !optimizer.outCode?.trim() || comparing) return;
+    setComparing(true);
+    setCompareError('');
+    try {
+      const [orig, fixed] = await Promise.all([
+        apiClient.traceCode(optimizer.code, 8000),
+        apiClient.traceCode(optimizer.outCode, 8000),
+      ]);
+      if (!orig.ok) throw new Error(orig.detail || orig.error || 'Original trace failed');
+      if (!fixed.ok) throw new Error(fixed.detail || fixed.error || 'Fixed trace failed');
+      setCompareData({
+        originalData: { code: optimizer.code, steps: orig.steps, pattern: orig.pattern },
+        optimizedData: { code: optimizer.outCode, steps: fixed.steps, pattern: fixed.pattern },
+      });
+    } catch (err) {
+      setCompareError(err.message || 'Comparison trace failed');
+    } finally {
+      setComparing(false);
+    }
+  };
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
@@ -133,6 +163,54 @@ const DebuggingPage = () => {
                 <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--fg-color)' }}>
                   {optimizer.outExplanation}
                 </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step-through Tracer */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl overflow-hidden"
+            style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)` }}
+          >
+            <div className="p-4">
+              <TraceRunner code={optimizer.code} language={debugLanguage} />
+            </div>
+          </motion.div>
+
+          {/* Original vs Fixed trace comparison */}
+          {optimizer.outCode && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl overflow-hidden"
+              style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)` }}
+            >
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold" style={{ color: 'var(--fg-color)' }}>Trace Comparison</h3>
+                  <button
+                    onClick={handleCompareTraces}
+                    disabled={comparing}
+                    className="text-xs px-3 py-1.5 rounded-md bg-teal-600 text-white disabled:opacity-50"
+                  >
+                    {comparing ? 'Tracing both…' : 'Compare original vs fixed'}
+                  </button>
+                </div>
+                {compareError && (
+                  <div role="alert" className="text-sm p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300">
+                    {compareError}
+                  </div>
+                )}
+                {compareData && (
+                  <div className="h-[480px]">
+                    <ComparisonVisualizer
+                      originalData={compareData.originalData}
+                      optimizedData={compareData.optimizedData}
+                    />
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

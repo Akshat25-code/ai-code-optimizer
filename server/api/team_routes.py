@@ -48,6 +48,28 @@ async def create_team(req: CreateTeamReq, user=Depends(get_current_user)):
     return {"team_id": str(res.inserted_id), "name": req.name}
 
 
+@router.get("/mine")
+async def list_my_teams(user=Depends(get_current_user)):
+    """List teams the current user belongs to (for the Team dashboard)."""
+    db = get_database()
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    uid = str(user["_id"])
+    cur = db.teams.find({"members.user_id": uid}).sort("created_at", -1)
+    teams = []
+    async for t in cur:
+        teams.append({
+            "id": str(t["_id"]),
+            "name": t.get("name"),
+            "owner_id": t.get("owner_id"),
+            "members": t.get("members", []),
+            "created_at": t.get("created_at"),
+            "is_owner": t.get("owner_id") == uid,
+        })
+    return teams
+
+
 @router.post("/{team_id}/invite")
 async def invite_to_team(team_id: str, req: InviteUserReq, user=Depends(get_current_user)):
     db = get_database()
@@ -181,4 +203,6 @@ async def get_shared_session(token: str):
         "expires_at": doc.get("expires_at")
     }
 
-router.include_router(share_router)
+# NOTE: share_router is mounted at app level in main.py (top-level /share/*
+# paths). Do NOT nest it under `router` here — that would double-prefix to
+# /teams/share/* and break the documented share-link format.

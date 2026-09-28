@@ -1,4 +1,4 @@
-# AI Code Optimizer Pro Max
+﻿# AI Code Optimizer Pro Max
 
 AI Code Optimizer Pro Max is a full-stack code intelligence platform that combines AI assistance with deterministic local analysis, execution verification, repository scanning, custom rules, and proof-based reports.
 
@@ -150,15 +150,55 @@ npm run dev
 
 - Keep `ALLOW_FAKE_AI=0` in production.
 - Keep `ENABLE_CODE_EXECUTION=0` unless the execution environment is isolated and intentionally exposed.
-- Prefer Docker sandboxing for untrusted code execution.
+- `USE_DOCKER_SANDBOX=1` is **mandatory** in production (`APP_ENV=production`
+  refuses to boot or execute otherwise — the subprocess/restricted-builtins
+  fallback is escapable and dev/test-only). Docker runs with `--read-only`,
+  `no-new-privileges`, `--user nobody`, 128 MB + no swap, pids-limit 64, no network.
 - Use strong `JWT_SECRET_KEY` values and production-grade MongoDB/Redis credentials.
 - Review CORS origins before deployment.
 
+## Feature maturity (honest)
+
+Production-ready: static analysis (`/inspect-code`, `/analysis/complexity`),
+rules engine (`/rules/evaluate`), secret scanning, sandboxed execution
+(`/run-code`, `/run-code/compare`, `/evaluate-optimization` with Docker),
+auth + API keys + rate limits, PDF/session reports.
+
+Experimental / partial: multi-provider AI review quality (depends on keys;
+fake-AI for demos), GitHub patch/PR workflow, team collaboration, streaming
+SSE UX, visualization dashboards. See `ARCHITECTURE.md` for the request flow
+and `RESEARCH.md` for the static-vs-LLM evaluation (synthetic seed n=60:
+static arm scores P 0.56 / R 0.04 — high precision, near-zero recall, which
+is the finding motivating the combined design; live-LLM cells pending a
+funded provider key, est. cost ≈ $0.02).
+
+## Flagship demos
+
+Runnable scripts (server on `:8001`, no AI keys needed) + GIF storyboards in
+`docs/DEMOS.md`: `scripts/demo_1_inspect.ps1` (static analysis),
+`scripts/demo_2_verify.ps1` (sandbox-verified optimization),
+`scripts/demo_3_secrets.ps1` (secret scan + redact),
+`scripts/demo_4_review.ps1` (multi-stage review pipeline).
+
+## Execution-engine chaos results (`server/tests/test_execution_chaos.py`)
+
+| Attack | Expected | Result |
+|---|---|---|
+| Infinite loop (`while True: pass`, 2 s timeout) | killed, `Timeout` reported, server up | PASS |
+| Memory pressure (200 MB `bytearray`) | clean in-sandbox failure, no server crash | PASS |
+| Syntax error (`def broken(:`) | clean `ok: false`, no exception escapes | PASS |
+| Fork/PID pressure | `--pids-limit=64` in Docker flags (structural assert) | PASS |
+| Disk-fill inside container | `--read-only` rootfs + 16 MB noexec `/tmp` (structural assert) | PASS |
+
 ## Current Quality Gates
 
-- Backend test suite passes.
-- Frontend production build passes.
-- Frontend lint runs successfully, with warnings remaining for unused imports/props in some UI modules.
+- Backend: `pytest server/tests -q` (escape + property + integration + chaos + secrets suites).
+- Coverage gate in CI: `--cov-fail-under=50`; bandit (`-ll`), radon, ruff, pip-audit.
+- Frontend: `npm test -- --run` (Vitest: streaming extraction, auth/editor contracts),
+  `npm run lint`, `npm run build`, `npm audit`.
+- Docker smoke job builds the image and verifies boot.
+- Research: `python research/run_static_vs_ai.py`,
+  `python research/benchmark_complexity.py server/services`.
 
 ## License
 

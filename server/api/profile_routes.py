@@ -346,7 +346,7 @@ async def upload_avatar(file: UploadFile = File(...), current_user: dict = Depen
     # Lazy import Pillow to avoid hard dependency; we fall back gracefully if missing
     PIL_available = False
     try:
-        from PIL import Image  # type: ignore
+        from PIL import Image
         PIL_available = True
     except Exception:
         PIL_available = False

@@ -26,13 +26,42 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Lint (ruff)
+        run: pip install ruff && ruff check . || true
+
+      - name: Type check (mypy ratchet)
+        run: |
+          pip install mypy
+          ACTUAL=$(python -m mypy . --config-file mypy.ini --no-error-summary 2>/dev/null | grep -c ": error:" || true)
+          BASELINE=$(cat mypy_baseline.txt)
+          echo "mypy errors: $ACTUAL (baseline $BASELINE)"
+          if [ "$ACTUAL" -gt "$BASELINE" ]; then echo "mypy error count increased above baseline"; exit 1; fi
+
+      - name: Security scan (bandit)
+        run: pip install bandit && bandit -r . -ll -x ./tests,./venv,./.venv --exclude ./venv,./.venv
+
+      - name: Complexity check (radon)
+        run: pip install radon && radon cc . -s -n B -x venv,.venv || true
+
+      - name: Run tests with coverage gate
         env:
           SKIP_MONGO_INIT: "1"
           ALLOW_FAKE_AI: "1"
           APP_ENV: testing
           JWT_SECRET_KEY: ci-test-secret
-        run: pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short --cov=. --cov-report=term-missing --cov-fail-under=50
+
+      - name: Dependency audit (pip-audit)
+        run: pip install pip-audit && pip-audit || true
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t aco-test:ci .
+      - name: Smoke test boots
+        run: timeout 20 docker run --rm -e SKIP_MONGO_INIT=1 -e JWT_SECRET_KEY=ci-test-secret -e APP_ENV=testing aco-test:ci python -c "import main; print('boot ok')" || true
 
   # Frontend build check
   frontend-build:
@@ -53,6 +82,15 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint frontend
+        run: npm run lint || true
+
+      - name: Test frontend
+        run: npm test -- --run || true
+
+      - name: Audit frontend
+        run: npm audit --audit-level=high || true
 
       - name: Build
         run: npm run build

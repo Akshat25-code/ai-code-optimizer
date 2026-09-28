@@ -1,7 +1,13 @@
-﻿import React, { Suspense, lazy } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+﻿import React, { Suspense, lazy, useMemo, useState } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import CookieConsent from "@/components/legal/CookieConsent";
+import { RouteMeta } from "@/lib/routeMeta";
+import useKeyboardShortcuts from "@/features/shortcuts/useKeyboardShortcuts";
+const OnboardingTour = lazy(() => import("@/features/onboarding/OnboardingTour"));
+const CommandPalette = lazy(() => import("@/features/shortcuts/CommandPalette"));
 
 // Lazy-load page components for code splitting
 const WelcomePage = lazy(() => import("@/features/workspace/WelcomePage"));
@@ -18,6 +24,10 @@ const DocumentationPage = lazy(() => import("@/features/analysis/DocumentationPa
 const RefactoringPage = lazy(() => import("@/features/optimization/RefactoringPage"));
 const DebuggingPage = lazy(() => import("@/features/analysis/DebuggingPage"));
 const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
+const PrivacyPage = lazy(() => import("@/features/legal/PrivacyPage"));
+const TermsPage = lazy(() => import("@/features/legal/TermsPage"));
+const NotFoundPage = lazy(() => import("@/features/misc/NotFoundPage"));
+const SharedSessionPage = lazy(() => import("@/features/misc/SharedSessionPage"));
 
 // Loading fallback for lazy-loaded routes
 const PageLoader = () => (
@@ -29,9 +39,35 @@ const PageLoader = () => (
   </div>
 );
 
+/** First-run tour: only for signed-in users on editor pages (tour targets live there). */
+function FirstRunTour() {
+  const { user } = useAuth();
+  const { pathname } = useLocation();
+  if (!user) return null;
+  if (!pathname.startsWith('/workspace') && !pathname.startsWith('/optimize')) return null;
+  return <OnboardingTour />;
+}
+
+/** Global command palette (Cmd/Ctrl+K) + tour, mounted once. */
+function GlobalOverlays() {
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const shortcuts = useMemo(() => ([
+    { key: 'k', ctrl: true, global: true, action: () => setPaletteOpen((v) => !v) },
+  ]), []);
+  useKeyboardShortcuts(shortcuts);
+  return (
+    <Suspense fallback={null}>
+      <FirstRunTour />
+      <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} />
+    </Suspense>
+  );
+}
+
 function GuardedRoutes() {
   return (
     <>
+      <RouteMeta />
+      <GlobalOverlays />
       <Header />
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -51,9 +87,14 @@ function GuardedRoutes() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/share/:token" element={<SharedSessionPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+      <Footer />
+      <CookieConsent />
     </>
   );
 }

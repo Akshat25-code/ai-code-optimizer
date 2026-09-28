@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, AlertCircle, Info, Shield, Check, GitMerge } from 'lucide-react';
+import { AlertTriangle, AlertCircle, AlertOctagon, Info, Shield, Check, GitMerge } from 'lucide-react';
 
 const SEVERITY_COLORS = {
   Critical: 'text-red-400 bg-red-400/10 border-red-400/20',
@@ -16,7 +16,6 @@ const SEVERITY_ICONS = {
   Low: <Info size={16} />,
 };
 
-// Fallback icon since AlertOctagon isn't imported from lucide-react above
 const DefaultIcon = <AlertTriangle size={16} />;
 
 export default function FindingsPanel({ findings = [] }) {
@@ -50,7 +49,7 @@ export default function FindingsPanel({ findings = [] }) {
                     {finding.category}
                   </span>
 
-                  {finding.stage.includes(',') && (
+                  {String(finding.stage || '').includes(',') && (
                     <span className="px-2 py-1 rounded bg-teal-900/30 text-teal-400 text-xs flex items-center gap-1 border border-teal-800/50" title="Found by multiple stages (High Confidence)">
                       <GitMerge size={12} /> Multi-Stage
                     </span>
@@ -61,7 +60,7 @@ export default function FindingsPanel({ findings = [] }) {
                   <div className="text-right">
                     <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Confidence</div>
                     <div className="text-sm font-bold text-teal-400">
-                      {Math.round(finding.confidence * 100)}%
+                      {typeof finding.confidence === 'number' ? `${Math.round(finding.confidence * 100)}%` : '—'}
                     </div>
                   </div>
 

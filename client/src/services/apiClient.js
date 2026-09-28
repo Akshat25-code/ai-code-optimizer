@@ -129,6 +129,72 @@ export const apiClient = {
 
   getFileImpact: (id, path) => request(`/projects/${id}/impact/${path}`),
 
+  // Rules engine
+  getRulePacks: () => request('/rules/packs'),
+
+  getUserRules: () => request('/rules/user'),
+
+  saveUserRules: (activePacks, customRules = []) => request('/rules/user', {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ active_packs: activePacks, custom_rules: customRules }),
+  }),
+
+  evaluateRules: (code, language, activeRules) => request('/rules/evaluate', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ code, language, active_rules: activeRules }),
+  }),
+
+  // Review pipeline
+  runReviewPipeline: (code, language, skipAi = false) => request('/review/pipeline', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ code, language, skip_ai: skipAi }),
+  }),
+
+  // Execution tracing
+  traceCode: (code, timeoutMs = 8000) => request('/sandbox/trace', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ code, timeout_ms: timeoutMs }),
+  }),
+
+  // Optimize sessions
+  listSessions: (limit = 50) => request(`/opt-sessions/?limit=${limit}`),
+
+  getSession: (id) => request(`/opt-sessions/${id}`),
+
+  deleteSession: (id) => request(`/opt-sessions/${id}`, { method: 'DELETE' }),
+
+  // Teams + share links
+  listMyTeams: () => request('/teams/mine'),
+
+  createTeam: (name) => request('/teams/', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ name }),
+  }),
+
+  inviteToTeam: (teamId, email, role = 'viewer') => request(`/teams/${teamId}/invite`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ email, role }),
+  }),
+
+  getTeamAnalytics: (teamId) => request(`/teams/${teamId}/analytics`),
+
+  createShareLink: (sessionId, expiresInHours, snapshotData) => request('/share/', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({
+      session_id: sessionId,
+      expires_in_hours: expiresInHours,
+      read_only: true,
+      snapshot_data: snapshotData,
+    }),
+  }),
+
   // BYO-API: User API Keys
   listApiKeys: () => request('/api-keys'),
 

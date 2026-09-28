@@ -62,11 +62,14 @@ const GitHubRepoModal = ({ isOpen, onClose, onFileSelect, onImport }) => {
       const resp = await fetch(`${API_BASE}/github/repos/${owner}/${repo}/branches`, { credentials: 'include' });
       if (!resp.ok) throw new Error('Failed to fetch branches');
       const data = await resp.json();
+      const branch = data.default_branch || 'main';
       setBranches(data.branches || []);
-      setDefaultBranch(data.default_branch || 'main');
-      setSelectedBranch(data.default_branch || 'main');
+      setDefaultBranch(branch);
+      setSelectedBranch(branch);
+      return branch;
     } catch (err) {
       setError(err.message);
+      return '';
     } finally {
       setLoadingBranches(false);
     }
@@ -96,8 +99,8 @@ const GitHubRepoModal = ({ isOpen, onClose, onFileSelect, onImport }) => {
   };
 
   const handleRepoClick = async (repoFullName) => {
-    await fetchBranches(repoFullName);
-    await fetchContents(repoFullName, '', '');
+    const branch = await fetchBranches(repoFullName);
+    await fetchContents(repoFullName, '', branch);
   };
 
   const handleBranchChange = async (branch) => {
@@ -326,7 +329,7 @@ const GitHubRepoModal = ({ isOpen, onClose, onFileSelect, onImport }) => {
               </button>
               {contents.map(item => (
                 <button
-                  key={item.sha}
+                      key={item.sha || item.path}
                   onClick={() => handleContentClick(item)}
                   className="w-full p-3 flex items-center justify-between rounded-xl hover:bg-white/5 transition group text-left"
                 >

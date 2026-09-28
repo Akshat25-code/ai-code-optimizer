@@ -20,6 +20,7 @@ const Header = () => {
   const location = useLocation();
   const atAuth = location.pathname.startsWith('/auth');
   const [showFeatures, setShowFeatures] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
 
   const isFeaturePage = featureLinks.some(f => location.pathname === f.path);
 
@@ -117,6 +118,21 @@ const Header = () => {
           </nav>
         </div>
 
+        {/* Mobile menu toggle */}
+        <button
+          type="button"
+          className="md:hidden p-2 rounded-lg btn-secondary"
+          aria-label={showMobileNav ? 'Close menu' : 'Open menu'}
+          aria-expanded={showMobileNav}
+          onClick={() => setShowMobileNav((v) => !v)}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            {showMobileNav
+              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+          </svg>
+        </button>
+
         {/* Right: Theme + User */}
         <div className="flex items-center gap-3">
           {/* Theme Toggle */}
@@ -139,9 +155,9 @@ const Header = () => {
             <div className="flex items-center gap-2">
               <Link to="/profile" className="flex items-center gap-2 px-2 py-1 rounded-lg transition-all hover:bg-[var(--glow-cyan)]">
                 <div className="relative">
-                  <img
-                    src={user.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${user.name || 'user'}`}
-                    alt="avatar"
+                    <img
+                      src={user.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${user.name || 'user'}`}
+                      alt={user.name ? `${user.name}'s avatar` : 'User avatar'}
                     className="w-7 h-7 rounded-full ring-1 ring-[var(--card-border)]"
                   />
                   <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--accent-emerald)] ring-2 ring-[var(--bg-color)]" />
@@ -169,6 +185,29 @@ const Header = () => {
           )}
         </div>
       </div>
+
+      {/* Mobile nav panel */}
+      {showMobileNav && (
+        <nav aria-label="Mobile" className="md:hidden px-6 pb-4 pt-1" style={{ borderTop: '1px solid var(--card-border)' }}>
+          {[
+            { to: '/', label: 'Home' },
+            { to: '/optimize', label: 'All-in-One' },
+            { to: '/workspace', label: 'Workspace' },
+            ...featureLinks.map((f) => ({ to: f.path, label: f.label })),
+            ...(user ? [{ to: '/profile', label: 'Profile' }, { to: '/settings', label: 'Settings' }] : []),
+          ].map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              onClick={() => setShowMobileNav(false)}
+              className="block px-3 py-2.5 rounded-lg text-sm"
+              style={{ color: 'var(--fg-color)' }}
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+      )}
     </header>
   );
 };

@@ -17,8 +17,35 @@ from services.execution.docker_runner import (
     should_use_docker,
     run_in_docker,
     get_image,
+    is_production,
     _safe_subprocess_run,
 )
+
+
+def _production_sandbox_enforced() -> bool:
+    """Fail-closed gate: in production, non-Docker execution is refused.
+
+    The restricted-builtins Python wrapper (_build_safe_builtins) is
+    defense-in-depth only — it is a known-escapable pattern (attribute
+    chaining via object.__subclasses__() can reach os/subprocess even with
+    __builtins__ stripped). Real isolation must come from Docker.
+    Set USE_DOCKER_SANDBOX=1 in production. In non-production envs the
+    subprocess fallback is allowed for dev/test convenience.
+    """
+    if is_production() and not should_use_docker():
+        return False
+    return True
+
+
+def _production_refusal(language: str) -> RunResult:
+    return RunResult(
+        False,
+        "",
+        ("Refused: non-Docker execution is disabled in production. "
+         "Set USE_DOCKER_SANDBOX=1 and ensure the docker CLI is available. "
+         f"(language={language})"),
+        0,
+    )
 
 
 @dataclass
@@ -114,6 +141,8 @@ def _find_python_exe() -> str:
 
 
 def run_python(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
+    if not _production_sandbox_enforced():
+        return _production_refusal("python")
     start = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix="aico_py_") as td:
         wp = os.path.join(td, "wrapper.py")
@@ -147,6 +176,8 @@ def run_python(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunRe
 
 
 def run_javascript(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
+    if not _production_sandbox_enforced():
+        return _production_refusal("javascript")
     start = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix="aico_js_") as td:
         fp = os.path.join(td, "user_code.js")
@@ -168,6 +199,8 @@ def run_javascript(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> R
 
 
 def run_typescript(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
+    if not _production_sandbox_enforced():
+        return _production_refusal("typescript")
     start = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix="aico_ts_") as td:
         fp = os.path.join(td, "user_code.ts")
@@ -193,6 +226,8 @@ def run_typescript(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> R
 
 
 def run_java(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
+    if not _production_sandbox_enforced():
+        return _production_refusal("java")
     start = time.perf_counter()
     class_match = re.search(r'public\s+class\s+(\w+)', code)
     class_name = class_match.group(1) if class_match else "Main"
@@ -224,6 +259,8 @@ def run_java(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResu
 
 
 def run_cpp(code: str, lang: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
+    if not _production_sandbox_enforced():
+        return _production_refusal(lang)
     start = time.perf_counter()
     ext = ".c" if lang == "c" else ".cpp"
     compiler_candidates = ["gcc", "clang", "cc"] if lang == "c" else ["g++", "clang++", "c++"]
@@ -267,6 +304,8 @@ def run_cpp(code: str, lang: str, stdin_text: str = "", timeout_ms: int = 5000) 
 
 
 def run_go(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
+    if not _production_sandbox_enforced():
+        return _production_refusal("go")
     start = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix="aico_go_") as td:
         fp = os.path.join(td, "main.go")
@@ -288,6 +327,8 @@ def run_go(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult
 
 
 def run_ruby(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
+    if not _production_sandbox_enforced():
+        return _production_refusal("ruby")
     start = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix="aico_ruby_") as td:
         fp = os.path.join(td, "code.rb")
@@ -309,6 +350,8 @@ def run_ruby(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResu
 
 
 def run_php(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
+    if not _production_sandbox_enforced():
+        return _production_refusal("php")
     start = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix="aico_php_") as td:
         fp = os.path.join(td, "code.php")

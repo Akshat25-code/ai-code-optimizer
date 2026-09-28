@@ -92,11 +92,29 @@ def _summarize(findings: list[dict]) -> dict[str, int]:
     return counts
 
 
-def redact_secrets(code: str) -> tuple[str, int]:
-    """Replace detected secrets with [REDACTED_SECRET] placeholder."""
+#: Pattern kinds that are true exfiltratable secrets (vs. code smells like
+#: eval/exec/shell=True, which must NOT be rewritten — that would corrupt code).
+SECRET_ONLY_KINDS = frozenset({
+    "openai_key", "anthropic_key", "aws_key", "aws_secret", "gcp_key",
+    "gcp_service_account", "azure_key", "mongodb_uri", "postgres_uri",
+    "mysql_uri", "redis_uri", "github_token", "github_oauth", "gitlab_token",
+    "slack_token", "slack_webhook", "stripe_key", "npm_token", "pypi_token",
+    "sendgrid_key", "twilio_key", "private_key", "jwt_secret", "generic_secret",
+})
+
+
+def redact_secrets(code: str, only_kinds: frozenset[str] | None = None) -> tuple[str, int]:
+    """Replace detected secrets with [REDACTED_SECRET] placeholder.
+
+    Pass only_kinds=SECRET_ONLY_KINDS to redact true secrets while leaving
+    code-pattern findings (eval/exec/shell) intact.
+    """
     redacted = code
     count = 0
-    for _kind, pattern, _label, _sev in PATTERNS:
+    for kind, pattern, _label, _sev in PATTERNS:
+        if only_kinds is not None and kind not in only_kinds:
+            continue
+
         def _repl(m: re.Match[str]) -> str:
             nonlocal count
             count += 1
@@ -105,6 +123,20 @@ def redact_secrets(code: str) -> tuple[str, int]:
         redacted, n = pattern.subn(_repl, redacted)
         count += n
     return redacted, count
+
+
+def redact_for_storage(code: str) -> tuple[str, int]:
+    """Redact true secrets from user code before persisting to MongoDB.
+
+    Gated by REDACT_SECRETS_AT_REST (default "1"). Returns (code, n_redacted).
+    Users who paste keys into sessions/projects never leave them at rest.
+    """
+    import os
+    if os.getenv("REDACT_SECRETS_AT_REST", "1") != "1":
+        return code, 0
+    if not code:
+        return code, 0
+    return redact_secrets(code, only_kinds=SECRET_ONLY_KINDS)
 
 
 # ---------------------------------------------------------------------------

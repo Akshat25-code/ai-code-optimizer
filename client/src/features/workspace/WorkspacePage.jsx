@@ -6,6 +6,14 @@ import DiffViewer from '@/components/reports/DiffViewer';
 import ProofPanel from '@/components/reports/ProofPanel';
 import ComplexityDashboard from '@/components/reports/ComplexityDashboard';
 import GitHubRepoModal from '@/features/repository/GitHubRepoModal';
+import GitHubPRPanel from '@/features/github/GitHubPRPanel';
+import RulesPanel from '@/features/rules/RulesPanel';
+import ReviewPanel from '@/features/review/ReviewPanel';
+import TraceRunner from '@/features/visualization/TraceRunner';
+import ExportOptions from '@/features/reports/ExportOptions';
+import SessionsDrawer from '@/features/sessions/SessionsDrawer';
+import TeamPanel from '@/features/team/TeamPanel';
+import ShareModal from '@/features/team/ShareModal';
 import useOptimizer from '@/features/optimization/useOptimizer';
 import { apiClient } from '@/services/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +29,7 @@ const NAV = [
   { id: 'tests', label: 'Tests' },
   { id: 'reports', label: 'Reports' },
   { id: 'sessions', label: 'Sessions' },
+  { id: 'team', label: 'Team' },
 ];
 
 function RepoScanDetails({ repoScan }) {
@@ -59,6 +68,8 @@ export default function WorkspacePage() {
   const [consoleLog, setConsoleLog] = useState([]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [projectName, setProjectName] = useState('Untitled Project');
+  const [shareOpen, setShareOpen] = useState(false);
+  const [ghRepo, setGhRepo] = useState(null);
 
   // Multi-file project state
   const [currentProject, setCurrentProject] = useState(null);
@@ -234,12 +245,17 @@ export default function WorkspacePage() {
     }
   };
 
-  const handleGhImport = async (files, repoName) => {
-    // Adapter for GitHubRepoModal
+  const handleGhImport = async (files, repoName, meta) => {
+    // Adapter for GitHubRepoModal (meta carries {repo, path, branch} when present)
     const formattedFiles = files.map(f => ({
       path: f.path,
       content: f.content
     }));
+    if (meta?.repo) {
+      setGhRepo({ repo: meta.repo, path: meta.path || '', branch: meta.branch || '' });
+    } else if (typeof repoName === 'string' && repoName.includes('/')) {
+      setGhRepo({ repo: repoName, path: '', branch: '' });
+    }
     await createWorkspaceProject(formattedFiles, repoName);
   };
 
@@ -348,33 +364,15 @@ export default function WorkspacePage() {
     }
   };
 
-  const handleExportReport = async (format) => {
-    log(`Exporting ${format} report...`);
-    const report = await apiClient.exportReport({
-      title: projectName,
-      language: opt.resolvedEditorLanguage || 'Python',
-      task: opt.task,
-      original_code: opt.code,
-      optimized_code: opt.outCode || '',
-      provider_used: verification?.provider_used || opt.lastTokens?.provider || '',
-      inspection: opt.inspection,
-      verification,
-      test_results: testResults,
-    }, format);
-
-    if (format === 'html') {
-      const blob = new Blob([report], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    } else {
-      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'code-intelligence-report.json';
-      a.click();
-    }
-    log('Report exported');
+  const reportLanguage = opt.resolvedEditorLanguage || 'Python';
+  const sessionData = {
+    title: projectName,
+    task: opt.task,
+    optimized_code: opt.outCode || '',
+    provider_used: verification?.provider_used || opt.lastTokens?.provider || '',
+    inspection: opt.inspection,
+    verification,
+    test_results: testResults,
   };
 
   return (
@@ -447,18 +445,18 @@ export default function WorkspacePage() {
           ) : (
             <div className="flex-1 flex flex-col p-3 gap-3 min-h-0">
               {/* Controls Toolbar */}
-              <div className="flex flex-wrap gap-2 shrink-0">
-                <select value={opt.language} onChange={(e) => opt.setLanguage(e.target.value)} className="text-xs px-2 py-1 rounded border bg-transparent" style={{ borderColor: 'var(--border-color)' }}>
+              <div className="flex flex-wrap gap-2 shrink-0 tour-step-2-config">
+                <select value={opt.language} onChange={(e) => opt.setLanguage(e.target.value)} className="text-xs px-2 py-1 rounded border bg-transparent" style={{ borderColor: 'var(--border-color)' }} aria-label="Language">
                   <option value="auto">Auto</option>
                   {(opt.supportedLanguages || []).map((l) => <option key={l.key} value={l.key}>{l.name}</option>)}
                 </select>
-                <select value={opt.task} onChange={(e) => opt.setTask(e.target.value)} className="text-xs px-2 py-1 rounded border bg-transparent" style={{ borderColor: 'var(--border-color)' }}>
+                <select value={opt.task} onChange={(e) => opt.setTask(e.target.value)} className="text-xs px-2 py-1 rounded border bg-transparent" style={{ borderColor: 'var(--border-color)' }} aria-label="Task">
                   <option value="optimization">Optimization</option>
                   <option value="bug_detection">Bug Detection</option>
                   <option value="analysis">Analysis</option>
                   <option value="documentation">Documentation</option>
                 </select>
-                <button type="button" onClick={opt.handleOptimizeCode} disabled={opt.isOptimizing || !opt.code} className="px-3 py-1 text-xs rounded bg-teal-600 text-white disabled:opacity-50">
+                <button type="button" onClick={opt.handleOptimizeCode} disabled={opt.isOptimizing || !opt.code} className="px-3 py-1 text-xs rounded bg-teal-600 text-white disabled:opacity-50 tour-step-3-run">
                   {opt.isOptimizing ? 'Running...' : 'Analyze'}
                 </button>
                 <button type="button" onClick={handleVerify} disabled={isVerifying || !opt.code} className="px-3 py-1 text-xs rounded border border-teal-500 text-teal-300 disabled:opacity-50">
@@ -468,12 +466,23 @@ export default function WorkspacePage() {
                 {secretsScan?.has_secrets && (
                   <button type="button" onClick={handleRedact} className="px-3 py-1 text-xs rounded bg-red-600/80 text-white">Redact Secrets</button>
                 )}
-                <button type="button" onClick={() => handleExportReport('json')} className="px-3 py-1 text-xs rounded border opacity-80">Export Report</button>
+                <ExportOptions code={opt.code} language={reportLanguage} sessionData={sessionData} />
+                <button type="button" onClick={() => setShareOpen(true)} className="px-3 py-1 text-xs rounded border opacity-80 tour-step-4-share">Share</button>
               </div>
+
+              {ghRepo && (
+                <div className="shrink-0">
+                  <GitHubPRPanel
+                    githubContext={{ ...ghRepo, path: activeTabId || ghRepo.path }}
+                    optimizedCode={opt.outCode}
+                    disabled={!opt.outCode}
+                  />
+                </div>
+              )}
 
               <div className="grid lg:grid-cols-3 gap-3 flex-1 min-h-0">
                 {/* Editor with Tabs */}
-                <div className="flex flex-col min-h-0 rounded-lg border overflow-hidden bg-black/20" style={{ borderColor: 'var(--border-color)' }}>
+                <div className="flex flex-col min-h-0 rounded-lg border overflow-hidden bg-black/20 tour-step-1-code" style={{ borderColor: 'var(--border-color)' }}>
                   {currentProject && (
                     <TabBar
                       tabs={openTabs}
@@ -533,12 +542,46 @@ export default function WorkspacePage() {
                     )}
 
                     {activeNav === 'tests' && (
-                      <div className="space-y-2">
-                        <button type="button" onClick={handleGenerateTests} className="px-3 py-1 text-xs rounded bg-teal-600 text-white">Generate Tests</button>
-                        <textarea value={testCode} onChange={(e) => setTestCode(e.target.value)} className="w-full h-32 text-xs font-mono p-2 rounded border bg-transparent" style={{ borderColor: 'var(--border-color)' }} placeholder="Generated tests appear here..." />
-                        <button type="button" onClick={handleRunTests} className="px-3 py-1 text-xs rounded border">Run Tests</button>
-                        {testResults && <pre className="text-xs p-2 rounded bg-black/30 overflow-auto max-h-32">{testResults.output}</pre>}
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <button type="button" onClick={handleGenerateTests} className="px-3 py-1 text-xs rounded bg-teal-600 text-white">Generate Tests</button>
+                          <textarea value={testCode} onChange={(e) => setTestCode(e.target.value)} className="w-full h-32 text-xs font-mono p-2 rounded border bg-transparent" style={{ borderColor: 'var(--border-color)' }} placeholder="Generated tests appear here..." aria-label="Generated tests" />
+                          <button type="button" onClick={handleRunTests} className="px-3 py-1 text-xs rounded border">Run Tests</button>
+                          {testResults && <pre className="text-xs p-2 rounded bg-black/30 overflow-auto max-h-32">{testResults.output}</pre>}
+                        </div>
+                        <TraceRunner code={opt.code} language={reportLanguage} />
                       </div>
+                    )}
+
+                    {activeNav === 'analysis' && (
+                      <RulesPanel code={opt.code} language={reportLanguage} />
+                    )}
+
+                    {activeNav === 'optimization' && (
+                      <ReviewPanel code={opt.code} language={reportLanguage} />
+                    )}
+
+                    {activeNav === 'reports' && (
+                      <div className="rounded-lg border p-4 text-sm flex flex-col gap-3" style={{ borderColor: 'var(--border-color)' }}>
+                        <h2 className="text-lg font-bold">Reports</h2>
+                        <p className="opacity-70 text-xs">Download the current analysis as PDF, HTML, or a server-side JSON report.</p>
+                        <div><ExportOptions code={opt.code} language={reportLanguage} sessionData={sessionData} /></div>
+                      </div>
+                    )}
+
+                    {activeNav === 'sessions' && (
+                      <SessionsDrawer
+                        onOpenSession={(code, language) => {
+                          opt.setCode(code || '');
+                          if (language) opt.setLanguage(language);
+                          setActiveNav('workspace');
+                          log('Session opened in editor');
+                        }}
+                      />
+                    )}
+
+                    {activeNav === 'team' && (
+                      <TeamPanel user={user} />
                     )}
 
                     <DiffViewer original={opt.code} modified={opt.outCode || ''} title="Code Diff" />
@@ -589,21 +632,28 @@ export default function WorkspacePage() {
         <GitHubRepoModal
           isOpen={opt.ghModalOpen}
           onClose={() => opt.setGhModalOpen(false)}
-          onImport={async (content, filename) => {
-            // Check if it's returning a single file or a repo (need to update GitHubRepoModal to support full repo import eventually)
+          onImport={async (content, filename, meta) => {
             if (Array.isArray(content)) {
-              await handleGhImport(content, filename);
+              await handleGhImport(content, filename, meta);
               opt.setGhModalOpen(false);
             } else {
               // Single file mode
               opt.setCode(content);
               setProjectName(filename);
+              if (meta?.repo) setGhRepo({ repo: meta.repo, path: meta.path || '', branch: meta.branch || '' });
               opt.setGhModalOpen(false);
               log(`Imported ${filename}`);
             }
           }}
         />
       )}
+
+      <ShareModal
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+        sessionId={activeTabId || 'workspace'}
+        snapshotData={{ code: opt.code, language: reportLanguage, optimized_code: opt.outCode || '' }}
+      />
 
       {opt.toast && (
         <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded text-sm text-white ${opt.toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>

@@ -27,7 +27,7 @@ from api.rules_routes import router as rules_router
 from api.analytics_routes import router as analytics_router
 from api.visualization_routes import router as visualization_router
 from api.review_routes import router as review_router
-from api.team_routes import router as team_router
+from api.team_routes import router as team_router, share_router
 from api.apikeys_routes import router as apikeys_router
 
 # Load environment variables
@@ -50,6 +50,13 @@ check_required_secrets()
 # --- Lifespan (replaces deprecated @app.on_event) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if APP_ENV == "production" and os.getenv("USE_DOCKER_SANDBOX", "0") != "1":
+        logger.error(
+            "Refusing insecure production config: USE_DOCKER_SANDBOX=1 is required "
+            "in production because the subprocess fallback (restricted builtins) "
+            "is escapable and must never be the primary isolation layer."
+        )
+        raise RuntimeError("USE_DOCKER_SANDBOX=1 is mandatory in production")
     if os.getenv("SKIP_MONGO_INIT", "0") == "1":
         logger.warning("SKIP_MONGO_INIT=1: Skipping MongoDB initialization (dev-only)")
         logger.info(f"BACKEND_PORT={BACKEND_PORT}")
@@ -75,6 +82,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- HTTPS enforcement (production only; dev/test stay plain HTTP) ---
+# Env is read per-request (not at import) so tests can toggle it.
+from fastapi.responses import RedirectResponse
+
+
+@app.middleware("http")
+async def _force_https(request, call_next):
+    if os.getenv("APP_ENV", "development").lower() != "production":
+        return await call_next(request)
+    # Respect TLS-terminating proxies via X-Forwarded-Proto.
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    if proto != "https":
+        url = request.url.replace(scheme="https")
+        return RedirectResponse(str(url), status_code=301)
+    response = await call_next(request)
+    # HSTS: browsers remember HTTPS-only for 1 year (incl. subdomains).
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains; preload"
+    )
+    return response
+
+
 # Include all routers
 app.include_router(analysis_router)
 app.include_router(execution_router)
@@ -91,6 +120,7 @@ app.include_router(analytics_router)
 app.include_router(visualization_router)
 app.include_router(review_router)
 app.include_router(team_router)
+app.include_router(share_router)
 app.include_router(apikeys_router)
 
 
@@ -101,9 +131,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     try:
         while True:
             data = await websocket.receive_json()
-            await manager.broadcast(session_id, {"type": "session_update", "data": data})
+            await manager.broadcast_to_room(session_id, {"type": "session_update", "data": data})
     except WebSocketDisconnect:
-        manager.disconnect(session_id, websocket)
+        await manager.disconnect(session_id, websocket)
 
 
 # Serve uploaded files with security headers
@@ -214,4 +244,4 @@ if __name__ == "__main__":
     logger.info(f"Server starting on http://localhost:{BACKEND_PORT}")
     logger.info(f"API Documentation: http://localhost:{BACKEND_PORT}/docs")
     logger.info(f"Environment: {APP_ENV}")
-    uvicorn.run(app, host="0.0.0.0", port=BACKEND_PORT)
+    uvicorn.run(app, host="0.0.0.0", port=BACKEND_PORT)  # nosec B104 -- intentional container bind; TLS enforced by middleware/proxy

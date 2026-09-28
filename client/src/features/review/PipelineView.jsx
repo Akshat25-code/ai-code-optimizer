@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Circle, Loader2, Play, ShieldAlert, Code2, Zap, BrainCircuit, Layers } from 'lucide-react';
 
@@ -10,7 +10,7 @@ const STAGES = [
   { id: 'Aggregation & Ranking', icon: <Layers size={18} />, label: 'Aggregation' },
 ];
 
-export default function PipelineView({ isRunning, stageStatuses, onStartQuick, onStartDeep }) {
+export default function PipelineView({ isRunning = false, stageStatuses = {}, onStartQuick, onStartDeep }) {
   return (
     <div className="rounded-xl border p-6 mb-6" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">

@@ -1,4 +1,4 @@
-﻿{
+{
   "dependencies": {
     "mongodb": "^6.18.0",
     "react-simple-typewriter": "^5.0.1"

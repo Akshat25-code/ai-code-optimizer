@@ -35,18 +35,24 @@ class SessionItem(BaseModel):
 
 @router.post("/", response_model=SessionItem, status_code=status.HTTP_201_CREATED)
 async def create_session(payload: CreateSessionReq, current_user: dict = Depends(get_current_user)):
+    from services.analysis.secret_scanner import redact_for_storage
     db = get_database()
     now = datetime.now(timezone.utc)
+    code, n_code = redact_for_storage(payload.code)
+    result, n_result = payload.result, 0
+    if isinstance(result, str):
+        result, n_result = redact_for_storage(result)
     doc = {
         "user_id": current_user["id"],
         "title": payload.title or None,
-        "code": payload.code,
+        "code": code,
         "language": payload.language,
         "task": payload.task,
         "provider_used": payload.provider_used,
-        "result": payload.result,
+        "result": result,
         "tokens_in": payload.tokens_in or 0,
         "tokens_out": payload.tokens_out or 0,
+        "secrets_redacted": n_code + n_result,
         "created_at": now,
         "updated_at": now,
     }

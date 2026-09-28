@@ -4,7 +4,8 @@ export default function useKeyboardShortcuts(shortcuts) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Don't trigger if the user is typing in a standard input/textarea
-      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
+      const tag = e.target && e.target.tagName ? e.target.tagName : '';
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
       // Let monaco handle its own shortcuts if we are focused inside it,
       // but we do want Cmd+K and Cmd+Enter to work globally.
 

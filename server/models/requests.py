@@ -163,7 +163,7 @@ SUPPORTED_LANGUAGES: Dict[str, LanguageInfo] = {
         name="SQL",
         category=LanguageCategory.DATABASE,
         extensions=[".sql"],
-        description="Database query language",
+        description="Database query language",  # nosec B608 -- display string, not a query
         is_popular=False
     ),
     "Perl": LanguageInfo(
@@ -232,7 +232,7 @@ NON_PROGRAMMING_LANGUAGES: Set[str] = {
 class LanguageValidationError(ValueError):
     """Custom exception for language validation errors"""
 
-    def __init__(self, language: str, message: str = None):
+    def __init__(self, language: str, message: str | None = None):
         self.language = language
         if message is None:
             message = self._generate_error_message(language)
@@ -246,7 +246,7 @@ class LanguageValidationError(ValueError):
             return (
                 f"âŒ Invalid Language: '{language}' is not a programming language.\n"
                 f"âœ… Supported programming languages: {', '.join(popular_languages)}\n"
-                f"ðŸ’¡ Tip: Select from the dropdown or choose a programming language like Python, JavaScript, Java, etc."
+                f"ðŸ’¡ Tip: Select from the dropdown or choose a programming language like Python, JavaScript, Java, etc."  # nosec B608
             )
         else:
             return (

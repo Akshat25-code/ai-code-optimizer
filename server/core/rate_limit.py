@@ -29,48 +29,84 @@ def _get_redis():
     return _redis_client
 
 
-# Simple in-memory fallback dict: IP -> [timestamps]
-_requests = defaultdict(list)
+# Simple in-memory fallback dict: key -> [timestamps]
+_requests: dict[str, list[float]] = defaultdict(list)
 
-def rate_limit_ai(request: Request):
-    """
-    Dependency to rate limit expensive AI API calls by IP.
-    Uses Redis if available, else falls back to in-memory sliding window.
+def _extract_identity(request: Request) -> tuple[str, str]:
+    """Return (primary_key, ip) where primary is user ID / API key if authed.
+
+    Authenticated callers are limited by user ID (primary) + IP (secondary
+    defense). Unauthenticated callers fall back to IP-only.
     """
     client_ip = request.client.host if request.client else "unknown"
-    now = time.time()
+    # 1. JWT (header or cookie)
+    for token in (
+        request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+        if request.headers.get("authorization", "").startswith("Bearer ") else "",
+        request.cookies.get("aco_access") or "",
+    ):
+        if token:
+            try:
+                from core.security import JWTManager
+                payload = JWTManager.verify_token(token, "access")
+                uid = (payload or {}).get("sub") or (payload or {}).get("user_id")
+                if uid:
+                    return f"user:{uid}", client_ip
+            except Exception:
+                pass
+    # 2. API key (X-API-Key header or ?api_key=)
+    api_key = request.headers.get("x-api-key") or request.query_params.get("api_key")
+    if api_key:
+        import hashlib
+        digest = hashlib.sha256(api_key.encode()).hexdigest()[:16]
+        return f"apikey:{digest}", client_ip
+    return f"ip:{client_ip}", client_ip
 
-    r = _get_redis()
+
+def _check_key(key: str, now: float, r) -> None:
+    """Enforce sliding-window limit for a single rate-limit key."""
     if r:
         try:
-            key = f"ratelimit:ai:{client_ip}"
-            current = r.get(key)
+            rkey = f"ratelimit:ai:{key}"
+            current = r.get(rkey)
             if current and int(current) >= AI_RATE_LIMIT:
                 raise HTTPException(
                     status_code=429,
                     detail="Too many requests. Please try again later."
                 )
             pipe = r.pipeline()
-            pipe.incr(key)
+            pipe.incr(rkey)
             if not current:
-                pipe.expire(key, AI_RATE_WINDOW)
+                pipe.expire(rkey, AI_RATE_WINDOW)
             pipe.execute()
             return
         except HTTPException:
             raise
         except Exception:
-            pass  # Fall back to in-memory on redis failure
-
-    # In-memory sliding window fallback
-    _requests[client_ip] = [t for t in _requests[client_ip] if now - t < AI_RATE_WINDOW]
-
-    if len(_requests[client_ip]) >= AI_RATE_LIMIT:
+            pass  # fall through to in-memory
+    _requests[key] = [t for t in _requests[key] if now - t < AI_RATE_WINDOW]
+    if len(_requests[key]) >= AI_RATE_LIMIT:
         raise HTTPException(
             status_code=429,
             detail="Too many requests. Please try again later."
         )
+    _requests[key].append(now)
 
-    _requests[client_ip].append(now)
+
+def rate_limit_ai(request: Request):
+    """
+    Dependency to rate limit expensive AI API calls.
+    Primary key: authenticated user ID / API-key hash. Secondary: IP.
+    Uses Redis if available, else falls back to in-memory sliding window.
+    """
+    primary, ip = _extract_identity(request)
+    now = time.time()
+    r = _get_redis()
+    # Primary limit always applies
+    _check_key(primary, now, r)
+    # Secondary IP defense only when primary is not already IP-based
+    if not primary.startswith("ip:"):
+        _check_key(f"ip:{ip}", now, r)
 
 
 # --- Daily usage quota enforcement ---
@@ -85,13 +121,13 @@ async def enforce_daily_quota(request: Request):
     Checks the Authorization header for a JWT or the httpOnly access cookie.
     Authenticated free-tier users are capped at FREE_TIER_ANALYSES_PER_DAY.
     """
-    user_id = None
+    user_id: str | None = None
     auth_header = request.headers.get("authorization", "")
     if auth_header.startswith("Bearer "):
         token = auth_header.split(" ", 1)[1]
         try:
             from core.security import JWTManager
-            payload = JWTManager.verify_token(token, "access")
+            payload = JWTManager.verify_token(token, "access") or {}
             user_id = payload.get("sub") or payload.get("user_id")
         except Exception:
             pass
@@ -101,7 +137,7 @@ async def enforce_daily_quota(request: Request):
         if token:
             try:
                 from core.security import JWTManager
-                payload = JWTManager.verify_token(token, "access")
+                payload = JWTManager.verify_token(token, "access") or {}
                 user_id = payload.get("sub") or payload.get("user_id")
             except Exception:
                 pass
@@ -125,6 +161,7 @@ async def enforce_daily_quota(request: Request):
         _daily_usage[user_id] = {"date": today, "count": current_count}
         entry = _daily_usage[user_id]
 
+    assert entry is not None
     if entry["count"] >= FREE_TIER_LIMIT:
         reset_msg = f"Daily limit of {FREE_TIER_LIMIT} analyses reached. Resets at midnight UTC."
         raise HTTPException(status_code=429, detail=reset_msg)

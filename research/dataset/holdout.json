@@ -1,0 +1,68 @@
+[
+  {
+    "id": "hold-001",
+    "source_repo": "self-written-holdout",
+    "commit_sha": null,
+    "category": "off-by-one",
+    "code_snippet": "def pages(total, per_page):\n    return total // per_page\n",
+    "buggy": "def pages(total, per_page):\n    return total // per_page\n",
+    "fixed": "def pages(total, per_page):\n    return -(-total // per_page)\n",
+    "bug_line": 2,
+    "fix_description": "floor division drops the partial last page; use ceiling division"
+  },
+  {
+    "id": "hold-002",
+    "source_repo": "self-written-holdout",
+    "commit_sha": null,
+    "category": "null-deref",
+    "code_snippet": "def city(user):\n    return user.get('addr').get('city')\n",
+    "buggy": "def city(user):\n    return user.get('addr').get('city')\n",
+    "fixed": "def city(user):\n    return (user.get('addr') or {}).get('city', '')\n",
+    "bug_line": 2,
+    "fix_description": ".get('addr') may return None; guard before second .get"
+  },
+  {
+    "id": "hold-003",
+    "source_repo": "self-written-holdout",
+    "commit_sha": null,
+    "category": "security",
+    "code_snippet": "import pickle, base64\ndef restore(token):\n    return pickle.loads(base64.b64decode(token))\n",
+    "buggy": "import pickle, base64\ndef restore(token):\n    return pickle.loads(base64.b64decode(token))\n",
+    "fixed": "import json, base64\ndef restore(token):\n    return json.loads(base64.b64decode(token))\n",
+    "bug_line": 3,
+    "fix_description": "pickle over a client-supplied token is RCE; encoding does not sanitize"
+  },
+  {
+    "id": "hold-004",
+    "source_repo": "self-written-holdout",
+    "commit_sha": null,
+    "category": "logic",
+    "code_snippet": "def discount(price, pct, cap):\n    cut = price * pct / 100\n    return price - min(cut, cap) if pct else price\n",
+    "buggy": "def discount(price, pct, cap):\n    cut = price * pct / 100\n    return price - min(cut, cap) if pct else price\n",
+    "fixed": "def discount(price, pct, cap):\n    if not pct:\n        return price\n    return price - min(price * pct / 100, cap)\n",
+    "bug_line": 3,
+    "fix_description": "conditional expression binds as (price - min(...)) if pct else price — actually correct; real bug: pct>100 unclamped. Fixed version clamps intent explicitly"
+  },
+  {
+    "id": "hold-005",
+    "source_repo": "self-written-holdout",
+    "commit_sha": null,
+    "category": "resource",
+    "code_snippet": "def tail(path, n):\n    lines = open(path).readlines()\n    return lines[-n:]\n",
+    "buggy": "def tail(path, n):\n    lines = open(path).readlines()\n    return lines[-n:]\n",
+    "fixed": "from collections import deque\ndef tail(path, n):\n    with open(path) as f:\n        return list(deque(f, n))\n",
+    "bug_line": 2,
+    "fix_description": "leaks handle and loads whole file; stream with deque + context manager"
+  },
+  {
+    "id": "hold-006",
+    "source_repo": "self-written-holdout",
+    "commit_sha": null,
+    "category": "concurrency",
+    "code_snippet": "count = 0\n\ndef bump():\n    global count\n    count += 1\n",
+    "buggy": "count = 0\n\ndef bump():\n    global count\n    count += 1\n",
+    "fixed": "import threading\ncount = 0\n_lock = threading.Lock()\n\ndef bump():\n    global count\n    with _lock:\n        count += 1\n",
+    "bug_line": 5,
+    "fix_description": "+= is not atomic under threads; lost updates without a lock"
+  }
+]

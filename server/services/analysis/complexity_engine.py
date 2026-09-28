@@ -525,6 +525,7 @@ def analyze_complexity(code: str, language: str = "python") -> dict[str, Any]:
     This is the main entry point. Pure computer science, zero AI.
     """
     lang = (language or "").strip().lower()
+    code = (code or "").lstrip("\ufeff")
     lines = code.splitlines()
     non_empty = [l for l in lines if l.strip()]
 
@@ -612,7 +613,7 @@ def analyze_complexity(code: str, language: str = "python") -> dict[str, Any]:
             })
 
     # Imports
-    imports = []
+    imports: list[str] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             imports.extend(alias.name for alias in node.names)

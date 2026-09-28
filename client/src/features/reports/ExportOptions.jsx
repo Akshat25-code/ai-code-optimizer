@@ -1,13 +1,22 @@
 ﻿import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, FileText, Code2, Github, ChevronDown, Check } from 'lucide-react';
+import { Download, FileText, Code2, FileJson, ChevronDown, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { API_BASE } from '@/config';
+import { apiClient } from '@/services/apiClient';
 
-export default function ExportOptions({ code, language, sessionData }) {
+export default function ExportOptions({ code, language, sessionData = {} }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [status, setStatus] = useState(null); // 'success' | 'error' | null
+  const [status, setStatus] = useState(null); // {type:'success'|'error', message} | null
+  const [busy, setBusy] = useState(false);
   const { user } = useAuth();
+
+  const flash = (type, message) => {
+    setStatus({ type, message });
+    setTimeout(() => {
+      setStatus(null);
+      if (type === 'success') setIsOpen(false);
+    }, 2200);
+  };
 
   const handleExportPDF = () => {
     // Basic print trigger since we already have @media print styles
@@ -41,19 +50,43 @@ export default function ExportOptions({ code, language, sessionData }) {
     setIsOpen(false);
   };
 
-  const handleExportGist = async () => {
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportJSON = async () => {
     if (!user) {
-      alert("Please log in to export to GitHub Gist.");
+      flash('error', 'Sign in to save a server-side report.');
       return;
     }
-
-    // In a real implementation, we'd hit a backend endpoint that uses the user's stored GitHub OAuth token.
-    // For now, we simulate success since the GitHub service is mocked.
-    setStatus('success');
-    setTimeout(() => {
-      setStatus(null);
-      setIsOpen(false);
-    }, 2000);
+    setBusy(true);
+    try {
+      const report = await apiClient.exportReport({
+        title: sessionData.title || 'Code Intelligence Report',
+        language: language || 'python',
+        task: sessionData.task || 'optimization',
+        original_code: code || '',
+        optimized_code: sessionData.optimized_code || '',
+        provider_used: sessionData.provider_used || '',
+        inspection: sessionData.inspection || null,
+        verification: sessionData.verification || null,
+        test_results: sessionData.test_results || null,
+      }, 'json');
+      downloadBlob(
+        new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }),
+        `report-${Date.now()}.json`,
+      );
+      flash('success', 'Report saved');
+    } catch (err) {
+      flash('error', err.message || 'Report export failed');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -76,10 +109,10 @@ export default function ExportOptions({ code, language, sessionData }) {
             className="absolute top-full right-0 mt-2 w-48 rounded-xl border overflow-hidden shadow-2xl z-50"
             style={{ background: 'var(--card-bg-solid)', borderColor: 'var(--card-border)' }}
           >
-            {status === 'success' ? (
-              <div className="p-3 text-emerald-400 flex flex-col items-center justify-center gap-2 text-sm font-medium">
-                <Check size={24} />
-                Export Successful
+            {status ? (
+              <div className={`p-3 flex flex-col items-center justify-center gap-2 text-sm font-medium ${status.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+                {status.type === 'success' && <Check size={24} />}
+                {status.message}
               </div>
             ) : (
               <div className="flex flex-col p-1.5">
@@ -98,11 +131,12 @@ export default function ExportOptions({ code, language, sessionData }) {
                   HTML File
                 </button>
                 <button
-                  onClick={handleExportGist}
-                  className="flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 rounded-lg text-left border-t border-slate-700/50 mt-1 pt-2"
+                  onClick={handleExportJSON}
+                  disabled={busy}
+                  className="flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 rounded-lg text-left border-t border-slate-700/50 mt-1 pt-2 disabled:opacity-50"
                 >
-                  <Github size={16} className="text-slate-100" />
-                  GitHub Gist
+                  <FileJson size={16} className="text-teal-300" />
+                  {busy ? 'Saving…' : 'JSON Report'}
                 </button>
               </div>
             )}

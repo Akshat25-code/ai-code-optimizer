@@ -99,11 +99,15 @@ export default function AlgorithmVisualizer({
         <div className="w-1/2 flex flex-col border-r" style={{ borderColor: 'var(--border-color, #334155)' }}>
           {/* Code */}
           <div className="flex-1 min-h-[200px] relative">
+             {typeof currentStep?.line === 'number' && (
+               <div className="absolute top-2 right-2 z-10 text-[10px] font-mono px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                 line {currentStep.line}
+               </div>
+             )}
              <CodeEditor
                 value={code}
                 language="python"
                 readOnly={true}
-                highlightLine={currentStep?.line}
              />
           </div>
 

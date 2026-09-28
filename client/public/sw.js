@@ -1,9 +1,10 @@
-﻿const CACHE_NAME = 'ai-optimizer-v1';
+﻿const CACHE_NAME = 'ai-optimizer-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/vite.svg'
+  '/favicon.svg',
+  '/icon-192.png'
 ];
 
 self.addEventListener('install', (event) => {

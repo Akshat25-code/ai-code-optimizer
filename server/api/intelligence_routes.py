@@ -260,7 +260,7 @@ class ImportLocalReq(BaseModel):
 @router.post("/import-repo/local", dependencies=[Depends(rate_limit_ai)])
 async def import_local_repo(req: ImportLocalReq):
     if os.getenv("APP_ENV", "development") == "production":
-        raise HTTPException(status_code=403, detail="Local repository import is disabled in production environments.")
+            raise HTTPException(status_code=403, detail="Local repository import is disabled in production. Run the backend locally, or use GitHub / ZIP import instead.")
 
     if not os.path.isdir(req.local_path):
         raise HTTPException(status_code=400, detail="Invalid directory path")
