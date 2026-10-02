@@ -1,0 +1,4 @@
+# Research-package extras (server/requirements.txt covers the app).
+# Install: pip install -r research/requirements-research.txt
+pyyaml>=6.0        # config.yaml parsing (also vendored fallback-free)
+tiktoken>=0.6.0    # token estimation for budget guards (already an app dep)

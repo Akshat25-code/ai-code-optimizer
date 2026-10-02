@@ -1,0 +1,8 @@
+# Benchmark experiment configuration (Priority 14).
+# Override any key from the CLI: --limit, --languages, --models, --max-budget, --repeats.
+models: []            # e.g. [openai, anthropic, gemini]; empty = static/baselines only (free)
+repeats: 5            # timing repeats per program (median wins)
+timeout: 60           # per-run seconds (compile steps get 2x internally where noted)
+max_budget: 5.0       # USD ceiling for all LLM calls in one run (abort above)
+ablation_subset: 100  # programs for the A/B/C/D ablation (Priority 9)
+seed_dataset: "datasets/seed.json"   # 60-case bug-detection track (existing)

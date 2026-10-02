@@ -1,6 +1,6 @@
-﻿# AI Code Optimizer Pro Max
+﻿# AI Code Optimizer — LLM-Assisted Program Analysis and Code Optimization
 
-AI Code Optimizer Pro Max is a full-stack code intelligence platform that combines AI assistance with deterministic local analysis, execution verification, repository scanning, custom rules, and proof-based reports.
+Research-oriented full-stack platform for evaluating LLM-generated code optimization across models, languages and runtime benchmarks. It combines AI assistance with deterministic local analysis, execution verification, repository scanning, custom rules, and proof-based reports.
 
 It is designed to prove more than “an AI API returned some text”: the backend performs real code analysis, security checks, complexity scoring, sandboxed execution, and report generation around the AI layer.
 

@@ -1,15 +1,24 @@
-# Research — Static + LLM Code Review: Does Combining Help?
+# Research — LLM-Assisted Program Analysis and Code Optimization
 
-## 1. Motivation & falsifiable question
+## 1. Motivation & research questions
 
-**Q:** Does combining static analysis (AST/complexity/rules-based) with
-LLM-based review catch more real bugs than either approach alone?
+**Main research question:** How effectively can LLMs optimize source code
+while preserving functional correctness and improving runtime performance?
 
-This repo is structurally set up to answer it: `services/analysis/`
-(`ast_analyzer`, `complexity_engine`, `rules_engine`, `bug_scanner`) is the
-static arm; `services/analysis/review_pipeline.py` + `services/ai/` is the
-LLM arm. Null hypothesis: the union performs no better than the stronger
-single arm.
+Secondary questions:
+1. Which model produces the most reliable optimizations?
+2. How often do LLM optimizations introduce regressions?
+3. Does program-analysis context improve optimization quality? (ablation
+   A/B/C/D: source → +AST → +complexity → +runtime profile)
+4. Does reduced complexity translate into actual runtime improvement?
+5. Is the performance improvement worth the additional inference cost?
+
+Track 1 (bug detection) asks the narrower precursor: does combining static
+analysis (AST/complexity/rules-based) with LLM-based review catch more real
+bugs than either approach alone? This repo is structurally set up for both:
+`services/analysis/` is the static arm; `review_pipeline.py` + `services/ai/`
+is the LLM arm. Null hypothesis: the union performs no better than the
+stronger single arm.
 
 ## 2. Related work (starting points)
 
@@ -167,3 +176,35 @@ table to fill is accuracy (from `REAL_AI=1` runs) vs $/case vs p50 latency.
 - Dataset: `research/dataset/seed.json` (commit it; link full dataset when scaled).
 - Real-AI runs: record model id, version string, temperature, date, and raw
   outputs alongside the results table.
+
+## 9. Optimization benchmark track (300 programs, 4 languages)
+
+Package: `research/README.md` (reproduce with `bash research/reproduce.sh`).
+
+- **Dataset** (`datasets/benchmark.json`, built by the seeded
+  `datasets/generate_benchmark.py`): 100 Python + 75 Java + 75 C++ +
+  50 JavaScript runnable programs across 10 inefficiency families
+  (nested-loop sort, sort-for-max, naive recursion, loop-vs-formula,
+  string-concat, nested-scan dedup, two-sum, trial division, prepend
+  reverse, nested count). Uniform stdin/stdout contract; every test's
+  expected output captured by running the reference; originals
+  differentially self-checked at build time (0 warnings on the frozen set).
+- **Correctness gate (P4):** original + candidate must pass the program's
+  tests; `original_tests_passed` / `reference_tests_passed` recorded per
+  entry. Dataset validity on the frozen set: reference 300/300 (verified at
+  build), original expected 300/300 by construction.
+- **Runtime (P5):** median of repeats + oracle speedup; `analysis/summarize.py`
+  adds p95/min/max and % improved / unchanged / regressed (±5% band).
+- **Traditional baselines (P7):** `baselines/traditional.py` — C++ `-O0` vs
+  `-O2` same-source; Java JIT vs `-Xint`; reference-oracle timing elsewhere
+  (interpreted languages have no compiler knob — stated, not faked).
+- **Complexity (P8):** per-program LOC always; cyclomatic total, AST size,
+  function count for Python; before/after/reference recorded to test whether
+  reduced complexity predicts runtime wins.
+- **Models (P6/P10):** GPT, Claude, Gemini only — no provider sprawl.
+  300 × 3 = 900 evaluations when funded; bill guard aborts over budget.
+- **Ablation (P9):** A (source) → B (+AST) → C (+complexity) → D (+profile)
+  prompt tiers, 100-program subset, same correctness/speedup/cost metrics.
+- **Tests (P13):** 201 backend + 26 frontend meaningful tests in-repo
+  (227 total), no filler.
+- **UI (P15):** frozen — no frontend changes in this track.
