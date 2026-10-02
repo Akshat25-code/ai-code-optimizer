@@ -9,7 +9,7 @@ from services.analysis.review_pipeline import ReviewPipeline
 
 
 from core.rate_limit import rate_limit_ai, enforce_daily_quota
-from api.auth_routes import get_optional_user
+from api.auth_routes import get_current_user
 
 router = APIRouter(prefix="/review", tags=["Review"])
 
@@ -27,7 +27,7 @@ class PipelineReq(BaseModel):
 )
 async def run_pipeline(
     req: PipelineReq,
-    current_user: dict | None = Depends(get_optional_user),
+    current_user: dict = Depends(get_current_user),
 ):
     """Run the multi-stage review pipeline."""
     try:

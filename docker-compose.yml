@@ -34,12 +34,37 @@ services:
       - ALLOW_FAKE_AI=1
       - CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-change-in-production}
+      - EXECUTOR_URL=http://executor:8002
+      - EXECUTOR_API_KEY=${EXECUTOR_API_KEY:-}
       # Add your AI keys here or in .env file
       # - OPENAI_API_KEY=
       # - ANTHROPIC_API_KEY=
       # - GOOGLE_AI_API_KEY=
     volumes:
       - ./server:/app/server  # Hot-reload in dev
+
+  # Isolated code-execution worker (no DB, no published ports, own sandbox).
+  # The API container never runs untrusted code in-process when
+  # EXECUTOR_URL is set (see backend env below).
+  executor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: aco-executor
+    command: python worker.py
+    depends_on:
+      - backend
+    environment:
+      - APP_ENV=production
+      - EXECUTOR_PORT=8002
+      - USE_DOCKER_SANDBOX=1
+      - EXECUTOR_API_KEY=${EXECUTOR_API_KEY:?EXECUTOR_API_KEY is required for the executor}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-change-in-production}
+    volumes:
+      # Docker-out-of-Docker: worker spawns one-shot sandbox containers.
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app/server
 
   # Frontend Dev Server
   frontend:

@@ -17,8 +17,25 @@ os.environ.setdefault("ENABLE_CODE_EXECUTION", "1")
 
 from fastapi.testclient import TestClient
 from main import app
+from api.auth_routes import get_current_user
+
+# Execution + intelligence routes require auth: act as a signed-in user.
+TEST_USER = {"id": "test-user", "email": "test@example.com", "name": "Test"}
+app.dependency_overrides[get_current_user] = lambda: TEST_USER
 
 client = TestClient(app)
+
+
+def test_anonymous_execution_refused():
+    """Fail closed: no token -> 401 even when execution is enabled."""
+    from fastapi.testclient import TestClient as TC
+    app.dependency_overrides.pop(get_current_user, None)
+    try:
+        c = TC(app)
+        r = c.post("/run-code", json={"code": "print(1)", "language": "python"})
+        assert r.status_code == 401, r.text
+    finally:
+        app.dependency_overrides[get_current_user] = lambda: TEST_USER
 
 SAMPLE = "def add(a, b):\n    return a + b\n\nprint(add(2, 3))\n"
 

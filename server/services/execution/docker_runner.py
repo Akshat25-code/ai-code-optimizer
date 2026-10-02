@@ -40,8 +40,9 @@ def should_use_docker() -> bool:
 
 
 def is_production() -> bool:
-    """True when running in production (APP_ENV=production)."""
-    return os.getenv("APP_ENV", "development").lower() == "production"
+    """Fail-closed environment check (see core.config.is_production_env)."""
+    from core.config import is_production_env
+    return is_production_env()
 
 
 def run_in_docker(

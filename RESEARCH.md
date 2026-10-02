@@ -34,6 +34,8 @@ single arm.
 - Conditions: `python research/run_real.py --provider <name>` (live;
   supersedes the stand-in `run_static_vs_ai.py`, kept for offline CI)
   - static-only = `bug_scanner` + per-pack `rules_engine` + `complexity_engine`
+    + Bandit (subprocess baseline) + Semgrep `--config auto` when its binary
+    exists (graceful skip otherwise)
   - AI-only = `provider_service.ask_ai` (pinned provider/model, temp 0.2 fixed
     in code), same JSON-verdict prompt, no static context
   - combined = identical prompt with static findings prepended **as context**
@@ -59,17 +61,19 @@ single arm.
 
 Static arm, real scoring rule (`python research/run_real.py --static-only`):
 
-| condition   | precision | recall | F1   |
-| static-only | 0.56      | 0.04   | 0.08 |
+| static arm contents              | precision | recall | F1   |
+| in-house only (no baselines)     | 0.56      | 0.04   | 0.08 |
+| + Bandit (Semgrep binary absent) | 0.71      | 0.25   | 0.37 |
 
-By category (F1): security 0.21 (n=12), error-handling 0.18 (n=5),
-logic 0.10 (n=10), all others 0.00; 3/60 partials (right line, wrong
-category). Only **4/60 cases produce any static finding at all** — e.g. the
-`security-owasp` pack is 4 rules total, and its hardcoded-secret regex
-requires 16+ chars, so `DB_PASSWORD = 's3cret!'` slips through. Verified
-by inspection, not a scoring bug: the static arm is high-precision but
-extremely low-recall. That asymmetry is the finding that motivates the
-combined approach.
+By category with Bandit (F1): security 0.89 (n=12), api-misuse 0.33 (n=4),
+error-handling 0.33 (n=5), logic 0.10, off-by-one 0.12, rest 0.00; 6/60
+partials. Adding one off-the-shelf linter quintupled recall (0.04 → 0.25)
+while holding precision — the single most cost-effective improvement in the
+whole study, and evidence for the portfolio claim that baseline choice
+dominates static results. In-house-only numbers: 4/60 cases flagged at all
+(`security-owasp` is 4 rules; its secret regex needs 16+ chars, so
+`DB_PASSWORD = 's3cret!'` slips through) — verified by inspection, and the
+asymmetry that motivates the combined approach.
 
 Stand-in reference (offline harness check, NOT a model result —
 `python research/run_static_vs_ai.py`):

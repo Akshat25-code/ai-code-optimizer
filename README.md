@@ -168,9 +168,9 @@ Experimental / partial: multi-provider AI review quality (depends on keys;
 fake-AI for demos), GitHub patch/PR workflow, team collaboration, streaming
 SSE UX, visualization dashboards. See `ARCHITECTURE.md` for the request flow
 and `RESEARCH.md` for the static-vs-LLM evaluation (synthetic seed n=60:
-static arm scores P 0.56 / R 0.04 — high precision, near-zero recall, which
-is the finding motivating the combined design; live-LLM cells pending a
-funded provider key, est. cost ≈ $0.02).
+static arm with Bandit baseline scores P 0.71 / R 0.25 (in-house only:
+P 0.56 / R 0.04) — baseline choice dominates static results; live-LLM cells
+pending a funded provider key, est. cost ≈ $0.02).
 
 ## Flagship demos
 

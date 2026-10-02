@@ -8,7 +8,12 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from core.rate_limit import rate_limit_ai
+from api.auth_routes import get_current_user
+from core.rate_limit import rate_limit_ai, get_client_ip
+
+# Every execution endpoint requires authentication (fail closed).
+# Rate limiting + execution allowlist apply on top via dependencies below.
+Authed = Depends(get_current_user)
 from core.ai_helpers import (
     build_fake_response,
     raise_ai_http_error,
@@ -50,7 +55,7 @@ def _is_code_execution_allowed(request: Request) -> tuple[bool, str]:
         return True, "APP_ENV=testing"
     if os.getenv("ENABLE_CODE_EXECUTION", "0") == "1":
         return True, "ENABLE_CODE_EXECUTION=1"
-    client_host = getattr(getattr(request, "client", None), "host", None) or ""
+    client_host = get_client_ip(request)
     if client_host in {"127.0.0.1", "::1", "localhost"}:
         return True, "loopback"
     if client_host in CODE_EXECUTION_IP_ALLOWLIST:
@@ -58,7 +63,7 @@ def _is_code_execution_allowed(request: Request) -> tuple[bool, str]:
     return False, client_host
 
 
-@router.post("/run-code", dependencies=[Depends(rate_limit_ai)])
+@router.post("/run-code", dependencies=[Depends(rate_limit_ai), Authed])
 async def run_code_endpoint(req: RunCodeReq, request: Request):
     """Execute code with basic performance metrics.
 
@@ -78,7 +83,7 @@ async def run_code_endpoint(req: RunCodeReq, request: Request):
     return run_result_to_dict(result)
 
 
-@router.post("/run-code/compare", dependencies=[Depends(rate_limit_ai)])
+@router.post("/run-code/compare", dependencies=[Depends(rate_limit_ai), Authed])
 async def run_code_compare(req: RunCompareReq, request: Request):
     """Run original + optimized code and compare basic metrics.
 
@@ -149,7 +154,7 @@ async def run_code_compare(req: RunCompareReq, request: Request):
     }
 
 
-@router.post("/optimize-code-enhanced")
+@router.post("/optimize-code-enhanced", dependencies=[Depends(rate_limit_ai), Authed])
 async def optimize_code_enhanced(request: EnhancedOptimizeReq):
     """Enhanced optimization endpoint with real AST-based performance analysis."""
     try:
@@ -206,7 +211,7 @@ async def optimize_code_enhanced(request: EnhancedOptimizeReq):
         raise_ai_http_error(e, "Enhanced optimization error")
 
 
-@router.post("/evaluate-optimization")
+@router.post("/evaluate-optimization", dependencies=[Depends(rate_limit_ai), Authed])
 async def evaluate_optimization_endpoint(req: EvaluateOptimizationReq, request: Request):
     """Full verified optimization pipeline (AI + sandbox + proof)."""
     allowed, reason = _is_code_execution_allowed(request)
@@ -291,14 +296,14 @@ class SandboxProfileReq(BaseModel):
     timeout_ms: int = 10000
 
 
-@router.post("/sandbox/compare")
+@router.post("/sandbox/compare", dependencies=[Authed])
 async def sandbox_compare(req: SandboxCompareReq):
     """Compare two outputs using exact, numeric_tolerance, or order_independent mode."""
     result = compare_outputs(req.out_a, req.out_b, mode=req.mode, epsilon=req.epsilon)
     return result
 
 
-@router.post("/sandbox/profile")
+@router.post("/sandbox/profile", dependencies=[Depends(rate_limit_ai), Authed])
 async def sandbox_profile(req: SandboxProfileReq, request: Request):
     """Profile code execution: memory + cProfile hotspots."""
     allowed, reason = _is_code_execution_allowed(request)
@@ -307,6 +312,18 @@ async def sandbox_profile(req: SandboxProfileReq, request: Request):
             status_code=403,
             detail=f"Code execution disabled ({reason}). Set ENABLE_CODE_EXECUTION=1.",
         )
+    from services.execution import worker_client
+    from services.execution.docker_runner import is_production
+    if worker_client.worker_configured():
+        try:
+            remote = worker_client.profile_via_worker(
+                req.code, req.language, timeout_ms=req.timeout_ms)
+            if remote is not None:
+                return remote
+        except RuntimeError as e:
+            if is_production():
+                raise HTTPException(status_code=503, detail=f"Refused: {e}")
+            # Dev/test convenience fallback to local profiling below.
     result = profile_code(req.code, req.language, timeout_ms=req.timeout_ms)
     return result
 

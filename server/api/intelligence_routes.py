@@ -8,14 +8,18 @@ import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, Depends, UploadFile, File
+from api.auth_routes import get_current_user
 from core.rate_limit import enforce_daily_quota, rate_limit_ai
+
+# Every intelligence endpoint requires authentication (fail closed).
+Authed = Depends(get_current_user)
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from utils.code_utils import extract_code_block
 
 from services.ai.provider_service import ask_ai, ProviderConfigError
 from services.analysis.repo_scanner import scan_repository
-from services.analysis.repo_importer import read_local_directory, process_imported_repo, compress_file_context
+from services.analysis.repo_importer import process_imported_repo
 from services.analysis.secret_scanner import redact_secrets, scan_secrets, to_sarif
 from services.execution.test_runner import run_pytest
 from services.execution.verification_engine import verify_optimization
@@ -80,12 +84,12 @@ class ReportReq(BaseModel):
 
 
 
-@router.post("/scan-secrets", dependencies=[Depends(rate_limit_ai)])
+@router.post("/scan-secrets", dependencies=[Depends(rate_limit_ai), Authed])
 async def scan_secrets_endpoint(req: SecretScanReq):
     return scan_secrets(req.code, req.filename)
 
 
-@router.post("/scan-secrets/sarif", dependencies=[Depends(rate_limit_ai)])
+@router.post("/scan-secrets/sarif", dependencies=[Depends(rate_limit_ai), Authed])
 async def scan_secrets_sarif_endpoint(req: SecretScanReq):
     """Scan for secrets and return results in SARIF 2.1.0 format."""
     result = scan_secrets(req.code, req.filename)
@@ -93,20 +97,20 @@ async def scan_secrets_sarif_endpoint(req: SecretScanReq):
     return JSONResponse(content=sarif, media_type="application/sarif+json")
 
 
-@router.post("/redact-secrets", dependencies=[Depends(rate_limit_ai)])
+@router.post("/redact-secrets", dependencies=[Depends(rate_limit_ai), Authed])
 async def redact_secrets_endpoint(req: RedactReq):
     redacted, count = redact_secrets(req.code)
     return {"redacted_code": redacted, "redaction_count": count}
 
 
-@router.post("/scan-repo")
+@router.post("/scan-repo", dependencies=[Depends(rate_limit_ai), Authed])
 async def scan_repo_endpoint(req: RepoScanReq):
     if not req.files:
         raise HTTPException(status_code=400, detail="No files provided")
     return scan_repository(req.files)
 
 
-@router.post("/verify-optimization", dependencies=[Depends(rate_limit_ai)])
+@router.post("/verify-optimization", dependencies=[Depends(rate_limit_ai), Authed])
 async def verify_optimization_endpoint(req: VerifyReq, request: Request):
     from core.ai_helpers import build_fake_response, format_analyze_response
     from api.execution_routes import _is_code_execution_allowed
@@ -168,7 +172,7 @@ async def verify_optimization_endpoint(req: VerifyReq, request: Request):
     return report
 
 
-@router.post("/run-tests")
+@router.post("/run-tests", dependencies=[Depends(rate_limit_ai), Authed])
 async def run_tests_endpoint(req: TestRunReq, request: Request):
     from api.execution_routes import _is_code_execution_allowed
 
@@ -211,7 +215,7 @@ CODE:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/report")
+@router.post("/report", dependencies=[Authed])
 async def generate_report_endpoint(req: ReportReq):
     report = build_session_report(
         title=req.title,
@@ -237,7 +241,7 @@ async def generate_report_endpoint(req: ReportReq):
     )
 
 
-@router.get("/provider-status")
+@router.get("/provider-status", dependencies=[Authed])
 async def provider_status():
     keys = {
         "openai": bool(os.getenv("OPENAI_API_KEY")),
@@ -253,26 +257,7 @@ async def provider_status():
     }
 
 
-class ImportLocalReq(BaseModel):
-    local_path: str = Field(..., description="Absolute path to local directory")
-    compress: bool = True
-
-@router.post("/import-repo/local", dependencies=[Depends(rate_limit_ai)])
-async def import_local_repo(req: ImportLocalReq):
-    if os.getenv("APP_ENV", "development") == "production":
-            raise HTTPException(status_code=403, detail="Local repository import is disabled in production. Run the backend locally, or use GitHub / ZIP import instead.")
-
-    if not os.path.isdir(req.local_path):
-        raise HTTPException(status_code=400, detail="Invalid directory path")
-
-    files = read_local_directory(req.local_path)
-    if not files:
-        raise HTTPException(status_code=400, detail="No readable files found in directory (or all ignored)")
-
-    result = process_imported_repo(files, compress=req.compress)
-    return result
-
-@router.post("/import-repo/zip", dependencies=[Depends(rate_limit_ai)])
+@router.post("/import-repo/zip", dependencies=[Depends(rate_limit_ai), Authed])
 async def import_zip_repo(file: UploadFile = File(...), compress: bool = True):
     if not file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="Must be a .zip file")

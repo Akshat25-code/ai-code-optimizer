@@ -39,7 +39,7 @@ _fernet: Optional[Fernet] = None
 def _get_fernet() -> Fernet:
     global _fernet
     if _fernet is None:
-        from settings import settings  # late import to avoid circular
+        from core.config import settings  # late import to avoid circular
         master = settings.jwt_secret_key
         if not master or master == "your-secret-key-change-in-production" or master == "change_me":
             # In dev only, fall back to a stable key derived from machine id so restarts work.

@@ -32,13 +32,40 @@ def _get_redis():
 # Simple in-memory fallback dict: key -> [timestamps]
 _requests: dict[str, list[float]] = defaultdict(list)
 
+def _trusted_proxies() -> set[str]:
+    return {
+        p.strip().lower()
+        for p in os.getenv("TRUSTED_PROXIES", "127.0.0.1,::1").split(",")
+        if p.strip()
+    }
+
+
+def get_client_ip(request: Request) -> str:
+    """Trusted-proxy-aware client IP.
+
+    X-Forwarded-For is honored ONLY when the direct peer is a configured
+    trusted proxy (TRUSTED_PROXIES, default loopback). Otherwise the direct
+    peer is used, so clients cannot spoof their IP past an untrusted hop.
+    Returns the leftmost untrusted address in the chain.
+    """
+    direct = request.client.host if request.client else "unknown"
+    fwd = request.headers.get("x-forwarded-for", "")
+    if not fwd or direct.lower() not in _trusted_proxies():
+        return direct
+    chain = [p.strip() for p in fwd.split(",") if p.strip()]
+    for ip in chain:
+        if ip.lower() not in _trusted_proxies():
+            return ip
+    return chain[0] if chain else direct
+
+
 def _extract_identity(request: Request) -> tuple[str, str]:
     """Return (primary_key, ip) where primary is user ID / API key if authed.
 
     Authenticated callers are limited by user ID (primary) + IP (secondary
     defense). Unauthenticated callers fall back to IP-only.
     """
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     # 1. JWT (header or cookie)
     for token in (
         request.headers.get("authorization", "").removeprefix("Bearer ").strip()
@@ -133,11 +160,11 @@ async def enforce_daily_quota(request: Request):
             pass
 
     if not user_id:
-        token = request.cookies.get("aco_access")
-        if token:
+        cookie_token = request.cookies.get("aco_access")
+        if cookie_token:
             try:
                 from core.security import JWTManager
-                payload = JWTManager.verify_token(token, "access") or {}
+                payload = JWTManager.verify_token(cookie_token, "access") or {}
                 user_id = payload.get("sub") or payload.get("user_id")
             except Exception:
                 pass

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from core.rate_limit import rate_limit_ai, enforce_daily_quota
+from core.config import allow_fake_ai
 from core.ai_helpers import build_fake_response, format_analyze_response
 from models.analysis_models import AnalyzeReq
 from services.ai.streaming_service import stream_ai
@@ -18,8 +19,8 @@ from services.ai.cache_service import (
     store_cached_response,
     record_cache_hit,
 )
-from api.auth_routes import get_optional_user
-from api.apikeys_routes import fetch_user_api_keys
+from api.auth_routes import get_current_user
+from api.apikeys_routes import try_fetch_user_api_keys
 
 logger = logging.getLogger("streaming_routes")
 
@@ -35,7 +36,7 @@ def _sse(event: dict) -> str:
     "/analyze-code/stream",
     dependencies=[Depends(rate_limit_ai), Depends(enforce_daily_quota)],
 )
-async def analyze_code_stream(req: AnalyzeReq, current_user: dict | None = Depends(get_optional_user)):
+async def analyze_code_stream(req: AnalyzeReq, current_user: dict = Depends(get_current_user)):
     """Stream AI analysis as Server-Sent Events.
 
     Event types:
@@ -49,10 +50,9 @@ async def analyze_code_stream(req: AnalyzeReq, current_user: dict | None = Depen
         req.user_instructions, req.optimization_focus,
     )
 
-    # Fetch user's BYO API keys (if authenticated)
-    user_api_keys = None
-    if current_user:
-        user_api_keys = await fetch_user_api_keys(current_user["id"]) or None
+    # Fetch user's BYO API keys (best-effort; falls back to env keys)
+    user_api_keys = await try_fetch_user_api_keys(
+        current_user["id"] if current_user else None)
 
     # If user has their OWN key for this provider, don't count toward platform quota
     # (they pay their own bill â€” we just route the request)
@@ -110,7 +110,7 @@ async def analyze_code_stream(req: AnalyzeReq, current_user: dict | None = Depen
                         "from_cache": False,
                     })
                 elif event["type"] == "error":
-                    if os.getenv("ALLOW_FAKE_AI", "1") == "1":
+                    if allow_fake_ai():
                         fake = build_fake_response(
                             req.task, req.language, req.code, "stream-error"
                         )

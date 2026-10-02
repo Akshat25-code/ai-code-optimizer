@@ -32,9 +32,11 @@ class Settings(BaseModel):
     groq_api_key: str | None = os.getenv("GROQ_API_KEY")
 
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    anthropic_model: str = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest")
-    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-    deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    anthropic_model: str = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    # Verified against the live DeepSeek models endpoint (2026-10): the
+    # account lists deepseek-flash + deepseek-v4-pro (no deepseek-chat).
+    deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro")
     grok_model: str = os.getenv("GROK_MODEL", "grok-2-latest")
     groq_model: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
@@ -54,17 +56,11 @@ class Settings(BaseModel):
     ]
     oauth_base_url: str | None = os.getenv("OAUTH_BASE_URL") or None
 
-    # Sandbox
-    enable_code_execution: bool = os.getenv("ENABLE_CODE_EXECUTION", "0") == "1"
-    sandbox_docker_socket: str | None = os.getenv("SANDBOX_DOCKER_SOCKET") or None
-    sandbox_image_python: str = os.getenv("SANDBOX_IMAGE_PYTHON", "aco-sandbox-python:3.12")
-    sandbox_image_node: str = os.getenv("SANDBOX_IMAGE_NODE", "aco-sandbox-node:20")
-    sandbox_image_go: str = os.getenv("SANDBOX_IMAGE_GO", "aco-sandbox-go:1.22")
-    sandbox_image_rust: str = os.getenv("SANDBOX_IMAGE_RUST", "aco-sandbox-rust:1.79")
-    sandbox_image_java: str = os.getenv("SANDBOX_IMAGE_JAVA", "aco-sandbox-java:21")
-    sandbox_image_cpp: str = os.getenv("SANDBOX_IMAGE_CPP", "aco-sandbox-cpp:gcc-13")
-    sandbox_pool_size: int = int(os.getenv("SANDBOX_POOL_SIZE", "4"))
-    sandbox_timeout_ms: int = int(os.getenv("SANDBOX_TIMEOUT_MS", "8000"))
+    # Sandbox (single source of truth: USE_DOCKER_SANDBOX + SANDBOX_IMAGE_<LANG>
+    # read directly by docker_runner; per-language image overrides live there.
+    # The old sandbox_* settings fields were dead (nothing read them) and are
+    # removed. Execution gating reads ENABLE_CODE_EXECUTION from the
+    # environment in api/execution_routes.py.)
 
     # AI behavior
     ai_timeout_sec: int = int(os.getenv("AI_TIMEOUT", "20"))
@@ -80,6 +76,20 @@ class Settings(BaseModel):
 
 
 settings = Settings()
+
+
+def is_production_env(env_value: str | None = None) -> bool:
+    """Fail-closed environment check: anything that is not explicitly
+    development/testing gets production behavior (secure cookies, Docker
+    enforcement, no fake AI). Unknown/staging values fail closed."""
+    env = (env_value if env_value is not None else os.getenv("APP_ENV", "development")).lower()
+    return env not in ("development", "testing")
+
+
+def allow_fake_ai() -> bool:
+    """Fake-AI demo mode. Defaults OFF everywhere; enabled only by explicit
+    ALLOW_FAKE_AI=1 (tests and local dev set it)."""
+    return os.getenv("ALLOW_FAKE_AI", "0") == "1"
 
 
 def check_required_secrets(strict: bool | None = None) -> None:

@@ -230,3 +230,14 @@ async def fetch_user_api_keys(user_id: str) -> dict[str, str]:
         except ValueError:
             continue  # Skip corrupted keys silently
     return keys
+
+
+async def try_fetch_user_api_keys(user_id: str | None) -> dict[str, str] | None:
+    """Best-effort BYO-key fetch for request paths: None when anonymous or
+    when the database is unavailable (callers fall back to env keys)."""
+    if not user_id:
+        return None
+    try:
+        return await fetch_user_api_keys(user_id) or None
+    except Exception:
+        return None

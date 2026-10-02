@@ -22,6 +22,7 @@ import json
 import os
 import pstats
 import sys
+import tempfile
 import tracemalloc
 
 
@@ -34,9 +35,13 @@ def main():
         print(json.dumps({"ok": False, "error": str(e)}))
         return
 
-    # Profile execution
+    # Profile execution (user stdout/stderr captured so the JSON
+    # payload stays parseable even when profiled code prints).
     tracemalloc.start()
     profiler = cProfile.Profile()
+    out_buf, err_buf = io.StringIO(), io.StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = out_buf, err_buf
 
     ok = True
     error_msg = ""
@@ -49,13 +54,30 @@ def main():
         profiler.disable()
         ok = False
         error_msg = f"{type(e).__name__}: {e}"
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
 
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
 
-    # Extract hotspots from profiler stats
+    # Extract hotspots from profiler stats (pstats needs a dump file).
     stream = io.StringIO()
-    stats = pstats.Stats(profiler, stream=stream)
+    fd, stats_path = tempfile.mkstemp(suffix=".prof")
+    os.close(fd)
+    try:
+        profiler.dump_stats(stats_path)
+        stats = pstats.Stats(stats_path, stream=stream)
+    except Exception as e:
+        print(json.dumps({"ok": ok, "error": error_msg or str(e),
+                          "stdout": out_buf.getvalue(),
+                          "stderr": err_buf.getvalue(),
+                          "peak_kb": int(peak / 1024), "hotspots": []}))
+        return
+    finally:
+        try:
+            os.remove(stats_path)
+        except OSError:
+            pass
     stats.sort_stats("cumulative")
 
     hotspots = []
@@ -74,6 +96,8 @@ def main():
     print(json.dumps({
         "ok": ok,
         "error": error_msg,
+        "stdout": out_buf.getvalue(),
+        "stderr": err_buf.getvalue(),
         "peak_kb": int(peak / 1024),
         "current_kb": int(current / 1024),
         "hotspots": hotspots,

@@ -140,17 +140,41 @@ def _find_python_exe() -> str:
     return python_exe or "python"
 
 
-def run_python(code: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
+def run_python(code: str, stdin_text: str = "", timeout_ms: int = 5000,
+               raw: bool = False) -> RunResult:
+    """Run Python code. raw=True executes directly (no restricted-builtins
+    wrapper, no tracemalloc) and REQUIRES the Docker sandbox — it fails
+    closed without it. Used for timing runs where instrumentation must not
+    pollute measurements."""
     if not _production_sandbox_enforced():
         return _production_refusal("python")
+    if raw and not should_use_docker():
+        return RunResult(
+            False, "",
+            "Refused: raw execution requires the Docker sandbox "
+            "(USE_DOCKER_SANDBOX=1 with a working docker daemon).",
+            0,
+        )
     start = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix="aico_py_") as td:
         wp = os.path.join(td, "wrapper.py")
         up = os.path.join(td, "user_code.py")
-        with open(wp, "w", encoding="utf-8") as f:
-            f.write(_PYTHON_WRAPPER)
+        if not raw:
+            with open(wp, "w", encoding="utf-8") as f:
+                f.write(_PYTHON_WRAPPER)
         with open(up, "w", encoding="utf-8") as f:
             f.write(code or "")
+        if raw:
+            # Docker-only direct execution (see gate above).
+            try:
+                cp = run_in_docker(get_image("python"),
+                    ["python", "user_code.py"],
+                    td, max(0.1, timeout_ms / 1000), stdin_text or None)
+            except subprocess.TimeoutExpired:
+                return RunResult(False, "", "Timeout", int((time.perf_counter() - start) * 1000))
+            return RunResult(
+                cp.returncode == 0, cp.stdout or "", cp.stderr or "",
+                int((time.perf_counter() - start) * 1000))
         try:
             if should_use_docker():
                 cp = run_in_docker(get_image("python"),

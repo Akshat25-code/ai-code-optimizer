@@ -170,8 +170,74 @@ def parse_verdict(text: str) -> dict:
     }
 
 
-def static_findings(code: str, language: str = "python") -> tuple[list[dict], dict]:
-    """Collectors return [(line, category|None, source)] + context text."""
+def _external_baselines(code: str) -> tuple[list[dict], list[str]]:
+    """Bandit (+ Semgrep when its binary exists) as independent static
+    baselines. Both run on a temp file; anything missing/failing is skipped
+    (recorded, never fatal). Findings carry category 'security'."""
+    import json as _json
+    import shutil
+    import subprocess
+    import tempfile
+
+    findings: list[dict] = []
+    notes: list[str] = []
+    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False,
+                                     encoding="utf-8") as f:
+        f.write(code)
+        path = f.name
+    try:
+        if shutil.which("bandit"):
+            try:
+                p = subprocess.run(
+                    ["bandit", "-f", "json", "-q", path],
+                    capture_output=True, text=True, timeout=60)
+                data = _json.loads(p.stdout or "{}")
+                for r in data.get("results", [])[:10]:
+                    findings.append({
+                        "line": r.get("line_number"), "category": "security",
+                        "source": f"bandit:{r.get('test_id')}",
+                        "message": str(r.get("issue_text", ""))[:160],
+                    })
+                notes.append(f"[bandit] {len(data.get('results', []))} finding(s)")
+            except Exception as e:
+                notes.append(f"[bandit] skipped: {e}")
+        else:
+            notes.append("[bandit] not installed, skipped")
+        if shutil.which("semgrep"):
+            try:
+                p = subprocess.run(
+                    ["semgrep", "--config", "auto", "--json", "-q", path],
+                    capture_output=True, text=True, timeout=120)
+                data = _json.loads(p.stdout or "{}")
+                for r in data.get("results", [])[:10]:
+                    check = str(r.get("check_id", ""))
+                    findings.append({
+                        "line": (r.get("start") or {}).get("line"),
+                        "category": "security" if "security" in check else None,
+                        "source": f"semgrep:{check.split('.')[-1][:60]}",
+                        "message": str(r.get("extra", {}).get("message", ""))[:160],
+                    })
+                notes.append(f"[semgrep] {len(data.get('results', []))} finding(s)")
+            except Exception as e:
+                notes.append(f"[semgrep] skipped: {e}")
+        else:
+            notes.append("[semgrep] binary missing, skipped "
+                         "(pip package alone is not enough on Windows)")
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+    return findings, notes
+
+
+def static_findings(code: str, language: str = "python",
+                    with_baselines: bool = True) -> tuple[list[dict], dict]:
+    """Collectors return [(line, category|None, source)] + context text.
+
+    with_baselines=False skips the Bandit/Semgrep subprocesses (used by the
+    budget estimator, which only needs prompt sizes).
+    """
     from services.analysis.bug_scanner import scan_python, scan_javascript
     from services.analysis.rules_engine import RulesEngine
     from services.analysis.complexity_engine import analyze_complexity
@@ -179,6 +245,11 @@ def static_findings(code: str, language: str = "python") -> tuple[list[dict], di
     findings: list[dict] = []
     ctx_lines: list[str] = []
     raw: dict = {}
+    if with_baselines and language.lower() == "python":
+        ext, _notes = _external_baselines(code)
+        findings.extend(ext)
+        ctx_lines.extend(_notes)
+        raw["external_baselines"] = [f for f in ext]
     try:
         report = scan_python(code) if language == "python" else scan_javascript(code)
         raw["bug_scanner"] = report
@@ -282,7 +353,7 @@ async def main_async(args) -> int:
     # --- budget guard (estimate before spending) ---
     per_case_in = 0
     for item in data:
-        _, ctx = static_findings(item["buggy"])  # also warms engines
+        _, ctx = static_findings(item["buggy"], with_baselines=False)
         for variant in ("ai", "combined", "combined-ast"):
             c = ctx["text"] if variant == "combined" else ""
             _, full = build_prompt(item["buggy"], c)

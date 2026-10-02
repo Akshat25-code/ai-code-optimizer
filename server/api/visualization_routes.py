@@ -1,8 +1,10 @@
 ﻿"""Algorithm visualization and tracing routes."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
+
+from api.auth_routes import get_current_user
 
 from services.execution.step_executor import StepExecutor
 from api.execution_routes import _is_code_execution_allowed
@@ -15,7 +17,7 @@ class TraceReq(BaseModel):
     timeout_ms: int = Field(default=8000, le=30000)
 
 
-@router.post("/trace")
+@router.post("/trace", dependencies=[Depends(get_current_user)])
 async def trace_algorithm(req: TraceReq, request: Request):
     """Trace code execution step-by-step for visualization."""
     allowed, reason = _is_code_execution_allowed(request)

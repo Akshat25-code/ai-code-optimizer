@@ -27,6 +27,21 @@ def client():
         yield c
 
 
+@pytest.fixture(scope="session")
+def authed_client():
+    """TestClient with get_current_user overridden (all execution and
+    intelligence routes require auth). Override is removed after the session
+    so auth-failure tests elsewhere are unaffected."""
+    from main import app
+    from api.auth_routes import get_current_user
+    app.dependency_overrides[get_current_user] = lambda: {
+        "id": "test-user", "email": "test@example.com", "name": "Test",
+    }
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.pop(get_current_user, None)
+
+
 @pytest.fixture
 def sample_python_code():
     """Sample Python code for testing."""

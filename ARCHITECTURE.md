@@ -46,6 +46,14 @@ models/  request/response schemas, database (OAuth tokens encrypted via
   wrapper is defense-in-depth for dev/test only and is **refused in
   production** (`USE_DOCKER_SANDBOX=1` mandatory — enforced at boot in
   `main.lifespan` and per-execution in every `run_*`).
+- Execution has a real production home: `server/worker.py`, a separate
+  FastAPI service (`executor` in docker-compose.yml) with no DB, no
+  published ports, its own sandbox, and a shared-secret (`EXECUTOR_API_KEY`)
+  handshake. When `EXECUTOR_URL` is set, the API container never runs
+  untrusted code in-process: `sandbox_runner` routes to the worker, and a
+  down worker fails closed in production (dev/test fall back locally).
+  Verification always uses the worker-or-Docker path with raw (unwrapped)
+  execution for timing.
 - `core/` = cross-cutting (config, DB, auth, crypto, limits).
 - `models/` = schemas + persistence helpers (OAuth tokens encrypted at rest).
 

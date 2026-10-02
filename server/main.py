@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from core.config import settings, check_required_secrets
+from core.config import settings, check_required_secrets, is_production_env
 from core.database import connect_to_mongo, init_mongodb, close_mongo_connection, mongo_diagnostics
 from core.websocket import manager
 
@@ -50,7 +50,7 @@ check_required_secrets()
 # --- Lifespan (replaces deprecated @app.on_event) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if APP_ENV == "production" and os.getenv("USE_DOCKER_SANDBOX", "0") != "1":
+    if is_production_env(APP_ENV) and os.getenv("USE_DOCKER_SANDBOX", "0") != "1":
         logger.error(
             "Refusing insecure production config: USE_DOCKER_SANDBOX=1 is required "
             "in production because the subprocess fallback (restricted builtins) "
@@ -89,7 +89,7 @@ from fastapi.responses import RedirectResponse
 
 @app.middleware("http")
 async def _force_https(request, call_next):
-    if os.getenv("APP_ENV", "development").lower() != "production":
+    if not is_production_env():
         return await call_next(request)
     # Respect TLS-terminating proxies via X-Forwarded-Proto.
     proto = request.headers.get("x-forwarded-proto", request.url.scheme)
@@ -204,7 +204,7 @@ async def providers_status():
             "anthropic": settings.anthropic_model,
             "gemini": settings.gemini_model,
         },
-        "allow_fake_ai": os.getenv("ALLOW_FAKE_AI", "1") == "1",
+        "allow_fake_ai": allow_fake_ai(),
         "ai_timeout": int(os.getenv("AI_TIMEOUT", "10")),
         "ai_retries": int(os.getenv("AI_RETRIES", "1")),
         "experimental_providers_enabled": settings.experimental_providers_enabled,
@@ -214,12 +214,12 @@ async def providers_status():
 # Debug endpoints â€” dev only
 @app.get("/debug/db")
 async def debug_db():
-    if APP_ENV == "production":
+    if is_production_env():
         raise HTTPException(status_code=404, detail="Not found")
     return {
         "database": os.getenv("MONGODB_DB", "ai_code_optimizer"),
         "port_env": BACKEND_PORT,
-        "allow_fake_ai": os.getenv("ALLOW_FAKE_AI", "1") == "1",
+        "allow_fake_ai": allow_fake_ai(),
     }
 
 

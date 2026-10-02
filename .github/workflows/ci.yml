@@ -54,10 +54,10 @@ jobs:
           ALLOW_FAKE_AI: "1"
           APP_ENV: testing
           JWT_SECRET_KEY: ci-test-secret
-        run: pytest tests/ -v --tb=short --cov=. --cov-report=term-missing --cov-fail-under=50
+        run: pytest tests/ -v --tb=short --cov=. --cov-report=term-missing --cov-fail-under=60
 
       - name: Dependency audit (pip-audit)
-        run: pip install pip-audit && pip-audit || true
+        run: pip install pip-audit && pip-audit
 
   docker-smoke:
     runs-on: ubuntu-24.04
@@ -66,7 +66,7 @@ jobs:
       - name: Build Docker image
         run: docker build -t aco-test:ci .
       - name: Smoke test boots
-        run: timeout 20 docker run --rm -e SKIP_MONGO_INIT=1 -e JWT_SECRET_KEY=ci-test-secret -e APP_ENV=testing aco-test:ci python -c "import main; print('boot ok')" || true
+        run: timeout 20 docker run --rm -e SKIP_MONGO_INIT=1 -e JWT_SECRET_KEY=ci-test-secret -e APP_ENV=testing aco-test:ci python -c "import main; print('boot ok')"
 
   # Frontend build check
   frontend-build:
@@ -89,13 +89,13 @@ jobs:
         run: npm ci
 
       - name: Lint frontend
-        run: npm run lint || true
+        run: npm run lint
 
       - name: Test frontend
-        run: npm test -- --run || true
+        run: npm test -- --run
 
       - name: Audit frontend
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high
 
       - name: Build
         run: npm run build

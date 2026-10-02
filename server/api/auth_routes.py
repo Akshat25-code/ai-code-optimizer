@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, status, Re
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
 
+from core.config import is_production_env as _is_prod_env
 from core.security import (
     JWTManager,
     PasswordManager,
@@ -109,7 +110,7 @@ class RefreshTokenRequest(BaseModel):
 # ---------------------------------------------------------------------------
 ACCESS_COOKIE = "aco_access"
 REFRESH_COOKIE = "aco_refresh"
-COOKIE_SECURE = os.getenv("APP_ENV", "development").lower() == "production"
+COOKIE_SECURE = _is_prod_env()
 COOKIE_SAMESITE = "lax"
 ACCESS_COOKIE_MAX_AGE = 60 * 30  # 30 min
 REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days

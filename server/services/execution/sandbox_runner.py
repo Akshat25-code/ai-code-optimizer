@@ -23,12 +23,35 @@ from services.execution.language_runners import (
 from services.execution.trace_runner import trace_python
 
 
-def run_code(code: str, language: str, stdin_text: str = "", timeout_ms: int = 5000) -> RunResult:
-    """Generic code runner that dispatches to language-specific runners."""
+def run_code(code: str, language: str, stdin_text: str = "", timeout_ms: int = 5000,
+             raw: bool = False) -> RunResult:
+    """Generic code runner that dispatches to language-specific runners.
+
+    raw=True requests uninstrumented execution (no restricted-builtins
+    wrapper, no tracemalloc). Only Python has an instrumented path, so raw
+    only changes Python; without Docker it fails closed.
+
+    When EXECUTOR_URL is set, code runs in the isolated worker container
+    instead of this process. If the worker is down, production refuses;
+    dev/test fall back to local dispatch.
+    """
+    from services.execution import worker_client
+    from services.execution.docker_runner import is_production
+
+    if worker_client.worker_configured():
+        try:
+            remote = worker_client.execute_via_worker(
+                code, language, stdin_text, timeout_ms, raw=raw)
+            if remote is not None:
+                return remote
+        except RuntimeError as e:
+            if is_production():
+                return RunResult(False, "", f"Refused: {e}", 0)
+            # Dev/test convenience fallback to local dispatch below.
     lang = language.lower()
 
     if lang in ("python", "py"):
-        return run_python(code, stdin_text, timeout_ms)
+        return run_python(code, stdin_text, timeout_ms, raw=raw)
     elif lang in ("javascript", "js", "node", "nodejs"):
         return run_javascript(code, stdin_text, timeout_ms)
     elif lang in ("typescript", "ts"):

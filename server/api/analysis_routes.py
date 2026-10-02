@@ -14,7 +14,7 @@ from core.ai_helpers import (
     format_analyze_response,
     raise_ai_http_error,
 )
-from core.config import settings
+from core.config import settings, allow_fake_ai
 from models.analysis_models import (
     AnalyzeReq,
     AnalyzeRes,
@@ -37,15 +37,15 @@ from services.analysis.complexity_engine import analyze_complexity
 from services.analysis.rules_engine import RulesEngine, get_compliance_score
 from services.analysis.analytics_engine import build_snapshot
 from core.database import get_database
-from api.auth_routes import get_optional_user
-from api.apikeys_routes import fetch_user_api_keys
+from api.auth_routes import get_current_user
+from api.apikeys_routes import try_fetch_user_api_keys
 
 router = APIRouter()
 _rules_engine = RulesEngine()
 
 
 @router.post("/analyze-code", response_model=AnalyzeRes, dependencies=[Depends(rate_limit_ai), Depends(enforce_daily_quota)])
-async def analyze_code(req: AnalyzeReq, current_user: dict | None = Depends(get_optional_user)):
+async def analyze_code(req: AnalyzeReq, current_user: dict = Depends(get_current_user)):
     try:
         norm_task = (req.task or "").strip().lower()
         if norm_task in {"bug_detection", "bug-detection", "bug", "bugs"}:
@@ -69,9 +69,8 @@ async def analyze_code(req: AnalyzeReq, current_user: dict | None = Depends(get_
             return cached
 
         # Fetch user's BYO API keys (if authenticated)
-        user_api_keys = None
-        if current_user:
-            user_api_keys = await fetch_user_api_keys(current_user["id"]) or None
+        user_api_keys = await try_fetch_user_api_keys(
+            current_user["id"] if current_user else None)
 
         ai_timeout = int(os.getenv("AI_TIMEOUT", "20"))
         ai_retries = int(os.getenv("AI_RETRIES", "1"))
@@ -106,23 +105,23 @@ async def analyze_code(req: AnalyzeReq, current_user: dict | None = Depends(get_
             raise HTTPException(status_code=422, detail=str(e))
         raise HTTPException(status_code=400, detail=str(e))
     except ProviderConfigError as e:
-        if os.getenv("ALLOW_FAKE_AI", "1") == "1":
+        if allow_fake_ai():
             return build_fake_response(req.task, req.language, req.code, "keys-missing")
         raise HTTPException(status_code=400, detail=str(e))
     except asyncio.TimeoutError:
-        if os.getenv("ALLOW_FAKE_AI", "1") == "1":
+        if allow_fake_ai():
             return build_fake_response(req.task, req.language, req.code, "timeout")
         raise HTTPException(status_code=504, detail="AI provider timed out")
     except HTTPException:
         raise
     except Exception as e:
-        if os.getenv("ALLOW_FAKE_AI", "1") == "1":
+        if allow_fake_ai():
             return build_fake_response(req.task, req.language, req.code, f"error: {e}")
         raise_ai_http_error(e, "AI error")
 
 
 @router.post("/analyze-code/compare", dependencies=[Depends(enforce_daily_quota)])
-async def compare_models(req: CompareReq, current_user: dict | None = Depends(get_optional_user)):
+async def compare_models(req: CompareReq, current_user: dict = Depends(get_current_user)):
     """Run the same request across multiple AI providers and return side-by-side results."""
     try:
         all_providers = ["openai", "claude", "gemini"]
@@ -131,9 +130,8 @@ async def compare_models(req: CompareReq, current_user: dict | None = Depends(ge
         target_providers = req.providers or all_providers
 
         # Fetch user's BYO API keys (if authenticated)
-        user_api_keys = None
-        if current_user:
-            user_api_keys = await fetch_user_api_keys(current_user["id"]) or None
+        user_api_keys = await try_fetch_user_api_keys(
+            current_user["id"] if current_user else None)
 
         ai_timeout = int(os.getenv("AI_TIMEOUT", "20"))
         ai_retries = int(os.getenv("AI_RETRIES", "1"))
@@ -166,7 +164,7 @@ async def compare_models(req: CompareReq, current_user: dict | None = Depends(ge
                     )
                 except ProviderConfigError as ce:
                     dur = int((time.perf_counter() - start) * 1000)
-                    if os.getenv("ALLOW_FAKE_AI", "1") == "1":
+                    if allow_fake_ai():
                         fake = build_fake_response(req.task, req.language, req.code, "keys-missing")
                         return pname, CompareResItem(
                             status="config",
@@ -181,7 +179,7 @@ async def compare_models(req: CompareReq, current_user: dict | None = Depends(ge
                         await asyncio.sleep(min(2 ** attempt, 2))
                         continue
                     dur = int((time.perf_counter() - start) * 1000)
-                    if os.getenv("ALLOW_FAKE_AI", "1") == "1":
+                    if allow_fake_ai():
                         fake = build_fake_response(req.task, req.language, req.code, "timeout")
                         return pname, CompareResItem(
                             status="timeout",
