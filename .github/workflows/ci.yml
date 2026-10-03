@@ -57,7 +57,9 @@ jobs:
         run: pytest tests/ -v --tb=short --cov=. --cov-report=term-missing --cov-fail-under=60
 
       - name: Dependency audit (pip-audit)
-        run: pip install pip-audit && pip-audit
+        # Scoped to requirements.txt: a bare `pip-audit` also audits the
+        # runner's own pip/setuptools and fails on those (not our code).
+        run: pip install pip-audit && pip-audit -r requirements.txt
 
   docker-smoke:
     runs-on: ubuntu-24.04
