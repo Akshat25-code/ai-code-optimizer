@@ -32,9 +32,13 @@ jobs:
       - name: Type check (mypy ratchet)
         # mypy is pinned so CI counts match mypy_baseline.txt (a newer mypy
         # could report a different error count and false-fail the ratchet).
+        # Full output is always shown so a red gate names its errors.
         run: |
           pip install "mypy==2.3.0"
-          ACTUAL=$(python -m mypy . --config-file mypy.ini --no-error-summary 2>/dev/null | grep -c ": error:" || true)
+          python -m mypy . --config-file mypy.ini --no-error-summary > mypy.log 2>&1; MYPY_EXIT=$?
+          cat mypy.log
+          if [ "$MYPY_EXIT" -eq 2 ]; then echo "mypy crashed (usage/config error)"; exit 1; fi
+          ACTUAL=$(grep -c ": error:" mypy.log || true)
           BASELINE=$(cat mypy_baseline.txt)
           echo "mypy errors: $ACTUAL (baseline $BASELINE)"
           if [ "$ACTUAL" -gt "$BASELINE" ]; then echo "mypy error count increased above baseline"; exit 1; fi
@@ -59,7 +63,8 @@ jobs:
       - name: Dependency audit (pip-audit)
         # Scoped to requirements.txt: a bare `pip-audit` also audits the
         # runner's own pip/setuptools and fails on those (not our code).
-        run: pip install pip-audit && pip-audit -r requirements.txt
+        # Pinned: audit DB/behavior drifts otherwise.
+        run: pip install "pip-audit==2.10.1" && pip-audit -r requirements.txt
 
   docker-smoke:
     runs-on: ubuntu-24.04
@@ -81,7 +86,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
