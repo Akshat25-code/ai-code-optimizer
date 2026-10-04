@@ -1,4 +1,4 @@
-﻿"""
+"""
 JWT Token Management Utilities
 Cookie-based session + access token. Refresh tokens rotate on every refresh.
 """

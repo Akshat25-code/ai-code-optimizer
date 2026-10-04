@@ -1,4 +1,4 @@
-﻿"""Repository-level static analysis from uploaded file trees."""
+"""Repository-level static analysis from uploaded file trees."""
 from __future__ import annotations
 
 import hashlib

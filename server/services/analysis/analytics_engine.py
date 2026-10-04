@@ -1,4 +1,4 @@
-﻿"""Historical Analytics & Quality Tracking Engine.
+"""Historical Analytics & Quality Tracking Engine.
 
 Weighted quality scoring, tech-debt estimation, and trend analysis.
 All computations are deterministic â€” no AI.

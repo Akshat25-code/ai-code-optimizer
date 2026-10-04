@@ -1,4 +1,4 @@
-﻿"""Multi-file project analysis engine.
+"""Multi-file project analysis engine.
 
 YOUR code â€” no AI. Parses file trees, builds dependency graphs from
 import/require statements, aggregates quality metrics per file, and

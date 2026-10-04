@@ -1,4 +1,4 @@
-﻿"""Custom Rules Engine & Linting Policies."""
+"""Custom Rules Engine & Linting Policies."""
 import ast
 import logging
 import re

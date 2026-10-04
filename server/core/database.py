@@ -1,4 +1,4 @@
-﻿"""
+"""
 MongoDB Database Configuration for AI Code Optimizer
 Reads connection from environment (MONGODB_URL) and avoids hard-coded secrets.
 """

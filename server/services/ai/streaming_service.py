@@ -1,4 +1,4 @@
-﻿"""
+"""
 Streaming AI provider support â€” async generators yielding text chunks.
 
 Supports OpenAI, Anthropic (Claude), and Gemini streaming APIs.
