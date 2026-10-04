@@ -15,13 +15,24 @@ os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-testing-only")
 os.environ.setdefault("USE_DOCKER_SANDBOX", "0")
 os.environ.setdefault("ENABLE_CODE_EXECUTION", "1")
 
+import pytest
 from fastapi.testclient import TestClient
 from main import app
 from api.auth_routes import get_current_user
 
 # Execution + intelligence routes require auth: act as a signed-in user.
 TEST_USER = {"id": "test-user", "email": "test@example.com", "name": "Test"}
-app.dependency_overrides[get_current_user] = lambda: TEST_USER
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _act_as_user():
+    """Module-scoped auth without collection-time leakage: a module-level
+    override previously persisted app-globally for the whole pytest process,
+    turning other files' anonymous 401s into 200s."""
+    app.dependency_overrides[get_current_user] = lambda: TEST_USER
+    yield
+    app.dependency_overrides.pop(get_current_user, None)
+
 
 client = TestClient(app)
 
