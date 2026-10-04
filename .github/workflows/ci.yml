@@ -35,7 +35,13 @@ jobs:
         # Full output is always shown so a red gate names its errors.
         run: |
           pip install "mypy==2.3.0"
-          python -m mypy . --config-file mypy.ini --no-error-summary > mypy.log 2>&1; MYPY_EXIT=$?
+          # NOTE: GitHub bash runs with errexit (-e): mypy exits 1 whenever it
+          # reports findings, so scope set +e around it or the step dies here
+          # before the ratchet comparison below ever runs.
+          set +e
+          python -m mypy . --config-file mypy.ini --no-error-summary > mypy.log 2>&1
+          MYPY_EXIT=$?
+          set -e
           cat mypy.log
           if [ "$MYPY_EXIT" -eq 2 ]; then echo "mypy crashed (usage/config error)"; exit 1; fi
           ACTUAL=$(grep -c ": error:" mypy.log || true)
